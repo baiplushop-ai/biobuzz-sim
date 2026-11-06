@@ -1,0 +1,12 @@
+# ไม่ขึ้น GitHub: ไฟล์ใหญ่ ไฟล์ส่วนตัว และ fork ที่มี git ของตัวเอง
+biobuzz-sim/
+dist/
+node_modules/
+*.mp4
+*.mov
+*.png
+*.jpg
+*.jpeg
+*.webp
+.DS_Store
+.claude/

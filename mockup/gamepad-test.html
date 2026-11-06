@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ทดสอบจอย DualShock 4</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b; --acc:#f5c518; --ok:#3ec97a; --bad:#ff7b6b; --blue:#5b93e8; --pad:#2a3140; --on:#f5c518; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg:#f6f4ee; --surface:#fff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0; --acc:#d9a400; --ok:#1f9d55; --bad:#c9382f; --blue:#2f6fd0; --pad:#d9dde5; --on:#d9a400; } }
+:root[data-theme="light"] { --bg:#f6f4ee; --surface:#fff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0; --acc:#d9a400; --ok:#1f9d55; --bad:#c9382f; --blue:#2f6fd0; --pad:#d9dde5; --on:#d9a400; }
+* { box-sizing:border-box }
+html,body { margin:0; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; line-height:1.5 }
+.wrap { max-width:1100px; margin:0 auto; padding:20px 16px 60px }
+h1 { margin:0 0 4px; font-size:24px } h1 span { color:var(--acc) }
+.mut { color:var(--mut) } .ok { color:var(--ok) } .bad { color:var(--bad) }
+.grid { display:grid; grid-template-columns:1.2fr 1fr; gap:14px; margin-top:14px }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px }
+.card h3 { margin:0 0 8px; font-size:16px }
+.status { font-size:20px; font-weight:700 }
+.steps { list-style:none; margin:0; padding:0 } .steps li { display:flex; gap:8px; padding:6px 0; border-bottom:1px dashed var(--line) } .steps li:last-child { border:0 }
+.steps b { flex:0 0 22px; text-align:center }
+.btn { font:inherit; font-weight:700; background:var(--acc); color:#111; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; text-decoration:none; display:inline-block }
+.btn.sec { background:var(--surface2); color:var(--fg); border:1px solid var(--line); font-weight:600 }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+.prompt { font-size:28px; font-weight:700; text-align:center; padding:12px; border-radius:10px; background:var(--surface2); margin:8px 0 }
+.chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px } .chip { font-size:12px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); background:var(--surface2) } .chip.done { border-color:var(--ok); color:var(--ok) } .chip.skip { opacity:.6 }
+.meter { height:10px; border-radius:5px; background:var(--surface2); overflow:hidden; margin:3px 0 6px } .meter > div { height:100%; background:var(--acc) }
+svg .b { fill:var(--pad); stroke:var(--line); stroke-width:2; transition:fill .05s } svg .b.on { fill:var(--on) } svg text { fill:var(--fg); font-size:13px; font-family:Sarabun,sans-serif; text-anchor:middle; dominant-baseline:middle; pointer-events:none }
+svg .body { fill:var(--surface2); stroke:var(--line); stroke-width:2 }
+details { margin-top:8px } summary { cursor:pointer; font-weight:600 }
+table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:4px 6px; border-bottom:1px solid var(--line); text-align:left }
+@media (max-width:860px) { .grid { grid-template-columns:1fr } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row" style="justify-content:space-between">
+    <div><h1>ทดสอบจอย <span>DualShock 4</span></h1><div class="mut">ตรวจว่าจอยเชื่อมต่อกับเบราว์เซอร์เรียบร้อย ปุ่มครบ แกนไม่ drift ก่อนใช้ซ้อมใน simulator</div></div>
+    <div class="row"><a class="btn sec" href="../coach-training/index.html">← หน้าบทเรียน</a><a class="btn sec" href="index.html">เมนู simulator</a></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>สถานะการเชื่อมต่อ</h3>
+        <div class="status" id="connStatus">ยังไม่พบจอย</div>
+        <div class="mut" id="connDetail">จับคู่ Bluetooth แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</div>
+        <ul class="steps" style="margin-top:10px" id="checklist"></ul>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <svg viewBox="0 0 520 300" width="100%" aria-label="ผังปุ่ม DualShock 4">
+          <path class="body" d="M110 60 Q260 30 410 60 Q480 70 500 160 Q515 250 460 280 Q420 295 390 250 L360 205 Q260 195 160 205 L130 250 Q100 295 60 280 Q5 250 20 160 Q40 70 110 60 Z"/>
+          <rect class="b" id="b6" x="70" y="10" width="80" height="22" rx="8"/><text x="110" y="21">L2</text>
+          <rect class="b" id="b4" x="70" y="36" width="80" height="16" rx="6"/><text x="110" y="44">L1</text>
+          <rect class="b" id="b7" x="370" y="10" width="80" height="22" rx="8"/><text x="410" y="21">R2</text>
+          <rect class="b" id="b5" x="370" y="36" width="80" height="16" rx="6"/><text x="410" y="44">R1</text>
+          <rect class="b" id="b17" x="205" y="70" width="110" height="60" rx="8"/><text x="260" y="100">touchpad</text>
+          <rect class="b" id="b8" x="170" y="75" width="24" height="14" rx="5"/><text x="182" y="66" style="font-size:10px">Share</text>
+          <rect class="b" id="b9" x="326" y="75" width="24" height="14" rx="5"/><text x="338" y="66" style="font-size:10px">Options</text>
+          <circle class="b" id="b16" cx="260" cy="160" r="11"/><text x="260" y="160" style="font-size:10px">PS</text>
+          <rect class="b" id="b12" x="90" y="88" width="24" height="26" rx="4"/><text x="102" y="101">▲</text>
+          <rect class="b" id="b13" x="90" y="136" width="24" height="26" rx="4"/><text x="102" y="149">▼</text>
+          <rect class="b" id="b14" x="64" y="113" width="26" height="24" rx="4"/><text x="77" y="125">◀</text>
+          <rect class="b" id="b15" x="114" y="113" width="26" height="24" rx="4"/><text x="127" y="125">▶</text>
+          <circle class="b" id="b3" cx="418" cy="95" r="15"/><text x="418" y="95">△</text>
+          <circle class="b" id="b0" cx="418" cy="155" r="15"/><text x="418" y="155">✕</text>
+          <circle class="b" id="b2" cx="388" cy="125" r="15"/><text x="388" y="125">□</text>
+          <circle class="b" id="b1" cx="448" cy="125" r="15"/><text x="448" y="125">○</text>
+          <circle class="b" id="b10" cx="185" cy="195" r="30"/><circle id="ls" cx="185" cy="195" r="10" fill="var(--blue)"/><text x="185" y="240">L3</text>
+          <circle class="b" id="b11" cx="335" cy="195" r="30"/><circle id="rs" cx="335" cy="195" r="10" fill="var(--blue)"/><text x="335" y="240">R3</text>
+        </svg>
+        <div class="row mut" style="font-size:13px;justify-content:space-between"><span id="axesTxt">แกน: —</span><span id="trigTxt">L2 — · R2 —</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>ทดสอบทีละปุ่ม</h3>
+        <div class="mut" style="font-size:14px">กดปุ่มที่ขึ้นบนจอ ระบบจะไปปุ่มถัดไปเอง ปุ่ม PS กับ touchpad บางเครื่องถูกระบบปฏิบัติการจับไว้ กด "ข้าม" ได้</div>
+        <div class="prompt" id="prompt">รอจอย…</div>
+        <div class="row"><button class="btn sec" id="skip">ข้ามปุ่มนี้</button><button class="btn sec" id="restart">เริ่มทดสอบใหม่</button></div>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>ทดสอบแกนและไกปืน</h3>
+        <div style="font-size:14px">หมุนแกนซ้ายและขวาให้สุดทุกทิศ แล้วกด L2/R2 ให้สุด</div>
+        <div>แกนซ้าย สุดทุกทิศ <span id="lsTxt" class="mut">0/4</span></div><div class="meter"><div id="lsBar" style="width:0%"></div></div>
+        <div>แกนขวา สุดทุกทิศ <span id="rsTxt" class="mut">0/4</span></div><div class="meter"><div id="rsBar" style="width:0%"></div></div>
+        <div>L2 / R2 กดสุด <span id="trTxt" class="mut">—</span></div><div class="meter"><div id="trBar" style="width:0%"></div></div>
+        <h3 style="margin-top:10px">ทดสอบ drift (ปล่อยมือจากแกน 3 วิ)</h3>
+        <div class="row"><button class="btn sec" id="driftBtn">เริ่มวัด drift</button><span id="driftTxt" class="mut">ยังไม่ได้วัด</span></div>
+        <h3 style="margin-top:10px">ทดสอบการสั่น</h3>
+        <div class="row"><button class="btn sec" id="rumble">สั่น 0.5 วิ</button><span id="rumbleTxt" class="mut">บางเบราว์เซอร์ไม่รองรับ ไม่บังคับ</span></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>ผลการทดสอบ</h3>
+        <div class="status" id="result">ยังไม่ครบ</div>
+        <div class="row" style="margin-top:8px"><a class="btn" href="index.html?mode=free" id="goFree">ไปซ้อม Free Control</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>วิธีต่อจอยและแก้ปัญหา</h3>
+    <table>
+      <tr><th style="width:28%">ขั้นตอน</th><th>ทำอย่างไร</th></tr>
+      <tr><td>1. เข้าโหมดจับคู่</td><td>กดปุ่ม <b>Share</b> ค้างไว้ แล้วกด <b>PS</b> ค้างพร้อมกันประมาณ 3–5 วิ จนไฟแถบด้านหลังกะพริบถี่ ๆ สีขาว</td></tr>
+      <tr><td>2. จับคู่บน Mac</td><td>System Settings › Bluetooth › หา "Wireless Controller" › กด Connect ไฟจอยจะนิ่ง</td></tr>
+      <tr><td>2. จับคู่บน Windows</td><td>Settings › Bluetooth &amp; devices › Add device › Bluetooth › เลือก "Wireless Controller"</td></tr>
+      <tr><td>3. ให้เบราว์เซอร์เห็นจอย</td><td>เปิดหน้านี้ใน Chrome, Edge หรือ Safari เต็มแท็บ แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</td></tr>
+      <tr><td>หรือใช้สาย USB</td><td>เสียบสาย micro-USB ที่ส่งข้อมูลได้ จอยจะทำงานทันทีโดยไม่ต้องจับคู่</td></tr>
+    </table>
+    <details><summary>ปัญหาที่พบบ่อย</summary>
+      <ul>
+        <li><b>ไม่ขึ้นว่าพบจอย</b>: กดปุ่มบนจอยอีกครั้งตอนที่หน้านี้อยู่ด้านหน้า เบราว์เซอร์ไม่ส่งข้อมูลจอยให้แท็บที่ซ่อนอยู่ ถ้ายังไม่ได้ ลองปิดแล้วเปิดแท็บใหม่</li>
+        <li><b>ขึ้น mapping ไม่ใช่ "standard"</b>: ปุ่มอาจสลับตำแหน่ง แนะนำ Chrome หรือ Edge ซึ่งรองรับ DualShock 4 แบบ standard</li>
+        <li><b>จอยจับคู่แล้วแต่ไม่ตอบสนอง</b>: ลบ "Wireless Controller" ออกจาก Bluetooth แล้วจับคู่ใหม่ หรือกดปุ่ม reset รูเล็กด้านหลังจอย (ข้าง L2) ด้วยเข็มประมาณ 5 วิ</li>
+        <li><b>หลุดบ่อย</b>: ชาร์จแบตให้เต็ม ไฟแถบกะพริบช้าเป็นสัญญาณแบตต่ำ และอยู่ห่างเครื่องไม่เกิน 3–5 เมตร</li>
+        <li><b>แกน drift</b> (หุ่นขยับเองตอนไม่จับ): simulator ตัดค่าต่ำกว่า 0.10 อยู่แล้ว ถ้าวัดได้เกินนี้ให้ทำความสะอาดแกนหรือเปลี่ยนจอย</li>
+        <li><b>ปุ่ม PS เปิดเมนูของระบบ</b>: ไม่ได้ใช้ปุ่มนี้ใน simulator ข้ามได้</li>
+        <li><b>ในสนามจริง</b> จอยต่อกับ Driver Station ไม่ใช่คอมพิวเตอร์ ตรวจรุ่นจอยที่อนุญาตในหมวด OPERATOR CONSOLE ของคู่มือก่อนแข่ง</li>
+      </ul>
+    </details>
+  </div>
+</div>
+<script>
+const NAMES = { 0:'✕', 1:'○', 2:'□', 3:'△', 4:'L1', 5:'R1', 6:'L2', 7:'R2', 8:'Share', 9:'Options', 10:'L3 (กดแกนซ้าย)', 11:'R3 (กดแกนขวา)', 12:'D-pad ▲', 13:'D-pad ▼', 14:'D-pad ◀', 15:'D-pad ▶', 16:'PS', 17:'Touchpad (กด)' };
+const USE = { 0:'intake', 1:'คายลูก', 2:'โหมดช้า', 4:'ยิง NECTAR', 5:'ยิง POLLEN', 6:'วาง POLLEN', 7:'วาง NECTAR', 8:'กล้อง', 9:'เริ่ม/หยุด' };
+const ORDER = [5, 4, 7, 6, 0, 1, 2, 3, 8, 9, 12, 13, 14, 15, 10, 11, 16, 17];
+const OPTIONAL = new Set([16, 17]);
+let seq = 0, done = {}, skipped = {}, prev = [], lsDir = new Set(), rsDir = new Set(), trMax = [0, 0], drift = null, padId = null, mapping = null, everSeen = false;
+const $ = id => document.getElementById(id);
+function chips() { $('chips').innerHTML = ORDER.map(i => `<span class="chip ${done[i] ? 'done' : skipped[i] ? 'skip' : ''}">${NAMES[i]}${done[i] ? ' ✓' : skipped[i] ? ' ข้าม' : ''}</span>`).join(''); }
+function promptTxt() { while (seq < ORDER.length && (done[ORDER[seq]] || skipped[ORDER[seq]])) seq++; $('prompt').textContent = !padId ? 'รอจอย…' : seq >= ORDER.length ? 'ทดสอบปุ่มครบแล้ว ✓' : `กด ${NAMES[ORDER[seq]]}${USE[ORDER[seq]] ? ' · ' + USE[ORDER[seq]] : ''}`; }
+$('skip').onclick = () => { if (seq < ORDER.length) { skipped[ORDER[seq]] = true; promptTxt(); chips(); } };
+$('restart').onclick = () => { seq = 0; done = {}; skipped = {}; lsDir.clear(); rsDir.clear(); trMax = [0, 0]; drift = null; $('driftTxt').textContent = 'ยังไม่ได้วัด'; promptTxt(); chips(); };
+$('driftBtn').onclick = () => { if (!padId) return; drift = { t0: performance.now(), max: 0 }; $('driftTxt').textContent = 'ปล่อยมือจากแกน… กำลังวัด'; };
+$('rumble').onclick = async () => { const p = [...navigator.getGamepads()].find(g => g); const va = p && p.vibrationActuator; if (!va) { $('rumbleTxt').textContent = 'เบราว์เซอร์นี้ไม่รองรับการสั่น (ไม่เป็นไร)'; return; } try { await va.playEffect(va.type || 'dual-rumble', { duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5 }); $('rumbleTxt').textContent = 'ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่นแปลว่าใช้ได้'; } catch { $('rumbleTxt').textContent = 'สั่งสั่นไม่ได้ (ไม่บังคับ)'; } };
+const dirOf = (x, y) => { const s = new Set(); if (x > 0.9) s.add('R'); if (x < -0.9) s.add('L'); if (y > 0.9) s.add('D'); if (y < -0.9) s.add('U'); return s; };
+function check() {
+  const steps = [
+    ['เบราว์เซอร์รองรับ Gamepad API', !!navigator.getGamepads],
+    ['พบจอยที่เชื่อมต่ออยู่', !!padId],
+    ['รู้จักเป็น DualShock 4 / Wireless Controller', !!padId && /054c|wireless controller|dualshock|playstation|sony/i.test(padId)],
+    ['Mapping แบบ standard (ปุ่มตรงตำแหน่ง)', mapping === 'standard'],
+    ['ปุ่มที่ใช้ในเกมกดได้ครบ', ORDER.filter(i => !OPTIONAL.has(i)).every(i => done[i])],
+    ['แกนซ้ายและขวาไปได้สุดทุกทิศ', lsDir.size === 4 && rsDir.size === 4],
+    ['L2 / R2 กดได้สุด', trMax[0] > 0.9 && trMax[1] > 0.9],
+    ['ไม่มี drift (ค่าตอนปล่อยมือต่ำกว่า 0.10)', drift && drift.res != null && drift.res < 0.1],
+  ];
+  $('checklist').innerHTML = steps.map(([t, ok]) => `<li><b class="${ok ? 'ok' : 'mut'}">${ok ? '✓' : '•'}</b><span>${t}</span></li>`).join('');
+  const all = steps.every(s => s[1]), core = steps.slice(0, 2).every(s => s[1]) && steps[4][1];
+  $('result').textContent = all ? 'เชื่อมต่อเรียบร้อย พร้อมซ้อม ✓' : core ? 'ใช้งานได้ แต่ยังทดสอบไม่ครบ' : 'ยังไม่พร้อม';
+  $('result').className = 'status ' + (all ? 'ok' : core ? '' : 'bad');
+  try { const prevSave = JSON.parse(localStorage.getItem('dca-pad-test') || 'null'); if (all && (!prevSave || !prevSave.ok || prevSave.id !== padId)) localStorage.setItem('dca-pad-test', JSON.stringify({ ok: true, id: padId, mapping, ts: Date.now() })); } catch {}
+}
+function loop() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
+  const p = pads[0];
+  if (p) {
+    everSeen = true; padId = p.id; mapping = p.mapping;
+    $('connStatus').textContent = 'เชื่อมต่อแล้ว ✓'; $('connStatus').className = 'status ok';
+    $('connDetail').textContent = `${p.id} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${p.buttons.length} · แกน ${p.axes.length}${pads.length > 1 ? ` · พบจอย ${pads.length} ตัว (ใช้ตัวแรก)` : ''}`;
+    p.buttons.forEach((b, i) => {
+      const v = b.value > 0.5 || b.pressed, el = $('b' + i); if (el) el.classList.toggle('on', v);
+      if (v && !prev[i]) { if (seq < ORDER.length && ORDER[seq] === i) { done[i] = true; seq++; promptTxt(); chips(); } else if (ORDER.includes(i) && !done[i] && seq < ORDER.length) { /* ปุ่มอื่นยังไม่ถึงคิว */ } }
+      prev[i] = v;
+    });
+    const [lx, ly, rx, ry] = [p.axes[0] || 0, p.axes[1] || 0, p.axes[2] || 0, p.axes[3] || 0];
+    $('ls').setAttribute('cx', 185 + lx * 18); $('ls').setAttribute('cy', 195 + ly * 18); $('rs').setAttribute('cx', 335 + rx * 18); $('rs').setAttribute('cy', 195 + ry * 18);
+    dirOf(lx, ly).forEach(d => lsDir.add(d)); dirOf(rx, ry).forEach(d => rsDir.add(d));
+    const l2 = p.buttons[6]?.value ?? 0, r2 = p.buttons[7]?.value ?? 0; trMax = [Math.max(trMax[0], l2), Math.max(trMax[1], r2)];
+    $('axesTxt').textContent = `แกนซ้าย ${lx.toFixed(2)}, ${ly.toFixed(2)} · แกนขวา ${rx.toFixed(2)}, ${ry.toFixed(2)}`; $('trigTxt').textContent = `L2 ${l2.toFixed(2)} · R2 ${r2.toFixed(2)}`;
+    $('lsTxt').textContent = `${lsDir.size}/4`; $('lsBar').style.width = lsDir.size * 25 + '%'; $('rsTxt').textContent = `${rsDir.size}/4`; $('rsBar').style.width = rsDir.size * 25 + '%';
+    $('trTxt').textContent = `L2 สูงสุด ${trMax[0].toFixed(2)} · R2 สูงสุด ${trMax[1].toFixed(2)}`; $('trBar').style.width = Math.min(trMax[0], trMax[1]) * 100 + '%';
+    if (drift && drift.res == null) { drift.max = Math.max(drift.max, Math.abs(lx), Math.abs(ly), Math.abs(rx), Math.abs(ry)); const el = (performance.now() - drift.t0) / 1000; if (el >= 3) { drift.res = drift.max; $('driftTxt').textContent = `ค่าสูงสุดตอนปล่อยมือ ${drift.max.toFixed(3)} ${drift.max < 0.1 ? '· ผ่าน ✓' : '· สูงเกิน 0.10 แกนมีอาการ drift'}`; $('driftTxt').className = drift.max < 0.1 ? 'ok' : 'bad'; } else $('driftTxt').textContent = `ปล่อยมือจากแกน… ${(3 - el).toFixed(1)} วิ`; }
+  } else {
+    padId = null; mapping = null;
+    $('connStatus').textContent = everSeen ? 'จอยหลุดการเชื่อมต่อ ✗' : 'ยังไม่พบจอย'; $('connStatus').className = 'status bad';
+    $('connDetail').textContent = everSeen ? 'ตรวจแบตเตอรี่และ Bluetooth แล้วกดปุ่มบนจอยอีกครั้ง' : 'จับคู่ Bluetooth (Share + PS ค้าง) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง';
+  }
+  promptTxt(); check(); requestAnimationFrame(loop);
+}
+addEventListener('gamepadconnected', () => { everSeen = true; });
+chips(); promptTxt(); loop();
+</script>
+</body>
+</html>

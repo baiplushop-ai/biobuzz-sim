@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIOBUZZ Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0e1116; --panel:rgba(16,20,28,.88); --fg:#e9edf3; --mut:#9aa4b2; --yel:#f5c518; --red:#e4453c; --blu:#3a7bd5; --grn:#3ec97a; --line:rgba(255,255,255,.12); }
+  * { box-sizing:border-box }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; overflow:hidden }
+  canvas { display:block }
+  .hud { position:fixed; inset:0; pointer-events:none }
+  .panel { position:absolute; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; backdrop-filter:blur(6px); font-size:14px; line-height:1.35 }
+  #top { top:10px; left:50%; transform:translateX(-50%); display:flex; gap:18px; align-items:center; padding:6px 16px }
+  #top .t { font-size:30px; font-weight:700; min-width:90px; text-align:center }
+  #top .s { font-size:26px; font-weight:700; min-width:56px; text-align:center }
+  #top .red { color:var(--red) } #top .blue { color:var(--blu) }
+  #top .ph { font-size:12px; color:var(--mut); text-align:center; white-space:nowrap }
+  #left { top:10px; left:10px; width:260px; max-height:calc(100% - 70px); overflow:auto; pointer-events:auto }
+  #right { top:10px; right:10px; width:290px; max-height:calc(100% - 70px); overflow:auto; pointer-events:auto }
+  #bottom { bottom:10px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--mut); white-space:nowrap }
+  #msg { bottom:56px; left:50%; transform:translateX(-50%); font-size:17px; font-weight:600; color:var(--yel); background:transparent; border:none; text-shadow:0 1px 4px #000; text-align:center; max-width:80% }
+  .bar { height:10px; background:rgba(255,255,255,.1); border-radius:5px; overflow:hidden; margin:3px 0 8px }
+  .bar > div { height:100%; background:var(--grn); transition:width .15s }
+  .slots { display:flex; gap:5px; margin:3px 0 8px }
+  .slot { width:34px; height:22px; border:1px solid var(--line); border-radius:5px; background:rgba(255,255,255,.04) }
+  .slot.pollen { background:var(--yel) } .slot.red { background:var(--red) } .slot.blue { background:var(--blu) }
+  h4 { margin:8px 0 4px; font-size:12px; color:var(--mut); font-weight:600; text-transform:uppercase; letter-spacing:.6px }
+  h4:first-child { margin-top:0 }
+  .ok { color:var(--grn) } .bad { color:#ff7b6b } .mut { color:var(--mut) }
+  .k { display:inline-block; min-width:24px; padding:0 5px; border:1px solid var(--line); border-radius:4px; background:rgba(255,255,255,.06); font-size:12px; text-align:center; margin-right:3px }
+  label { display:flex; align-items:center; gap:6px; cursor:pointer; margin:2px 0 }
+  button { font:inherit; background:var(--yel); color:#000; border:0; border-radius:6px; padding:6px 11px; font-weight:700; cursor:pointer }
+  button.sec { background:rgba(255,255,255,.12); color:var(--fg) }
+  button:disabled { opacity:.4; cursor:not-allowed }
+  .cbtn { display:block; width:100%; margin:4px 0; text-align:left }
+  .obj { display:flex; gap:6px; margin:3px 0; font-size:13px } .obj b { width:16px; flex:0 0 16px }
+  .foul { font-size:12px; color:#ffb4a8 }
+  #overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); overflow:auto; padding:16px }
+  #overlay .box { background:#151a22; border:1px solid var(--line); border-radius:14px; padding:20px 24px; max-width:640px; width:100%; max-height:100%; overflow:auto }
+  #overlay h2 { margin:0 0 6px; color:var(--yel) } #overlay p { margin:6px 0; color:#c5ccd6; font-size:14px }
+  #overlay table { width:100%; font-size:14px; border-collapse:collapse; margin:8px 0 } #overlay td { padding:3px 0; border-bottom:1px solid var(--line) } #overlay td:last-child { text-align:right; font-weight:700 }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; margin:10px 0 }
+  .grid a { display:block; padding:8px 10px; border:1px solid var(--line); border-radius:8px; color:var(--fg); text-decoration:none; font-size:13px; background:rgba(255,255,255,.04) }
+  .grid a:hover { border-color:var(--yel) }
+  .plan { margin:8px 0; padding:8px 10px; border:1px solid var(--line); border-radius:8px }
+  #ds { left:50%; top:50%; transform:translate(-50%,-50%); width:340px; pointer-events:auto; border-color:var(--red) }
+  #ds .big { font-size:18px; font-weight:700; color:#ff7b6b }
+  #ds .row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px }
+  .hidden { display:none !important }
+  input[type=range] { width:100% }
+  @media (max-width:900px) { #left { width:200px; font-size:12px } #right { width:220px; font-size:12px } #top .t { font-size:22px } #top .s { font-size:18px } #bottom { display:none } }
+</style>
+</head>
+<body>
+<div class="hud">
+  <div id="top" class="panel">
+    <div><div class="s red" id="sRed">0</div><div class="ph">RED</div></div>
+    <div><div class="t" id="clock">2:00</div><div class="ph" id="phase">พร้อม</div></div>
+    <div><div class="s blue" id="sBlue">0</div><div class="ph">BLUE</div></div>
+  </div>
+  <div id="left" class="panel">
+    <h4>หุ่นของเรา (RED 1)</h4>
+    <div>พลังชีวิต <span id="hpTxt">100%</span></div><div class="bar"><div id="hp" style="width:100%"></div></div>
+    <div>ลูกที่ถือ <span id="carryTxt">0/4</span> <span class="mut">(G407)</span></div><div class="slots" id="slots"></div>
+    <div>Intake <b id="intakeTxt">เปิด</b> · <span id="spd">0.00</span> m/s · <span id="drvTxt"></span></div>
+    <div style="margin-top:6px">การยิง: <b id="gate">—</b></div>
+    <div id="gateWhy" style="font-size:12px" class="mut"></div>
+    <div id="pinTxt" class="bad" style="font-size:13px;font-weight:700"></div>
+    <div id="loadBox"><h4>HIVE แดง · CELL ที่หงาย</h4><div>น้ำหนักใน CELL <span id="loadTxt">0 / 7.4</span></div><div class="bar"><div id="load" style="width:0%;background:var(--yel)"></div></div></div>
+    <div>TIP แดง <b id="tips">0</b> · Human Player มี NECTAR <b id="stash">5</b> <span id="credit" class="mut"></span></div>
+    <div id="projTxt" class="mut" style="font-size:12px;margin-top:4px"></div>
+    <h4>FOUL / คำเตือน ของแดง</h4><div id="fouls" class="foul">—</div>
+  </div>
+  <div id="right" class="panel">
+    <div id="scnBox"></div>
+    <div id="coachBox"></div>
+    <div id="freeBox"></div>
+    <details id="help"><summary style="cursor:pointer;color:var(--mut)">ปุ่มควบคุม</summary>
+      <div style="margin-top:6px"><span class="k">L</span>เดิน/สไลด์ <span class="k">R</span>หมุน <span class="k">□</span>ค้าง = ช้า</div>
+      <div><span class="k">R1</span>ยิง POLLEN <span class="k">L1</span>ยิง NECTAR</div>
+      <div><span class="k">R2</span>วาง NECTAR <span class="k">L2</span>วาง POLLEN ใน FLOWER</div>
+      <div><span class="k">✕</span>intake <span class="k">○</span>คายลูก <span class="k">Share</span>กล้อง <span class="k">Options</span>เริ่ม/หยุด</div>
+      <div class="mut" style="margin-top:4px">คีย์บอร์ด: WASD เดิน · Q/E หมุน · Shift ช้า · Space ยิง POLLEN · N ยิง NECTAR · 1/2 วาง POLLEN/NECTAR · F intake · G คาย · C กล้อง · Enter เริ่ม/หยุด</div>
+      <div class="mut">ปุ่มโค้ช: B ประกาศเวลา · P ทาย TIP · Y ยืนยัน · H Human Player ปล่อย NECTAR</div>
+      <div id="padTxt" class="bad" style="margin-top:4px">ไม่พบจอย กดปุ่มใดก็ได้บน DualShock 4</div><div><a href="gamepad-test.html" target="_blank" style="color:var(--yel)">เปิดหน้าทดสอบจอย ↗</a></div>
+    </details>
+  </div>
+  <div id="ds" class="panel hidden">
+    <div class="big">Driver Station: การเชื่อมต่อหลุด</div>
+    <div class="mut" id="dsTime">หุ่นหยุดนิ่ง · 0.0 วิ</div>
+    <div class="row">
+      <button class="sec" data-ds="stop">■ Stop</button><button class="sec" data-ds="select">เลือก OpMode: TeleOp</button>
+      <button class="sec" data-ds="init">INIT</button><button class="sec" data-ds="start">▶ Start</button>
+    </div>
+  </div>
+  <div id="msg" class="panel"></div>
+  <div id="bottom" class="panel">ลากเมาส์ = หมุนกล้องรอบสนาม · ล้อเมาส์ = ซูม · <span class="k">C</span> เปลี่ยนกล้อง · <a href="../coach-training/index.html" style="color:var(--yel);pointer-events:auto">← กลับหน้าบทเรียน</a></div>
+</div>
+<div id="overlay"><div class="box" id="ovBox"></div></div>
+
+<script src="scenarios.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+// =================== ค่าคงที่ (คู่มือ 2026-27) · เมตร ===================
+const SCN_ALL = window.SCENARIOS || {};
+const Q = new URLSearchParams(location.search);
+const SCN_ID = Q.get('s'); const SCN = SCN_ID && SCN_ALL[SCN_ID] ? SCN_ALL[SCN_ID] : null;
+const F = {
+  half: 1.7929, wallH: 0.3228, tile: 24 * 0.0254, pollenR: 0.03556, nectarR: 0.04572,
+  loading: { red: [-1.7929, -1.5012, -1.1836, -0.6072], blue: [1.5012, 1.7929, 0.6072, 1.1836] },
+  garden: { red: [-1.7806, -1.2042, 1.7298, 1.7929], blue: [1.2042, 1.7806, -1.7929, -1.7298] },
+  flowers: [{ x: -0.5942, z: -1.7282 }, { x: 0.5942, z: 1.7282 }, { x: -1.7282, z: 0.5942 }, { x: 1.7282, z: -0.5942 }],
+  flowerTop: 0.546, flowerScoreBottom: 0.101, flowerPlaceLimit: 0.506,
+};
+const FL_TH = ['กำแพงหลัง', 'ฝั่งผู้ชม', 'กำแพงแดง', 'กำแพงน้ำเงิน'], TH = { red: 'แดง', blue: 'น้ำเงิน' };
+const H = { pivotY: 1.11655, pivotX: { red: -0.3237, blue: 0.3241 }, tilt: Math.PI / 6, cellDist: 0.39, cellW: 0.51, cellH: 0.36, cellD: 0.31, footX: 0.603, footHalfZ: 0.495 };
+const POINTS = { leave: 3, park: 5, tip: 20, cell: 2, bottomNectar: 5, flower: 2, garden: 1 };
+const ROBOT = { size: 0.43, vmax: 1.6, acc: 4.5, wmax: 3.2, launchH: 0.36, elevDeg: 67, gateMin: 0.9, gateMax: 1.6, gateBearingDeg: 10, intakeReach: 0.2, placeRange: 0.32, placeBearingDeg: 30, capacity: 4 };
+const HS = ROBOT.size / 2, HSW = HS * 1.08, DT = 1 / 120, G = 9.81;
+const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { pollen: 1, nectar: 2, threshold: 8 } };
+const AUTO_LEN = 30, TRANS_LEN = 8, MATCH_LEN = 158;
+const LZ_Z = { red: -0.8954, blue: 0.8954 };
+const START = { R1: [-F.half + HSW + 0.001, 0.15, -Math.PI / 2], R2: [-F.half + HSW + 0.001, -1.45, -Math.PI / 2], B1: [F.half - HSW - 0.001, -0.15, Math.PI / 2], B2: [F.half - HSW - 0.001, 1.45, Math.PI / 2] };
+const DEFAULT_OPT = { gate: true, health: true, simple: false, bots: true, fieldCentric: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
+const DEFAULT_AUTO = { R1: [{ goto: 'spot' }, { shoot: 4 }], R2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }], B1: [{ goto: 'spot' }, { shoot: 4 }], B2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }] };
+const STOP = { vx: 0, vz: 0, w: 0 };
+// ค่าการขับของหุ่นเรา (ตั้งใน Free Control ให้ตรงกับหุ่นจริง และใช้กับทุกสถานการณ์)
+const DEFAULT_DRIVE = { vmax: 1.6, acc: 4.5, wmax: 3.2, strafe: 0.8, curve: 'square', dead: 0.1 };
+let DRV = { ...DEFAULT_DRIVE }; try { Object.assign(DRV, JSON.parse(localStorage.getItem('dca-drive-cfg') || '{}')); } catch {}
+const saveDrv = () => { try { localStorage.setItem('dca-drive-cfg', JSON.stringify(DRV)); } catch {} };
+const curveFn = v => { const a = Math.abs(v), n = DRV.curve === 'linear' ? 1 : DRV.curve === 'cubic' ? 3 : 2; return Math.sign(v) * a ** n; };
+// จังหวะของหุ่น AI ให้ใกล้หุ่นจริง (cycle 4 ลูก ≈ 18–25 วิ)
+const AI = { collectV: 0.55, travelV: 0.8, pickPause: 1.5, aimPause: 1.0, shotGap: 0.8 };
+const clone = o => JSON.parse(JSON.stringify(o));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+// =================== สถานะ ===================
+function newState() {
+  const balls = [], add = (kind, color, where, ex = {}) => { balls.push({ kind, color, where, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, owner: null, cool: 0, ...ex }); return balls.length - 1; };
+  F.flowers.forEach((f, fi) => { for (let i = 0; i < 4; i++) add('pollen', 'yellow', 'flower', { flower: fi, order: i }); });
+  for (let i = 0; i < 4; i++) add('pollen', 'yellow', 'floor', { x: -1.75 + i * 0.09, y: F.pollenR, z: 1.757 });
+  for (let i = 0; i < 4; i++) add('pollen', 'yellow', 'floor', { x: 1.75 - i * 0.09, y: F.pollenR, z: -1.757 });
+  for (let i = 0; i < 3; i++) { add('nectar', 'red', 'cell', { hive: 'red' }); add('nectar', 'blue', 'cell', { hive: 'blue' }); }
+  for (let i = 0; i < 5; i++) { add('nectar', 'red', 'staged'); add('nectar', 'blue', 'staged'); }
+  const robots = ['R1', 'R2', 'B1', 'B2'].map(id => { const [x, z, th] = START[id]; return { id, alliance: id[0] === 'R' ? 'red' : 'blue', x, z, th, vx: 0, vz: 0, w: 0, cmd: { ...STOP }, hp: 100, load: [], intake: true, human: id === 'R1', off: false, dead: false, ai: { mode: id === 'R1' ? 'human' : 'offense', parkAt: 8, tasks: [], autoTasks: clone(DEFAULT_AUTO[id]) }, mem: {}, nextShot: 0, cycles: [], cycleStart: 0, hadBall: false, shotSpots: [], clamped: false, lastFwd: 0 }; });
+  robots.forEach(r => { for (let i = 0; i < 4; i++) r.load.push(add('pollen', 'yellow', 'carried', { owner: r.id })); });
+  return {
+    el: 38, mode: 'teleop', running: false, over: false, balls, robots,
+    hives: { red: { up: 1, angle: -H.tilt, tipping: null }, blue: { up: -1, angle: H.tilt, tipping: null } },
+    pts: { red: 0, blue: 0 }, fouls: [], calls: [], predict: false, sc: {}, opt: { ...DEFAULT_OPT }, ds: null, dsLog: [], pins: {}, hp: { red: { used: 0 }, blue: { used: 0 } }, events: [], hl: null, startProj: { red: 0, blue: 0 }, end: null, cool: {},
+    stats: { tips: { red: 0, blue: 0 }, autoTips: { red: 0, blue: 0 }, disrupted: { red: 0, blue: 0 }, leave: { red: 0, blue: 0 }, leavePark: { red: 0, blue: 0 }, g409: { red: 0, blue: 0 }, g408: { red: 0, blue: 0 }, shots: 0, hits: 0, blocked: 0, collisions: 0, predOk: 0, predBad: 0, wallHits: 0, flowerPulls: 0, released: { red: [], blue: [] }, placed: [] },
+    msg: '', msgT: 0, cam: 2,
+  };
+}
+let S = newState(), saved = null;
+const R1 = () => S.robots[0];
+const remaining = () => S.mode === 'free' ? 999 : MATCH_LEN - S.el;
+const phase = () => S.mode === 'free' ? 'teleop' : S.el < AUTO_LEN ? 'auto' : S.el < AUTO_LEN + TRANS_LEN ? 'trans' : 'teleop';
+const flowerOpen = () => S.mode === 'free' || S.opt.noClockRules || (phase() === 'teleop' && remaining() <= 60);
+const say = (m, t = 2.2) => { S.msg = m; S.msgT = t; };
+const active = () => S.robots.filter(r => !r.off);
+const fwdOf = r => [-Math.sin(r.th), -Math.cos(r.th)];
+const faceTo = (x, z, tx, tz) => Math.atan2(-(tx - x), -(tz - z));
+const rad = b => b.kind === 'pollen' ? F.pollenR : F.nectarR;
+const speed = r => Math.hypot(r.vx, r.vz);
+const overlapLZ = (r, c) => { const L = F.loading[c]; return r.x + HS >= L[0] && r.x - HS <= L[1] && r.z + HS >= L[2] && r.z - HS <= L[3]; };
+const wallGap = r => Math.min(F.half - HSW - Math.abs(r.x), F.half - HSW - Math.abs(r.z));
+const touchingWall = r => wallGap(r) < 0.012;
+const barBlock = (x, z, m) => [-1, 1].some(sx => Math.abs(x - sx * H.footX) < 0.025 + m && Math.abs(z) < H.footHalfZ + m);
+const tipRule = () => S.opt.simple ? TIP.simple : TIP.official;
+const cellBalls = c => S.balls.filter(b => b.where === 'cell' && b.hive === c);
+const cellLoad = c => cellBalls(c).reduce((s, b) => s + (b.kind === 'pollen' ? tipRule().pollen : tipRule().nectar), 0);
+const flowerStack = fi => S.balls.map((b, i) => i).filter(i => S.balls[i].where === 'flower' && S.balls[i].flower === fi).sort((a, b) => S.balls[a].order - S.balls[b].order);
+const stackTop = st => st.reduce((y, i) => y + 2 * rad(S.balls[i]), 0.01);
+function upCellCenter(c) { const h = S.hives[c], a = h.angle; return { x: H.pivotX[c], y: H.pivotY + Math.abs(Math.sin(a)) * H.cellDist + 0.12, z: h.up * Math.cos(a) * H.cellDist }; }
+
+// FOUL: sev = MINOR (5) / MAJOR (20) / WARN (เตือน 0 แต้ม)
+function foul(all, rule, sev, why, by = null) { const pts = sev === 'MAJOR' ? 20 : sev === 'MINOR' ? 5 : 0; S.fouls.push({ all, rule, sev, pts, why, by, rem: remaining() }); if (all === 'red') say(`${rule}: ${why}${pts ? ` (+${pts} ให้คู่แข่ง)` : ' (เตือน)'}`, 2.8); }
+const foulPts = c => S.fouls.filter(f => f.all !== c).reduce((s, f) => s + f.pts, 0);
+const total = c => S.pts[c] + foulPts(c);
+
+// =================== จุดยิง ===================
+function spots(c) {
+  const u = upCellCenter(c), out = [];
+  for (let a = 0; a < 360; a += 15) {
+    const t = a * Math.PI / 180, x = u.x + Math.cos(t) * 1.2, z = u.z + Math.sin(t) * 1.2;
+    if (Math.abs(x) > F.half - HSW - 0.03 || Math.abs(z) > F.half - HSW - 0.03 || barBlock(x, z, HS + 0.06)) continue;
+    if (F.flowers.some(f => Math.hypot(f.x - x, f.z - z) < HS + 0.15)) continue;
+    out.push({ x, z, face: faceTo(x, z, u.x, u.z) });
+  }
+  return out;
+}
+function bestSpot(r, ref) {
+  const me = ref || r, others = active().filter(o => o !== r && o !== ref); let best = null, bd = 1e9;
+  for (const s of spots(r.alliance === me.alliance ? me.alliance : me.alliance)) {
+    let d = Math.hypot(s.x - me.x, s.z - me.z);
+    if (!ref) others.forEach(o => { const t = o.mem.spot || o.mem.tg; if (Math.hypot(o.x - s.x, o.z - s.z) < 0.55 || (t && Math.hypot(t.x - s.x, t.z - s.z) < 0.55)) d += 5; });
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+function gateCheck(r, o = {}) {
+  if (r.human && !S.opt.gate) return { ok: true, why: 'ปิดกฎจุดยิง ยิงได้ทุกที่' };
+  const h = S.hives[r.alliance];
+  if (h.tipping && !(S.opt.disrupt && r.human) && !o.ignoreTip) return { ok: false, why: 'HIVE กำลังพลิก รอให้นิ่งก่อน' };
+  const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, d = Math.hypot(dx, dz), f = fwdOf(r);
+  const bearing = Math.acos(clamp((f[0] * dx + f[1] * dz) / d, -1, 1)) * 180 / Math.PI;
+  if (d < ROBOT.gateMin) return { ok: false, why: `ใกล้ HIVE เกินไป (${d.toFixed(2)} ม. ต้อง ≥ ${ROBOT.gateMin})` };
+  if (d > ROBOT.gateMax) return { ok: false, why: `ไกล HIVE เกินไป (${d.toFixed(2)} ม. ต้อง ≤ ${ROBOT.gateMax})` };
+  if (bearing > ROBOT.gateBearingDeg) return { ok: false, why: `หันไม่ตรง CELL ที่หงาย (${bearing.toFixed(0)}° ต้อง ≤ ${ROBOT.gateBearingDeg}°)` };
+  if (speed(r) > 0.1) return { ok: false, why: `ต้องหยุดนิ่งก่อนยิง (${speed(r).toFixed(2)} m/s)` };
+  if (Math.abs(r.w) > 0.17) return { ok: false, why: 'ต้องหยุดหมุนก่อนยิง' };
+  return { ok: true, why: `พร้อมยิง ระยะ ${d.toFixed(2)} ม.` };
+}
+
+// =================== การกระทำของหุ่น ===================
+function launch(r, kind, o = {}) {
+  const li = r.load.findIndex(i => S.balls[i].kind === kind);
+  if (li < 0) { if (r.human) say(kind === 'pollen' ? 'ไม่มี POLLEN ในหุ่น' : 'ไม่มี NECTAR ในหุ่น'); return false; }
+  const g = gateCheck(r, o); if (!g.ok) { if (r.human) { S.stats.blocked++; say('ยิงไม่ได้: ' + g.why); } return false; }
+  const b = S.balls[r.load.splice(li, 1)[0]];
+  const c = upCellCenter(r.alliance), f = fwdOf(r), sx = r.x + f[0] * 0.05, sz = r.z + f[1] * 0.05, sy = ROBOT.launchH;
+  const dx = c.x - sx, dz = c.z - sz, d = Math.hypot(dx, dz), h = c.y - sy, al = ROBOT.elevDeg * Math.PI / 180;
+  const v = Math.sqrt(Math.max(G * d * d / (2 * Math.cos(al) ** 2 * (d * Math.tan(al) - h)), 1)) * (1 + gauss() * 0.02);
+  const yaw = Math.atan2(dx, dz) + gauss() * 1.2 * Math.PI / 180;
+  Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al), vz: Math.cos(yaw) * v * Math.cos(al), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false });
+  if (r.id === 'R1' && S.predict) { b.pred = true; S.predict = false; }
+  if (r.id === 'R1') { S.stats.shots++; S.events.push({ type: 'shot', el: S.el, rem: remaining() }); }
+  if (!r.shotSpots.some(p => Math.hypot(p[0] - r.x, p[1] - r.z) < 0.8)) r.shotSpots.push([r.x, r.z]);
+  if (r.load.length === 0) { if (r.hadBall) r.cycles.push(+(S.el - r.cycleStart).toFixed(1)); r.cycleStart = S.el; r.hadBall = false; }
+  return true;
+}
+function takeIntoRobot(r, i) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); r.hadBall = true; if (!r.human) r.mem.busy = S.el + AI.pickPause; }
+function pickup(r) {
+  if (!r.intake || r.load.length >= ROBOT.capacity || r.dead) return;
+  const f = fwdOf(r), px = r.x + f[0] * (HS + 0.06), pz = r.z + f[1] * (HS + 0.06);
+  for (let i = 0; i < S.balls.length; i++) {
+    const b = S.balls[i];
+    if (b.where !== 'floor' || b.cool > 0 || Math.hypot(b.x - px, b.z - pz) >= ROBOT.intakeReach) continue;
+    if (!r.human && b.kind === 'nectar' && b.color !== r.alliance) continue;
+    takeIntoRobot(r, i);
+    if (b.kind === 'nectar' && b.color !== r.alliance) { S.stats.g408[r.alliance]++; foul(r.alliance, 'G408', 'WARN', 'ห้ามควบคุม NECTAR ของคู่แข่ง คายออกทันที', r.id); }
+    SCN?.onPickup?.(api, r, i);
+    return;
+  }
+  if (!r.human || !(r.lastFwd > 0.15) || S.el < (r.mem.pullCool || 0)) return;
+  for (let fi = 0; fi < 4; fi++) {
+    const fl = F.flowers[fi]; if (Math.hypot(fl.x - px, fl.z - pz) > ROBOT.intakeReach + 0.06) continue;
+    const st = flowerStack(fi);
+    if (st.length && S.balls[st[0]].kind === 'pollen') { takeIntoRobot(r, st[0]); S.stats.flowerPulls++; r.mem.pullCool = S.el + 0.7; say('ดึง POLLEN ออกทางก้น FLOWER (G418)', 1.4); }
+    else if (st.length) say('ลูกล่างสุดเป็น NECTAR ดึงออกทางก้นไม่ได้', 1.4);
+    return;
+  }
+}
+function place(r, kind) {
+  const li = r.load.findIndex(i => S.balls[i].kind === kind);
+  if (li < 0) { if (r.human) say(kind === 'pollen' ? 'ไม่มี POLLEN ในหุ่น' : 'ไม่มี NECTAR ในหุ่น'); return false; }
+  const f = fwdOf(r); let best = null;
+  F.flowers.forEach((fl, fi) => { const dx = fl.x - r.x, dz = fl.z - r.z, dd = Math.hypot(dx, dz), br = Math.acos(clamp((f[0] * dx + f[1] * dz) / dd, -1, 1)) * 180 / Math.PI; if (dd - HS < ROBOT.placeRange && br < ROBOT.placeBearingDeg) best = fi; });
+  if (best === null) { if (r.human) say('ต้องชิด FLOWER และหันหน้าเข้าหา'); return false; }
+  const st = flowerStack(best);
+  if (stackTop(st) > F.flowerPlaceLimit) { if (r.human) say('FLOWER เต็มแล้ว ดึง POLLEN ออกทางก้นก่อน'); return false; }
+  const bi = r.load.splice(li, 1)[0];
+  Object.assign(S.balls[bi], { where: 'flower', owner: null, flower: best, order: (st.length ? S.balls[st.at(-1)].order : -1) + 1 });
+  if (kind === 'nectar' && !flowerOpen()) foul(r.alliance, 'G410', 'MAJOR', 'ใส่ NECTAR ใน FLOWER ก่อนเหลือ 1:00', r.id);
+  S.stats.placed.push({ id: r.id, kind, fi: best, rem: remaining() });
+  if (r.human) say(`วาง ${kind === 'pollen' ? 'POLLEN' : 'NECTAR'} ใน FLOWER ${FL_TH[best]}`, 1.4);
+  return true;
+}
+function ejectBall(r, bi) { const k = r.load.indexOf(bi); if (k < 0) return; r.load.splice(k, 1); const f = fwdOf(r), b = S.balls[bi]; Object.assign(b, { where: 'floor', owner: null, cool: 1.0, x: clamp(r.x + f[0] * (HS + 0.3), -F.half + 0.05, F.half - 0.05), y: rad(b), z: clamp(r.z + f[1] * (HS + 0.3), -F.half + 0.05, F.half - 0.05), vx: 0, vy: 0, vz: 0 }); }
+function eject(r) { if (r.load.length) ejectBall(r, r.load.at(-1)); }
+
+// =================== HIVE ===================
+function startTip(c) { const h = S.hives[c]; if (h.tipping) return; h.tipping = { from: h.angle, to: -h.angle, t: 0, revert: false, dumped: false }; }
+function completeTip(c) {
+  S.stats.tips[c]++; S.pts[c] += POINTS.tip; if (phase() === 'auto') S.stats.autoTips[c]++;
+  S.events.push({ type: 'tip', c, rem: remaining(), el: S.el, staged: S.balls.filter(b => b.where === 'staged' && b.color === c).length - (S.stats.tips[c] - 1 - S.hp[c].used) });
+  if (c === 'red') say(`HIVE แดง TIP! +20 (รวม ${S.stats.tips.red} ครั้ง)`, 2.4);
+  if (!(S.opt.hpManual && c === 'red')) release(c, 1, true);
+  SCN?.onTip?.(api, c);
+}
+function dumpCell(c) {
+  const h = S.hives[c];
+  cellBalls(c).forEach(b => Object.assign(b, { where: 'air', target: null, spill: true, pred: false, x: H.pivotX[c] + (Math.random() - 0.5) * 0.4, y: H.pivotY - 0.05, z: h.up * H.cellDist, vx: (Math.random() - 0.5) * 0.8, vy: Math.random() * 0.5, vz: h.up * (0.3 + Math.random() * 0.6) }));
+}
+function stepHives(dt) {
+  for (const c of ['red', 'blue']) {
+    const h = S.hives[c], tp = h.tipping; if (!tp) continue;
+    tp.t += dt / 0.9; const k = Math.min(1, tp.t), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+    h.angle = tp.from + (tp.to - tp.from) * e;
+    if (!tp.revert && k >= 0.55 && !tp.dumped) { tp.dumped = true; dumpCell(c); }
+    if (k >= 1) { h.tipping = null; if (!tp.revert) { h.up = -h.up; completeTip(c); } }
+  }
+}
+
+// =================== Human Player ===================
+function release(c, n, auto) {
+  for (let k = 0; k < n; k++) {
+    const st = S.balls.find(b => b.where === 'staged' && b.color === c); if (!st) { if (!auto && c === 'red') say('Human Player ไม่มี NECTAR เหลือแล้ว'); return; }
+    const L = F.loading[c], x = c === 'red' ? L[0] + 0.1 : L[1] - 0.1, z = (L[2] + L[3]) / 2 + (Math.random() - 0.5) * 0.3;
+    if (!auto && c === 'red') {
+      const credit = S.stats.tips[c] - S.hp[c].used, endgame = S.mode === 'free' || (phase() === 'teleop' && remaining() <= 60);
+      if (!endgame) { if (credit > 0) S.hp[c].used++; else foul(c, 'G426', 'MINOR', 'ปล่อย NECTAR ก่อนได้สิทธิ์ (ต้องมี TIP ใหม่ หรือเหลือ ≤ 1:00)', 'HP'); }
+      if (active().some(r => Math.abs(r.x - x) < HS + 0.05 && Math.abs(r.z - z) < HS + 0.05)) foul(c, 'G427', 'MINOR', 'NECTAR ต้องแตะพื้นใน LOADING ZONE ก่อนแตะหุ่น', 'HP');
+    }
+    Object.assign(st, { where: 'floor', x, y: F.nectarR, z, cool: 0.3 });
+    S.stats.released[c].push({ rem: remaining(), el: S.el, auto: !!auto });
+    if (c === 'red' && !auto) say('Human Player ปล่อย NECTAR 1 ลูกใน LOADING ZONE', 1.5);
+  }
+}
+
+// =================== การขับ ===================
+function humanCmd(r, inp) {
+  if (S.mode !== 'free' && phase() === 'trans' && (Math.abs(inp.fwd) + Math.abs(inp.strafe) + Math.abs(inp.turn) > 0.3) && S.el > (S.cool.g403 || 0)) { S.cool.g403 = S.el + 2.5; foul('red', 'G403', 'WARN', 'ช่วงเปลี่ยน AUTO → TELEOP ห้ามขยับหุ่น', r.id); }
+  const drive = S.running && phase() === 'teleop' && !(S.ds && S.ds.state !== 'ok') && !r.dead;
+  if (!drive) { r.cmd = { ...STOP }; r.lastFwd = 0; return; }
+  const spd = DRV.vmax * (S.opt.speed || 1) * (inp.slow ? 0.4 : 1), f = fwdOf(r), rt = [Math.cos(r.th), -Math.sin(r.th)];
+  let fx = curveFn(inp.fwd), sx = curveFn(inp.strafe); const mag = Math.hypot(fx, sx); if (mag > 1) { fx /= mag; sx /= mag; }
+  // ทิศที่ต้องการในพิกัดสนาม → แยกเป็นแกนหน้า/ข้างของหุ่น แล้วลดแกนข้างตามประสิทธิภาพการสไลด์ของ mecanum
+  const dx = S.opt.fieldCentric ? fx : f[0] * fx + rt[0] * sx, dz = S.opt.fieldCentric ? sx : f[1] * fx + rt[1] * sx;
+  const vf = dx * f[0] + dz * f[1], vr = (dx * rt[0] + dz * rt[1]) * DRV.strafe;
+  const vx = (f[0] * vf + rt[0] * vr) * spd, vz = (f[1] * vf + rt[1] * vr) * spd;
+  r.cmd = { vx, vz, w: -curveFn(inp.turn) * DRV.wmax * (inp.slow ? 0.5 : 1) };
+  r.lastFwd = vf * spd / ROBOT.vmax;
+}
+function applyCmd(r, dt) {
+  const ax = r.cmd.vx - r.vx, az = r.cmd.vz - r.vz, am = Math.hypot(ax, az), lim = (r.human ? DRV.acc : ROBOT.acc) * dt;
+  if (am > lim) { r.vx += ax / am * lim; r.vz += az / am * lim; } else { r.vx = r.cmd.vx; r.vz = r.cmd.vz; }
+  r.w += clamp(r.cmd.w - r.w, -12 * dt, 12 * dt);
+  r.th = wrap(r.th + r.w * dt); r.x += r.vx * dt; r.z += r.vz * dt; r.clamped = false;
+  const sp = speed(r), lw = F.half - HSW;
+  const wallHit = () => { if (r.human && sp > 0.6 && S.el > (S.cool.wall || 0)) { S.cool.wall = S.el + 0.8; S.stats.wallHits++; } };
+  if (Math.abs(r.x) > lw) { wallHit(); r.x = Math.sign(r.x) * lw; r.vx = 0; r.clamped = true; }
+  if (Math.abs(r.z) > lw) { wallHit(); r.z = Math.sign(r.z) * lw; r.vz = 0; r.clamped = true; }
+  for (const sx of [-1, 1]) {
+    const bx = [sx * H.footX - 0.025, sx * H.footX + 0.025, -H.footHalfZ, H.footHalfZ];
+    if (r.x + HS > bx[0] && r.x - HS < bx[1] && r.z + HS > bx[2] && r.z - HS < bx[3]) {
+      if (r.human && sp > 1.0 && S.el > (S.cool.g417 || 0)) { S.cool.g417 = S.el + 2; foul('red', 'G417', 'WARN', 'ชนโครง HIVE แรงเกินไป', r.id); }
+      const px = r.x < sx * H.footX ? bx[0] - HS - r.x : bx[1] + HS - r.x, pz = r.z < 0 ? bx[2] - HS - r.z : bx[3] + HS - r.z;
+      if (Math.abs(px) < Math.abs(pz)) { r.x += px; r.vx = 0; } else { r.z += pz; r.vz = 0; } r.clamped = true;
+    }
+  }
+  for (const fl of F.flowers) { const dx = r.x - fl.x, dz = r.z - fl.z, d = Math.hypot(dx, dz), m = HS + 0.09; if (d < m && d > 0) { r.x += dx / d * (m - d); r.z += dz / d * (m - d); r.clamped = true; } }
+  for (const b of S.balls) if (b.where === 'floor') { const dx = b.x - r.x, dz = b.z - r.z, d = Math.hypot(dx, dz), m = HS + rad(b); if (d < m && d > 0.001) { b.x = clamp(b.x + dx / d * (m - d), -F.half + rad(b), F.half - rad(b)); b.z = clamp(b.z + dz / d * (m - d), -F.half + rad(b), F.half - rad(b)); } }
+}
+function stepContacts(dt) {
+  const rs = active();
+  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+    const a = rs[i], b = rs[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = ROBOT.size * 1.05, key = a.id + '-' + b.id;
+    S.cool[key] = Math.max(0, (S.cool[key] ?? 0) - dt);
+    if (d < m && d > 0.001) {
+      const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;
+      if (S.cool[key] <= 0 && Math.hypot(a.vx - b.vx, a.vz - b.vz) > 0.25) {
+        S.cool[key] = 0.6; S.stats.collisions++; S.events.push({ type: 'hit', a: a.id, b: b.id, rem: remaining() });
+        if (S.opt.health) { a.hp = Math.max(0, a.hp - 2); b.hp = Math.max(0, b.hp - 2); }
+        if (a.human || b.human) say(`ชน ${a.human ? b.id : a.id}! ${S.opt.health ? 'เลือด −2%' : ''}`, 1.2);
+      }
+    }
+  }
+  for (const a of rs) for (const b of rs) {
+    if (a.alliance === b.alliance) continue;
+    const key = a.id + '>' + b.id, p = S.pins[key] ??= { t: 0, fouls: 0, sep: 0 }, d = Math.hypot(b.x - a.x, b.z - a.z);
+    const push = (a.cmd.vx * (b.x - a.x) + a.cmd.vz * (b.z - a.z)) / Math.max(d, 1e-3) > 0.15;
+    if (d < ROBOT.size * 1.08 && push && (b.clamped || speed(b) < 0.12)) {
+      p.t += dt; p.sep = 0; const n = p.t > 3 ? 1 + Math.floor((p.t - 3) / 3) : 0;
+      if (!a.human && p.t > 1.5) { a.mem.escUntil = S.el + 1.0; a.mem.escDir = Math.atan2(a.z - b.z, a.x - b.x); a.mem.ball = null; a.mem.spot = null; }
+      while (p.fouls < n) { p.fouls++; foul(a.alliance, 'G421', 'MAJOR', `PIN ${b.id} เกิน 3 วิ`, a.id); }
+    } else if (d > ROBOT.size + 0.61) { p.sep += dt; if (p.sep > 3) { p.t = 0; p.fouls = 0; } }
+    else if (p.t > 0) p.sep = Math.max(p.sep, 0.001);
+  }
+}
+
+// =================== ลูกบอล ===================
+function stepBalls(dt) {
+  for (const b of S.balls) {
+    if (b.cool > 0) b.cool -= dt;
+    if (b.where !== 'air') continue;
+    b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    const r = rad(b);
+    if (b.spill && b.y < 0.34 && b.y > 0.15) for (const rb of active()) {
+      if (Math.abs(b.x - rb.x) < HS && Math.abs(b.z - rb.z) < HS) {
+        if (rb.human && speed(rb) < 0.15 && !rb.dead) { S.stats.g409[rb.alliance]++; foul(rb.alliance, 'G409', 'WARN', 'ห้ามรับลูกที่ร่วงจาก HIVE ก่อนแตะพื้น', rb.id); }
+        const dx = b.x - rb.x, dz = b.z - rb.z, d = Math.hypot(dx, dz) || 1; b.x = rb.x + dx / d * (HS + 0.08); b.z = rb.z + dz / d * (HS + 0.08); b.vx = dx / d * 0.5; b.vz = dz / d * 0.5; b.spill = false; break;
+      }
+    }
+    if (b.vy < 0 && b.target) {
+      const c = b.target, h = S.hives[c], u = upCellCenter(c);
+      if (Math.abs(b.x - u.x) < H.cellW / 2 && Math.abs(b.z - u.z) < H.cellD / 2 + 0.05 && b.y < u.y + 0.1 && b.y > u.y - 0.15) {
+        if (h.tipping) {
+          const tp = h.tipping;
+          if (S.opt.disrupt && !tp.revert && tp.t < 0.45 && Math.random() < 0.65) {
+            h.tipping = { from: h.angle, to: tp.from, t: 0, revert: true, dumped: true }; S.stats.disrupted[c]++;
+            const pop = cellBalls(c)[0]; if (pop) Object.assign(pop, { where: 'air', target: null, spill: true, x: u.x, y: u.y - 0.1, z: u.z, vx: (Math.random() - 0.5), vy: 0.6, vz: h.up * 0.6 });
+            if (c === 'red') say('TIP ถูกขัด! มีลูกเข้า CELL ระหว่าง HIVE กำลังพลิก ต้องยิงเพิ่ม', 3);
+          }
+          Object.assign(b, { target: null, spill: true, vx: (Math.random() - 0.5) * 0.6, vz: h.up * 0.5, vy: 0.3 }); if (b.pred) { S.stats.predBad++; b.pred = false; }
+          continue;
+        }
+        Object.assign(b, { where: 'cell', hive: c, vx: 0, vy: 0, vz: 0 }); if (b.shooter === 'R1') S.stats.hits++;
+        SCN?.onCellHit?.(api, b);
+        const willTip = cellLoad(c) >= tipRule().threshold;
+        if (b.pred) { willTip ? S.stats.predOk++ : S.stats.predBad++; say(willTip ? 'ทายถูก! ลูกนี้ TIP' : 'ทายผิด ลูกนี้ยังไม่ TIP', 1.8); b.pred = false; }
+        if (willTip) startTip(c);
+        continue;
+      }
+    }
+    if (b.y <= r) {
+      const wasShot = b.shooter === 'R1' && !b.spill;
+      Object.assign(b, { y: r, where: 'floor', vx: 0, vy: 0, vz: 0, x: clamp(b.x, -F.half + r, F.half - r), z: clamp(b.z, -F.half + r, F.half - r) });
+      if (b.pred) { S.stats.predBad++; b.pred = false; say('ทายผิด ลูกนี้ยิงพลาด', 1.6); }
+      else if (wasShot) say('ยิงพลาด', 1);
+      b.spill = false; b.shooter = null; b.target = null;
+    }
+  }
+}
+
+// =================== AI ===================
+function route(r, tx, tz) {
+  const m = HS + 0.08;
+  for (const sx of [-1, 1]) {
+    const bx = sx * H.footX, x0 = bx - 0.025 - m, x1 = bx + 0.025 + m, z0 = -H.footHalfZ - m, z1 = H.footHalfZ + m;
+    let hit = false; for (let i = 1; i <= 20; i++) { const t = i / 20, x = r.x + (tx - r.x) * t, z = r.z + (tz - r.z) * t; if (x > x0 && x < x1 && z > z0 && z < z1) { hit = true; break; } }
+    if (hit) { const ez = (r.z + tz) >= 0 ? z1 + 0.06 : z0 - 0.06, inside = Math.abs(r.z) < Math.abs(ez) - 0.03, ref = inside ? r.x : tx; return [ref < bx ? x0 - 0.02 : x1 + 0.02, ez]; }
+  }
+  return [tx, tz];
+}
+function driveTo(r, tx, tz, face, maxV = 1.2) {
+  const [wx, wz] = route(r, tx, tz), dx = wx - r.x, dz = wz - r.z, d = Math.hypot(dx, dz), v = Math.min(maxV, d * 2.2);
+  const e = wrap((face ?? r.th) - r.th);
+  r.cmd = { vx: d > 0.005 ? dx / d * v : 0, vz: d > 0.005 ? dz / d * v : 0, w: clamp(e * 4, -ROBOT.wmax, ROBOT.wmax) };
+  return Math.hypot(tx - r.x, tz - r.z) < 0.07 && Math.abs(e) < 0.08;
+}
+function parkSlot(r) { const sg = r.alliance === 'red' ? 1 : -1, base = sg * -(F.half - HSW - 0.001), second = r.id.endsWith('2'); return { x: base + (second ? sg * 0.25 : 0), z: LZ_Z[r.alliance] + (second ? -sg * 0.38 : 0), face: r.alliance === 'red' ? -Math.PI / 2 : Math.PI / 2 }; }
+function goPark(r) { const p = parkSlot(r); driveTo(r, p.x, p.z, p.face, 1.3); }
+function stuck(r) {
+  const m = r.mem;
+  if (m.escUntil && S.el < m.escUntil) { r.cmd = { vx: Math.cos(m.escDir) * 0.8, vz: Math.sin(m.escDir) * 0.8, w: 0 }; return true; }
+  if (!m.chk || S.el - m.chk.t > 1.5) { if (m.chk && m.chk.want && Math.hypot(r.x - m.chk.x, r.z - m.chk.z) < 0.08) { m.escUntil = S.el + 0.8; m.escDir = Math.random() * 6.28; m.ball = null; m.spot = null; } m.chk = { t: S.el, x: r.x, z: r.z, want: Math.hypot(r.cmd.vx, r.cmd.vz) > 0.3 }; }
+  return false;
+}
+function aiShoot(r) {
+  const m = r.mem, up = S.hives[r.alliance].up;
+  if (!m.spot || S.el > (m.spotT || 0) + 5 || m.spotUp !== up) { m.spot = bestSpot(r); m.spotT = S.el; m.spotUp = up; }
+  if (!m.spot) { r.cmd = { ...STOP }; return; }
+  const arrived = driveTo(r, m.spot.x, m.spot.z, m.spot.face, AI.travelV);
+  if (arrived && speed(r) < 0.1 && Math.abs(r.w) < 0.15) {
+    r.cmd = { ...STOP }; if (m.aimT == null) m.aimT = S.el + AI.aimPause;
+    if (S.el >= m.aimT && S.el >= r.nextShot) { const k = r.load.some(i => S.balls[i].kind === 'pollen') ? 'pollen' : 'nectar'; r.nextShot = S.el + (launch(r, k) ? AI.shotGap : 0.3); }
+  } else m.aimT = null;
+  if (!r.load.length) { m.shooting = false; m.spot = null; m.aimT = null; }
+}
+function aiOffense(r) {
+  const m = r.mem, rem = remaining();
+  if (S.mode !== 'free' && rem <= (r.ai.parkAt ?? 8)) return goPark(r);
+  if (stuck(r)) return;
+  if (r.load.length && (r.load.length >= ROBOT.capacity || m.noBall || rem < 15 || m.shooting)) { m.shooting = true; return aiShoot(r); }
+  const ok = i => { const b = S.balls[i]; return b && b.where === 'floor' && !(b.cool > 0) && !((m.black || {})[i] > S.el) && (b.kind === 'pollen' || b.color === r.alliance) && !barBlock(b.x, b.z, 0.04); };
+  if (m.ball == null || !ok(m.ball)) {
+    m.ball = null; let bd = 1e9;
+    S.balls.forEach((b, i) => { if (!ok(i)) return; if (active().some(o => o !== r && o.mem.ball === i)) return; const d = Math.hypot(b.x - r.x, b.z - r.z); if (d < bd) { bd = d; m.ball = i; } });
+    m.ballT = S.el;
+  }
+  if (m.ball == null) { m.noBall = true; if (r.load.length) { m.shooting = true; return aiShoot(r); } r.cmd = { ...STOP }; return; }
+  m.noBall = false;
+  if (S.el - m.ballT > 6) { (m.black ??= {})[m.ball] = S.el + 8; m.ball = null; return; }
+  const b = S.balls[m.ball], dx = b.x - r.x, dz = b.z - r.z, d = Math.hypot(dx, dz) || 1, face = faceTo(r.x, r.z, b.x, b.z);
+  if (Math.abs(wrap(face - r.th)) > 0.6 && d < 0.6) { r.cmd = { vx: 0, vz: 0, w: clamp(wrap(face - r.th) * 4, -3, 3) }; return; }
+  driveTo(r, b.x - dx / d * HS * 0.6, b.z - dz / d * HS * 0.6, face, AI.collectV);
+}
+function targetOf(r) { return S.robots.find(o => o.id === (r.ai.target || 'R1') && !o.off); }
+function aiDefend(r) {
+  const m = r.mem, t = targetOf(r); if (!t) return aiOffense(r);
+  if (remaining() <= (r.ai.parkAt ?? 8)) return goPark(r);
+  const d = Math.hypot(t.x - r.x, t.z - r.z) || 1;
+  m.ct = d < ROBOT.size * 1.12 ? (m.ct || 0) + DT : 0;
+  if (m.ct > 2) { m.back = S.el + 1.4; m.ct = 0; }
+  if (m.back && S.el < m.back) { r.cmd = { vx: (r.x - t.x) / d, vz: (r.z - t.z) / d, w: 0 }; return; }
+  if (!m.spot || S.el > (m.spotT || 0) + 1.2) { m.spot = bestSpot(r, t); m.spotT = S.el; }
+  if (m.spot) driveTo(r, m.spot.x, m.spot.z, faceTo(m.spot.x, m.spot.z, t.x, t.z), 0.9);
+}
+function aiBump(r) { // ไล่ประกบหุ่นเป้าหมาย แล้วพุ่งชนเป็นระยะ (ฝึกหลบการปะทะ)
+  const m = r.mem, t = targetOf(r); if (!t) return aiOffense(r);
+  if (remaining() <= (r.ai.parkAt ?? 8)) return goPark(r);
+  if (m.next == null) m.next = S.el + 4 + Math.random() * 3;
+  const dx = t.x - r.x, dz = t.z - r.z, d = Math.hypot(dx, dz) || 1;
+  if (m.ph === 'charge') { m.ct = d < ROBOT.size * 1.12 ? (m.ct || 0) + DT : 0; if (S.el - m.ps > 2.5 || m.ct > 1.2) { m.ph = 'back'; m.ps = S.el; } else { driveTo(r, t.x, t.z, faceTo(r.x, r.z, t.x, t.z), 1.5); return; } }
+  if (m.ph === 'back') { if (S.el - m.ps > 1.2) { m.ph = null; m.next = S.el + 6 + Math.random() * 5; } else { r.cmd = { vx: -dx / d, vz: -dz / d, w: 0 }; return; } }
+  if (S.el >= m.next && d < 1.6) { m.ph = 'charge'; m.ps = S.el; m.ct = 0; if (t.human) say(`${r.id} กำลังพุ่งเข้าชน!`, 1.2); return; }
+  const hx = t.x - dx / d * 1.1, hz = t.z - dz / d * 1.1; driveTo(r, clamp(hx, -1.5, 1.5), clamp(hz, -1.5, 1.5), faceTo(r.x, r.z, t.x, t.z), 1.0);
+}
+function aiTraffic(r) { // วิ่งเข้าออก LOADING ZONE ฝั่งตัวเอง (ฝึก Human Player)
+  const m = r.mem; if (!m.wp || Math.hypot(m.wp[0] - r.x, m.wp[1] - r.z) < 0.1 || S.el > (m.wpT || 0) + 6) {
+    const inLZ = Math.random() < 0.5, sg = r.alliance === 'red' ? 1 : -1;
+    m.wp = inLZ ? [sg * -(F.half - HSW - 0.01), LZ_Z[r.alliance] + (Math.random() - 0.5) * 0.3] : [sg * -(0.95 + Math.random() * 0.5), (Math.random() - 0.5) * 2.4]; m.wpT = S.el;
+  }
+  driveTo(r, m.wp[0], m.wp[1], r.th, 0.9);
+}
+function resolveGoto(r, t) {
+  if (t.goto === 'spot') return bestSpot(r) || { x: r.x, z: r.z, face: r.th };
+  if (t.goto === 'lzAuto') { const sg = r.alliance === 'red' ? 1 : -1; return { x: sg * -(F.half - HSW - 0.06), z: LZ_Z[r.alliance], face: r.th }; }
+  if (t.goto === 'park') return parkSlot(r);
+  return { x: t.goto[0], z: t.goto[1], face: t.face ?? r.th };
+}
+function runTasks(r) {
+  const L = phase() === 'auto' && S.mode !== 'free' ? r.ai.autoTasks : r.ai.tasks, m = r.mem, t = L && L[0];
+  if (!t) { r.cmd = { ...STOP }; return; }
+  const next = () => { L.shift(); m.tw = m.tg = m.ts = null; m.sh = 0; };
+  if (t.wait != null) { r.cmd = { ...STOP }; if (m.tw == null) m.tw = S.el + t.wait; if (S.el >= m.tw) next(); return; }
+  if (t.waitUntil != null) { r.cmd = { ...STOP }; if (remaining() <= t.waitUntil) next(); return; }
+  if (t.goto) { if (!m.tg) { m.tg = resolveGoto(r, t); m.ts = S.el; } const arr = driveTo(r, m.tg.x, m.tg.z, m.tg.face, t.speed || 1.2); if ((arr && speed(r) < 0.08) || S.el - m.ts > (t.timeout || 9)) next(); return; }
+  if (t.shoot) {
+    r.cmd = { ...STOP }; if (m.ts == null) m.ts = S.el;
+    if (S.el >= r.nextShot && speed(r) < 0.1 && Math.abs(r.w) < 0.15) { const k = r.load.some(i => S.balls[i].kind === 'pollen') ? 'pollen' : 'nectar'; if (launch(r, k, { ignoreTip: t.ignoreTip })) { m.sh = (m.sh || 0) + 1; r.nextShot = S.el + 0.45; } else r.nextShot = S.el + 0.2; }
+    if (m.sh >= t.shoot || !r.load.length || S.el - m.ts > 10) next(); return;
+  }
+  if (t.place) { r.cmd = { ...STOP }; place(r, t.place); next(); return; }
+  if (t.mode) { r.ai.mode = t.mode; next(); return; }
+  next();
+}
+function aiStep(r) {
+  if (!r.dead && r.ai.dieAt != null && remaining() <= r.ai.dieAt) { r.dead = true; if (r.alliance === 'red') say(`${r.id} ดับ! หยุดนิ่งอยู่กลางสนาม`, 3); }
+  if (r.dead) { r.cmd = { ...STOP }; return; }
+  if (r.mem.busy > S.el) { r.cmd = { ...STOP }; return; }
+  if (r.mem.escUntil && S.el < r.mem.escUntil && phase() === 'teleop') { r.cmd = { vx: Math.cos(r.mem.escDir) * 0.8, vz: Math.sin(r.mem.escDir) * 0.8, w: 0 }; return; }
+  const ph = phase();
+  if (ph === 'trans') { r.cmd = { ...STOP }; return; }
+  if (ph === 'auto' && S.mode !== 'free') { runTasks(r); return; }
+  if (!S.opt.bots && !r.ai.force) { r.cmd = { ...STOP }; return; }
+  ({ offense: aiOffense, defend: aiDefend, bump: aiBump, script: runTasks, park: goPark, traffic: aiTraffic }[r.ai.mode] || (x => { x.cmd = { ...STOP }; }))(r);
+}
+
+// =================== คะแนน ===================
+function assess(commit) {
+  const sc = { red: 0, blue: 0 }, det = [], owners = [], bottoms = [], park = {};
+  for (const c of ['red', 'blue']) { const n = cellBalls(c).length; if (n) { sc[c] += n * POINTS.cell; det.push([`ลูกค้างใน CELL ${TH[c]} ${n} ลูก`, n * POINTS.cell, c]); } }
+  F.flowers.forEach((fl, fi) => {
+    let y = 0.01; const scoring = [];
+    for (const i of flowerStack(fi)) { const b = S.balls[i], h = 2 * rad(b); if (y < F.flowerTop && y + h > F.flowerScoreBottom) scoring.push(b); y += h; }
+    const nect = scoring.filter(b => b.kind === 'nectar'); owners[fi] = null; bottoms[fi] = null;
+    if (nect.length) { const ow = nect.at(-1).color, bo = nect[0].color; owners[fi] = ow; bottoms[fi] = bo; sc[ow] += scoring.length * POINTS.flower; sc[bo] += POINTS.bottomNectar; det.push([`FLOWER ${FL_TH[fi]}: เจ้าของ ${TH[ow]} ${scoring.length}×2`, scoring.length * 2, ow], [`FLOWER ${FL_TH[fi]}: Bottom Bonus ${TH[bo]}`, 5, bo]); }
+  });
+  for (const c of ['red', 'blue']) { const g = F.garden[c], n = S.balls.filter(b => b.where === 'floor' && b.x >= g[0] - rad(b) && b.x <= g[1] + rad(b) && b.z >= g[2] - rad(b) && b.z <= g[3] + rad(b)).length; if (n) { sc[c] += n; det.push([`GARDEN ${TH[c]} ${n} ลูก`, n, c]); } }
+  for (const r of active()) if (overlapLZ(r, r.alliance)) { sc[r.alliance] += POINTS.park; park[r.id] = true; det.push([`PARK ${r.id}`, 5, r.alliance]); }
+  if (commit) for (const c of ['red', 'blue']) { S.pts[c] += sc[c]; S.stats.leavePark[c] += 5 * active().filter(r => r.alliance === c && park[r.id]).length; }
+  return { sc, det, owners, bottoms, park };
+}
+const projected = () => { const a = assess(false); return { red: total('red') + a.sc.red, blue: total('blue') + a.sc.blue }; };
+function endAuto() {
+  for (const r of active()) {
+    if (!touchingWall(r)) { S.pts[r.alliance] += POINTS.leave; S.stats.leave[r.alliance]++; S.stats.leavePark[r.alliance] += 3; }
+    if (overlapLZ(r, r.alliance)) { S.pts[r.alliance] += POINTS.park; S.stats.leavePark[r.alliance] += 5; }
+  }
+  say(`จบ AUTO · LEAVE แดง ${S.stats.leave.red}/2 · TIP ใน AUTO ${S.stats.autoTips.red} · ห้ามขยับหุ่น 8 วิ`, 3);
+}
+
+// =================== API สำหรับสถานการณ์ ===================
+const api = {
+  get S() { return S; }, F, H, ROBOT, say, remaining,
+  robot: id => S.robots.find(r => r.id === id),
+  bench(id) { const r = api.robot(id); r.off = true; r.load.forEach(i => { S.balls[i].where = 'out'; S.balls[i].owner = null; }); r.load = []; },
+  pos(id, x, z, th) { const r = api.robot(id); Object.assign(r, { x, z, vx: 0, vz: 0, w: 0 }); if (th != null) r.th = th; },
+  faceCell(id) { const r = api.robot(id), u = upCellCenter(r.alliance); r.th = faceTo(r.x, r.z, u.x, u.z); },
+  ai(id, cfg) { const r = api.robot(id); if (id === 'R1') r.human = cfg.mode === 'human'; Object.assign(r.ai, cfg, { force: true }); if (cfg.tasks) r.ai.tasks = clone(cfg.tasks); },
+  parkNow(id) { const r = api.robot(id), p = parkSlot(r); api.pos(id, p.x, p.z, p.face); Object.assign(r.ai, { mode: 'idle', force: true }); },
+  resetBalls() { S.balls.forEach(b => { b.where = 'out'; b.owner = null; }); S.robots.forEach(r => r.load = []); },
+  take(kind, color) {
+    const m = b => b.kind === kind && (kind === 'pollen' || b.color === color);
+    for (const w of ['out', 'floor', 'staged', 'flower']) { const i = S.balls.findIndex((b, k) => m(b) && b.where === w && k !== S.hl); if (i >= 0) return i; }
+    return -1;
+  },
+  floor(kind, color, x, z) { const i = api.take(kind, color); if (i >= 0) Object.assign(S.balls[i], { where: 'floor', x, z, y: rad(S.balls[i]), vx: 0, vy: 0, vz: 0, owner: null, cool: 0 }); return i; },
+  carry(id, list) {
+    const r = api.robot(id); r.load.forEach(i => { S.balls[i].where = 'out'; S.balls[i].owner = null; }); r.load = [];
+    list.forEach(k => { const [kind, col] = k === 'pollen' ? ['pollen', 'yellow'] : ['nectar', k.split(':')[1] || r.alliance]; const i = api.take(kind, col); if (i >= 0) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); } });
+  },
+  cell(c, nP, nN) { cellBalls(c).forEach(b => b.where = 'out'); const put = (k, col) => { const i = api.take(k, col); if (i >= 0) Object.assign(S.balls[i], { where: 'cell', hive: c }); }; for (let i = 0; i < nN; i++) put('nectar', c); for (let i = 0; i < nP; i++) put('pollen', 'yellow'); },
+  flower(fi, list) { S.balls.filter(b => b.where === 'flower' && b.flower === fi).forEach(b => b.where = 'out'); list.forEach((k, o) => { const [kind, col] = k === 'pollen' ? ['pollen', 'yellow'] : ['nectar', k.split(':')[1]]; const i = api.take(kind, col); if (i >= 0) Object.assign(S.balls[i], { where: 'flower', flower: fi, order: o }); }); },
+  staged(c, n) { const cur = S.balls.filter(b => b.where === 'staged' && b.color === c); cur.slice(n).forEach(b => b.where = 'out'); for (let k = cur.length; k < n; k++) { const i = api.take('nectar', c); if (i >= 0) S.balls[i].where = 'staged'; } },
+  randomPoints(n, R, minD = 0.15) {
+    const pts = []; let tries = 0;
+    while (pts.length < n && tries++ < 4000) {
+      const x = R.xMin + Math.random() * (R.xMax - R.xMin), z = R.zMin + Math.random() * (R.zMax - R.zMin);
+      if (barBlock(x, z, 0.06) || F.flowers.some(f => Math.hypot(f.x - x, f.z - z) < 0.2) || active().some(r => Math.hypot(r.x - x, r.z - z) < HS + 0.15) || pts.some(p => Math.hypot(p[0] - x, p[1] - z) < minD)) continue;
+      pts.push([x, z]);
+    }
+    return pts;
+  },
+  scatter(n, R) { api.randomPoints(n, R, 0.12).forEach(p => api.floor('pollen', 'yellow', p[0], p[1])); },
+  highlight(i) { S.hl = i ?? null; },
+  vanish(i) { const b = S.balls[i], o = b.owner && api.robot(b.owner); if (o) o.load = o.load.filter(k => k !== i); Object.assign(b, { where: 'out', owner: null }); },
+  ejectBall, setLead(c, n) { const p = projected(), o = c === 'red' ? 'blue' : 'red', diff = n - (p[c] - p[o]); if (diff >= 0) S.pts[c] += diff; else S.pts[o] -= diff; },
+  callsHit: (targets, tol) => targets.filter(t => S.calls.some(c => Math.abs(c - t) <= tol)).length,
+  foulCount: (c, rule) => S.fouls.filter(f => f.all === c && (!rule || f.rule === rule)).length,
+  tips: c => S.stats.tips[c], tipsAfter: (c, rem) => S.events.filter(e => e.type === 'tip' && e.c === c && e.rem <= rem).length,
+  hits: (a, b, after = Infinity) => S.events.filter(e => e.type === 'hit' && ((e.a === a && e.b === b) || (e.a === b && e.b === a)) && e.rem <= after).length,
+  disconnect() { S.ds = { state: 'lost', t0: S.el, wrong: 0 }; R1().cmd = { ...STOP }; say('Driver Station หลุดการเชื่อมต่อ! โค้ชรีสตาร์ทด่วน', 3); },
+  forceTip(c) { startTip(c); },
+  startPoseCheck(id) {
+    const r = api.robot(id), res = { preload: r.load.length === 4 && r.load.every(i => S.balls[i].kind === 'pollen'), wall: touchingWall(r), side: r.x + HS <= 0, outLZ: !overlapLZ(r, 'red'), noFlower: F.flowers.every(f => Math.hypot(f.x - r.x, f.z - r.z) > HS + 0.1) };
+    say(['preload', 'wall', 'side', 'outLZ', 'noFlower'].every(k => res[k]) ? 'ตำแหน่งเริ่มถูกกติกา G304' : 'ตำแหน่งเริ่มยังไม่ถูกกติกา ดูผลด้านล่าง', 3); return res;
+  },
+  releases: c => S.stats.released[c].filter(x => !x.auto),
+  tipEvents: c => S.events.filter(e => e.type === 'tip' && e.c === c),
+  stagedLeft: c => S.balls.filter(b => b.where === 'staged' && b.color === c).length,
+  overlapLZ: (id, c) => overlapLZ(api.robot(id), c),
+};
+
+// =================== Three.js ฉาก ===================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight); renderer.shadowMap.enabled = true;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0e1116); scene.fog = new THREE.Fog(0x0e1116, 9, 16);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 50);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x202020, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(3, 6, 2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 }); scene.add(sun);
+const M = {
+  tileA: new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.95 }), tileB: new THREE.MeshStandardMaterial({ color: 0x7d838a, roughness: 0.95 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0x1b1f26, roughness: 0.7 }), frame: new THREE.MeshStandardMaterial({ color: 0x2a2e36, metalness: 0.5, roughness: 0.5 }),
+  red: new THREE.MeshStandardMaterial({ color: 0xe4453c, roughness: 0.6 }), blue: new THREE.MeshStandardMaterial({ color: 0x3a7bd5, roughness: 0.6 }), yellow: new THREE.MeshStandardMaterial({ color: 0xf5c518, roughness: 0.5 }),
+  tapeRed: new THREE.MeshBasicMaterial({ color: 0xff3b30 }), tapeBlue: new THREE.MeshBasicMaterial({ color: 0x2f7cff }),
+  clearRed: new THREE.MeshStandardMaterial({ color: 0xe4453c, transparent: true, opacity: 0.45, side: THREE.DoubleSide }), clearBlue: new THREE.MeshStandardMaterial({ color: 0x3a7bd5, transparent: true, opacity: 0.45, side: THREE.DoubleSide }),
+  pipe: new THREE.MeshStandardMaterial({ color: 0xd8dde3, roughness: 0.4 }), zone: new THREE.MeshBasicMaterial({ color: 0xf5c518, transparent: true, opacity: 0.12 }), dark: new THREE.MeshStandardMaterial({ color: 0x15181d }), dead: new THREE.MeshStandardMaterial({ color: 0x555555 }),
+};
+const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) { const t = box(F.tile - 0.004, 0.015, F.tile - 0.004, (i + j) % 2 ? M.tileA : M.tileB, -F.half + F.tile * (i + 0.5), -0.0075, -F.half + F.tile * (j + 0.5)); t.castShadow = false; }
+const wt = 0.03;
+[[0, -F.half - wt / 2], [0, F.half + wt / 2]].forEach(([x, z]) => box(2 * F.half + 2 * wt, F.wallH, wt, M.wall, x, F.wallH / 2, z));
+[[-F.half - wt / 2, 0], [F.half + wt / 2, 0]].forEach(([x, z]) => box(wt, F.wallH, 2 * F.half, M.wall, x, F.wallH / 2, z));
+const tape = (b, mat, y = 0.002) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(b[1] - b[0], b[3] - b[2]), mat); m.rotation.x = -Math.PI / 2; m.position.set((b[0] + b[1]) / 2, y, (b[2] + b[3]) / 2); scene.add(m); return m; };
+const outline = (b, mat) => { const w = 0.025; tape([b[0], b[1], b[2], b[2] + w], mat); tape([b[0], b[1], b[3] - w, b[3]], mat); tape([b[0], b[0] + w, b[2], b[3]], mat); tape([b[1] - w, b[1], b[2], b[3]], mat); };
+outline(F.loading.red, M.tapeRed); outline(F.loading.blue, M.tapeBlue); tape(F.garden.red, M.tapeRed); tape(F.garden.blue, M.tapeBlue);
+tape([-2.5, -1.85, -1.23, 1.23], new THREE.MeshBasicMaterial({ color: 0x3a1a1a }), -0.01); tape([1.85, 2.5, -1.23, 1.23], new THREE.MeshBasicMaterial({ color: 0x1a2238 }), -0.01);
+tape([-0.005, 0.005, -F.half, F.half], new THREE.MeshBasicMaterial({ color: 0x444a55 }), 0.001);
+for (const sx of [-1, 1]) {
+  box(0.05, 0.055, 2 * H.footHalfZ, M.frame, sx * H.footX, 0.0275, 0);
+  for (const sz of [-1, 1]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.19, 0.03), M.frame); const a = new THREE.Vector3(sx * 0.598, 0.03, sz * 0.46), b = new THREE.Vector3(sx * 0.325, 1.08, 0); leg.position.copy(a).lerp(b, 0.5); leg.lookAt(b); leg.rotateX(Math.PI / 2); leg.castShadow = true; scene.add(leg); }
+}
+box(0.7, 0.05, 0.05, M.frame, 0, 1.105, 0); box(0.72, 0.16, 0.01, M.dark, 0, 1.0, 0.03).castShadow = false;
+const hiveG = {};
+for (const c of ['red', 'blue']) {
+  const g = new THREE.Group(); g.position.set(H.pivotX[c], H.pivotY, 0); scene.add(g); hiveG[c] = g;
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 2 * H.cellDist), M.frame));
+  for (const sz of [-1, 1]) {
+    const cell = new THREE.Group(); cell.position.set(0, 0, sz * H.cellDist); g.add(cell); const mat = c === 'red' ? M.clearRed : M.clearBlue;
+    const back = new THREE.Mesh(new THREE.BoxGeometry(H.cellW, H.cellH, 0.012), mat); back.position.set(0, H.cellH / 2 - 0.04, -sz * H.cellD / 2); cell.add(back);
+    for (const sx of [-1, 1]) { const side = new THREE.Mesh(new THREE.BoxGeometry(0.012, H.cellH, H.cellD), mat); side.position.set(sx * H.cellW / 2, H.cellH / 2 - 0.04, 0); cell.add(side); }
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(H.cellW, 0.012, H.cellD), c === 'red' ? M.red : M.blue); floor.position.set(0, -0.04, 0); cell.add(floor);
+    const tag = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), new THREE.MeshBasicMaterial({ color: 0xffffff })); tag.rotation.x = Math.PI / 2; tag.position.set(0, -0.047, 0); cell.add(tag);
+  }
+}
+F.flowers.forEach(f => {
+  const ring = (y, r, tube) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 8, 32), M.pipe); m.rotation.x = Math.PI / 2; m.position.set(f.x, y, f.z); scene.add(m); };
+  ring(F.flowerTop, 0.065, 0.008); ring(0.101, 0.065, 0.008); ring(0.006, 0.05, 0.006);
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, p = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, F.flowerTop - 0.101, 8), M.pipe); p.position.set(f.x + Math.cos(a) * 0.062, (F.flowerTop + 0.101) / 2, f.z + Math.sin(a) * 0.062); scene.add(p); }
+  const tw = Math.abs(f.x) > Math.abs(f.z) ? [Math.sign(f.x), 0] : [0, Math.sign(f.z)]; const bs = box(0.17, 0.032, 0.02, M.pipe, f.x + tw[0] * 0.075, F.flowerTop + 0.016, f.z + tw[1] * 0.075); bs.rotation.y = tw[0] ? Math.PI / 2 : 0;
+});
+const ballMeshes = S.balls.map(b => { const m = new THREE.Mesh(new THREE.SphereGeometry(rad(b), 20, 14), b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue)); m.castShadow = true; scene.add(m); return m; });
+function makeLabel(text, color) { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, 0, 256, 96); x.font = 'bold 60px Sarabun, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 48); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.set(0.4, 0.15, 1); return s; }
+const robotMeshes = S.robots.map(r => {
+  const g = new THREE.Group(); scene.add(g);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(ROBOT.size, 0.18, ROBOT.size), M.dark); body.position.y = 0.11; body.castShadow = true; g.add(body);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(ROBOT.size + 0.01, 0.06, ROBOT.size + 0.01), r.alliance === 'red' ? M.red : M.blue); plate.position.y = 0.05; g.add(plate);
+  const hop = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.2), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 })); hop.position.set(0, 0.27, 0.02); g.add(hop);
+  const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.16, 16), M.pipe); sh.rotation.x = Math.PI / 2 - ROBOT.elevDeg * Math.PI / 180; sh.position.set(0, 0.34, -0.1); g.add(sh);
+  const intake = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, ROBOT.size - 0.08, 12), new THREE.MeshStandardMaterial({ color: 0x4ad66d })); intake.rotation.z = Math.PI / 2; intake.position.set(0, 0.05, -HS - 0.02); g.add(intake);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 16), M.frame); w.rotation.z = Math.PI / 2; w.position.set(sx * 0.19, 0.052, sz * 0.168); g.add(w); }
+  const carried = []; for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), M.yellow); m.position.set(-0.06 + i * 0.04, 0.3, 0.02); g.add(m); carried.push(m); }
+  const label = makeLabel(r.id, r.alliance === 'red' ? '#e4453c' : '#3a7bd5'), deadLabel = makeLabel('ดับ', '#bbbbbb'); label.position.y = deadLabel.position.y = 0.5; deadLabel.visible = false; g.add(label); g.add(deadLabel);
+  g.userData = { carried, intake, body, label, deadLabel }; return g;
+});
+const gateRing = new THREE.Mesh(new THREE.RingGeometry(ROBOT.gateMin, ROBOT.gateMax, 48), M.zone); gateRing.rotation.x = -Math.PI / 2; gateRing.position.y = 0.003; scene.add(gateRing);
+const hlRing = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.012, 8, 32), new THREE.MeshBasicMaterial({ color: 0x3ef07a })); hlRing.rotation.x = Math.PI / 2; scene.add(hlRing);
+const markGroup = new THREE.Group(); scene.add(markGroup); // วงแหวนเป้าหมายของสถานการณ์ (เช่น จุดผ่านของ Driver)
+let markKey = '';
+function syncMarks() {
+  const marks = S.sc.marks || [], key = JSON.stringify(marks.map(m => [m.x, m.z, m.r, m.done, m.cur]));
+  if (key === markKey) return; markKey = key; markGroup.clear();
+  marks.forEach(m => { const ring = new THREE.Mesh(new THREE.RingGeometry((m.r || 0.25) - 0.03, m.r || 0.25, 40), new THREE.MeshBasicMaterial({ color: m.done ? 0x3ec97a : m.cur ? 0xf5c518 : 0x667080, transparent: true, opacity: m.cur ? 0.95 : 0.5, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(m.x, 0.006, m.z); markGroup.add(ring); if (m.label) { const l = makeLabel(m.label, m.cur ? '#f5c518' : '#9aa4b2'); l.position.set(m.x, 0.25, m.z); l.scale.set(0.3, 0.11, 1); markGroup.add(l); } });
+}
+const tmpV = new THREE.Vector3();
+function sync() {
+  S.robots.forEach((r, i) => {
+    const g = robotMeshes[i]; g.visible = !r.off; g.position.set(r.x, 0, r.z); g.rotation.y = r.th;
+    g.userData.carried.forEach((m, k) => { const bi = r.load[k]; m.visible = bi != null; if (bi != null) { const b = S.balls[bi]; m.material = b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue); } });
+    g.userData.intake.material.color.set(r.intake ? 0x4ad66d : 0x555555); g.userData.body.material = r.dead ? M.dead : M.dark; g.userData.deadLabel.visible = r.dead; g.userData.label.visible = !r.dead;
+  });
+  for (const c of ['red', 'blue']) hiveG[c].rotation.x = S.hives[c].angle;
+  const slot = { red: 0, blue: 0 }, staged = { red: 0, blue: 0 };
+  S.balls.forEach((b, i) => {
+    const m = ballMeshes[i], r = rad(b);
+    if (b.where === 'carried' || b.where === 'out') { m.visible = false; return; } m.visible = true;
+    if (b.where === 'cell') { const h = S.hives[b.hive], n = slot[b.hive]++; tmpV.set(-0.18 + (n % 5) * 0.09, r + Math.floor(n / 5) * 0.09, h.up * (H.cellDist - 0.1 + (n % 2) * 0.07)); hiveG[b.hive].localToWorld(tmpV); m.position.copy(tmpV); }
+    else if (b.where === 'flower') { const fl = F.flowers[b.flower]; let y = 0.01; for (const k of flowerStack(b.flower)) { const rr = rad(S.balls[k]); if (k === i) { y += rr; break; } y += 2 * rr; } m.position.set(fl.x, y, fl.z); }
+    else if (b.where === 'staged') { const n = staged[b.color]++; m.position.set(b.color === 'red' ? -2.15 : 2.15, F.nectarR, (b.color === 'red' ? -0.3 : 0.3) + (b.color === 'red' ? 1 : -1) * n * 0.12); }
+    else m.position.set(b.x, b.y, b.z);
+  });
+  const u = upCellCenter('red'); gateRing.position.set(u.x, 0.003, u.z); gateRing.visible = S.opt.gate && !R1().off && R1().human;
+  const hb = S.hl != null ? S.balls[S.hl] : null; hlRing.visible = !!hb && hb.where === 'floor'; if (hlRing.visible) hlRing.position.set(hb.x, 0.01, hb.z);
+  syncMarks();
+}
+
+// =================== กล้อง ===================
+let orbit = { yaw: 0.6, pitch: 0.9, dist: 5.5 }, drag = null;
+renderer.domElement.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; if (S.opt.lockCam == null) S.cam = 1; });
+addEventListener('pointerup', () => drag = null);
+addEventListener('pointermove', e => { if (!drag) return; orbit.yaw -= (e.clientX - drag[0]) * 0.005; orbit.pitch = clamp(orbit.pitch + (e.clientY - drag[1]) * 0.005, 0.15, 1.45); drag = [e.clientX, e.clientY]; });
+addEventListener('wheel', e => { orbit.dist = clamp(orbit.dist + e.deltaY * 0.004, 2, 10); });
+const camPos = new THREE.Vector3(-3.2, 1.6, 0), camLook = new THREE.Vector3(0.3, 0.4, 0);
+function updateCamera(dt) {
+  const r = R1(), cm = S.opt.lockCam ?? S.cam; let p, l;
+  if (cm === 0) { const f = fwdOf(r); p = new THREE.Vector3(r.x - f[0] * 1.6, 1.25, r.z - f[1] * 1.6); l = new THREE.Vector3(r.x + f[0] * 1.2, 0.3, r.z + f[1] * 1.2); }
+  else if (cm === 1) { p = new THREE.Vector3(Math.sin(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist, Math.sin(orbit.pitch) * orbit.dist + 0.3, Math.cos(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist); l = new THREE.Vector3(0, 0.3, 0); }
+  else { p = new THREE.Vector3(-3.3, 1.65, 0); l = new THREE.Vector3(0.3, 0.35, 0); }
+  const k = 1 - Math.exp(-dt * (cm === 1 ? 20 : 6)); camPos.lerp(p, k); camLook.lerp(l, k); camera.position.copy(camPos); camera.lookAt(camLook);
+}
+const CAM_TH = ['ตามหลังหุ่น', 'รอบสนาม', 'Driver Station'];
+
+// =================== อินพุต ===================
+const keys = new Set(), once = new Set();
+addEventListener('keydown', e => { if (e.target.closest?.('input,select,textarea')) return; if (e.repeat) return; keys.add(e.code); once.add(e.code); if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); });
+addEventListener('keyup', e => keys.delete(e.code));
+const padWas = [];
+const EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'start', 'cam', 'call', 'predict', 'confirm', 'hp'];
+const emptyInput = () => ({ fwd: 0, strafe: 0, turn: 0, slow: false, ...Object.fromEntries(EDGE.map(k => [k, false])), padName: null });
+function readInput() {
+  const o = emptyInput(), kd = c => keys.has(c), kp = c => once.has(c);
+  o.fwd = (kd('KeyW') ? 1 : 0) - (kd('KeyS') ? 1 : 0); o.strafe = (kd('KeyD') ? 1 : 0) - (kd('KeyA') ? 1 : 0); o.turn = (kd('KeyE') ? 1 : 0) - (kd('KeyQ') ? 1 : 0); o.slow = kd('ShiftLeft') || kd('ShiftRight');
+  Object.assign(o, { shootP: kp('Space'), shootN: kp('KeyN'), placeP: kp('Digit1'), placeN: kp('Digit2'), intakeT: kp('KeyF'), eject: kp('KeyG'), start: kp('Enter'), cam: kp('KeyC'), call: kp('KeyB'), predict: kp('KeyP'), confirm: kp('KeyY'), hp: kp('KeyH') });
+  if (S.mode === 'free') { if (kp('KeyK')) saveCk(); if (kp('KeyL')) loadCk(); if (kp('KeyR')) resetFree(); }
+  const pad = [...(navigator.getGamepads?.() || [])].find(g => g && g.connected);
+  if (pad) {
+    o.padName = pad.id; const sh = v => { const d = DRV.dead, a = Math.abs(v); return a < d ? 0 : Math.sign(v) * ((a - d) / (1 - d)); };
+    const b = i => (pad.buttons[i]?.value ?? 0) > 0.5, ed = i => { const v = b(i), r = v && !padWas[i]; padWas[i] = v; return r; };
+    o.fwd = o.fwd || sh(-pad.axes[1]); o.strafe = o.strafe || sh(pad.axes[0]); o.turn = o.turn || sh(pad.axes[2]); o.slow = o.slow || b(2);
+    o.shootP ||= ed(5); o.shootN ||= ed(4); o.placeN ||= ed(7); o.placeP ||= ed(6); o.intakeT ||= ed(0); o.eject ||= ed(1); o.start ||= ed(9); o.cam ||= ed(8);
+  }
+  once.clear(); return o;
+}
+
+// =================== Tick ===================
+function tick(dt, inp) {
+  const r = R1();
+  if (inp.start) togglePause();
+  if (inp.cam && S.opt.lockCam == null) { S.cam = (S.cam + 1) % 3; say('กล้อง: ' + CAM_TH[S.cam], 1); }
+  if (!S.running) { S.msgT -= dt; return; }
+  if (inp.call) { S.calls.push(remaining()); say(`📣 ประกาศเวลา ${fmt(remaining())}`, 1.2); }
+  if (inp.predict) { S.predict = true; say('🎯 ทาย: ลูกต่อไปจะ TIP', 1.4); }
+  if (inp.confirm) SCN?.onConfirm?.(api);
+  if (inp.hp && (S.opt.hpManual || S.mode === 'free')) release('red', 1, false);
+  const canAct = r.human && !r.off && phase() === 'teleop' && !(S.ds && S.ds.state !== 'ok') && !r.dead;
+  if (canAct) {
+    if (inp.intakeT) { r.intake = !r.intake; say('Intake ' + (r.intake ? 'เปิด' : 'ปิด'), 1); }
+    if (inp.eject) eject(r);
+    if (inp.shootP) launch(r, 'pollen'); if (inp.shootN) launch(r, 'nectar'); if (inp.placeP) place(r, 'pollen'); if (inp.placeN) place(r, 'nectar');
+  }
+  const prevEl = S.el, prevRem = remaining();
+  if (S.mode !== 'free') S.el += dt;
+  if (S.mode !== 'free' && prevEl < AUTO_LEN && S.el >= AUTO_LEN) endAuto();
+  if (S.mode !== 'free' && prevEl < AUTO_LEN + TRANS_LEN && S.el >= AUTO_LEN + TRANS_LEN) say('TELEOP เริ่ม! คนขับควบคุมได้แล้ว', 2);
+  if (S.mode !== 'free' && prevRem > 60 && remaining() <= 60) {
+    say('เหลือ 1:00 · FLOWER เปิด · Human Player ปล่อย NECTAR ที่เหลือได้ทั้งหมด', 3);
+    for (const c of ['red', 'blue']) if (!(S.opt.hpManual && c === 'red')) release(c, 5, true);
+  }
+  for (const rb of active()) { if (rb.human) { if (phase() === 'auto' && S.mode !== 'free') runTasks(rb); else humanCmd(rb, inp); } else aiStep(rb); applyCmd(rb, dt); }
+  stepContacts(dt); stepBalls(dt); stepHives(dt);
+  for (const rb of active()) pickup(rb);
+  SCN?.tick?.(api, dt);
+  if (S.mode !== 'free' && remaining() <= 0) endMatch();
+  else if (SCN?.end?.(api)) endMatch();
+  S.msgT -= dt;
+}
+function fmt(s) { if (s >= 900) return '∞'; s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+// =================== เริ่ม/จบ ===================
+function applyOpts(o) { S.opt = { ...DEFAULT_OPT, ...o }; S.cam = S.opt.lockCam ?? 2; }
+function startScenario(plan) {
+  S = newState(); applyOpts(SCN.opt || {}); S.mode = 'scenario';
+  S.el = SCN.startEl != null ? SCN.startEl : (SCN.phase === 'auto' || SCN.phase === 'full') ? 0 : MATCH_LEN - (SCN.start ?? 120);
+  if (SCN.plans) for (const id of ['R1', 'R2']) { const opts = SCN.plans[id]; api.robot(id).ai.autoTasks = clone(opts[plan?.[id] ?? 0].tasks); }
+  SCN.setup(api);
+  S.startProj = projected(); S.robots.forEach(r => r.cycleStart = S.el);
+  S.running = true; ov(false); renderPanels(); say('เริ่ม: ' + SCN.title, 2);
+}
+function startMatch(kind, plan) {
+  S = newState(); applyOpts({}); S.mode = kind === 'free' ? 'free' : 'match';
+  S.el = kind === 'full' ? 0 : MATCH_LEN - 120;
+  if (kind === 'full' && plan) for (const id of ['R1', 'R2']) api.robot(id).ai.autoTasks = clone(SCN_ALL['3.5']?.plans?.[id]?.[plan[id] ?? 0]?.tasks || DEFAULT_AUTO[id]);
+  if (kind === 'free') { S.opt.bots = false; S.robots.slice(1).forEach(rb => api.bench(rb.id)); }  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
+  S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: บังคับหุ่นได้ทุกฟังก์ชันเหมือนหุ่นจริง ไม่จับเวลา' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
+}
+function togglePause() { if (S.over) { SCN ? showIntro() : showMenu(); return; } if (!$('overlay').classList.contains('hidden')) return; S.running = !S.running; say(S.running ? 'เล่นต่อ' : 'หยุดชั่วคราว (กด Options/Enter เพื่อเล่นต่อ)', 1.5); }
+function evalObj() { return (SCN?.obj || []).map(o => { try { return !!o.ok(S, api); } catch { return false; } }); }
+function endMatch() {
+  if (S.over) return; S.running = false; S.over = true;
+  const a = assess(true); S.end = { score: { red: total('red'), blue: total('blue') }, park: a.park, owners: a.owners, bottoms: a.bottoms, det: a.det };
+  const ok = evalObj(), allOk = ok.length > 0 && ok.every(Boolean);
+  if (SCN) sendResult({ id: SCN_ID, title: SCN.title, ok, allOk, ts: Date.now(), score: S.end.score });
+  showResult(ok, allOk);
+}
+function sendResult(r) {
+  try { const all = JSON.parse(localStorage.getItem('dca-sim-results') || '{}'), p = all[r.id] || {}; all[r.id] = { last: r, best: r.allOk ? r : (p.best || null), passes: (p.passes || 0) + (r.allOk ? 1 : 0), streak: r.allOk ? (p.streak || 0) + 1 : 0 }; localStorage.setItem('dca-sim-results', JSON.stringify(all)); } catch {}
+  try { window.opener?.postMessage({ type: 'dca-sim-result', result: r }, '*'); } catch {}
+}
+
+// =================== Overlay ===================
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function ov(show, html) { $('overlay').classList.toggle('hidden', !show); if (html != null) $('ovBox').innerHTML = html; }
+function plansHtml(P) { return P ? ['R1', 'R2'].map(id => `<div class="plan"><b>แผน AUTO ของ ${id}</b>${P[id].map((p, k) => `<label><input type="radio" name="plan${id}" value="${k}" ${k === 0 ? 'checked' : ''}> ${esc(p.label)}</label>`).join('')}</div>`).join('') : ''; }
+const readPlan = () => ({ R1: +(document.querySelector('input[name=planR1]:checked')?.value || 0), R2: +(document.querySelector('input[name=planR2]:checked')?.value || 0) });
+const ROLE_TH = { coach: 'Drive Coach', driver: 'Driver', hp: 'Human Player' };
+function showIntro() {
+  ov(true, `<div class="mut">สถานการณ์ฝึก ${esc(SCN_ID)}${SCN.role ? ' · บทบาท ' + ROLE_TH[SCN.role] : ''}</div><h2>${esc(SCN.title)}</h2><p>${esc(SCN.brief)}</p>
+    <h4>เป้าหมาย (ต้องผ่านทุกข้อในรอบเดียว)</h4>${SCN.obj.map(o => `<div class="obj"><b>•</b><span>${esc(o.t)}</span></div>`).join('')}
+    ${plansHtml(SCN.plans)}
+    <p class="mut">ต่อจอย DualShock 4 แล้วกดปุ่มใดก็ได้ 1 ครั้ง หรือใช้คีย์บอร์ด (ดู "ปุ่มควบคุม" ในแผงขวา)</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="go">เริ่มสถานการณ์</button><a href="index.html"><button class="sec">เมนู simulator</button></a></div>`);
+  $('go').onclick = () => startScenario(readPlan());
+}
+function showMenu() {
+  const groups = { coach: [], driver: [], hp: [] };
+  Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
+  ov(true, `<h2>BIOBUZZ Trainer · 3D</h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วย DualShock 4 หรือคีย์บอร์ด</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><a href="gamepad-test.html"><button class="sec">🎮 ทดสอบจอย</button></a></div>
+    ${Object.entries(groups).filter(([, l]) => l.length).map(([k, l]) => `<h4>สถานการณ์ฝึก · ${ROLE_TH[k]}</h4><div class="grid">${l.join('')}</div>`).join('')}
+    <p><a href="../coach-training/index.html" style="color:var(--yel)">← ไปหน้าบทเรียน (เลือกบทบาท Coach / Driver / Human Player)</a></p>`);
+  $('mFree').onclick = () => startMatch('free'); $('mTele').onclick = () => startMatch('tele'); $('mFull').onclick = () => startMatch('full', { R1: 0, R2: 0 });
+}
+function showResult(ok, allOk) {
+  const sc = S.end.score, acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0;
+  const objHtml = SCN ? `<h4>เป้าหมาย</h4>${SCN.obj.map((o, i) => `<div class="obj"><b class="${ok[i] ? 'ok' : 'bad'}">${ok[i] ? '✓' : '✗'}</b><span>${esc(o.t)}</span></div>`).join('')}
+    <p style="font-size:16px;font-weight:700" class="${allOk ? 'ok' : 'bad'}">${allOk ? 'ผ่านสถานการณ์นี้แล้ว ผลถูกส่งกลับไปที่หน้าบทเรียน' : 'ยังไม่ผ่าน ลองใหม่อีกครั้ง'}</p>` : '';
+  ov(true, `<h2>${SCN ? esc(SCN.title) : 'จบแมตช์'}</h2>
+    <h3 style="margin:6px 0"><span style="color:var(--red)">RED ${sc.red}</span> – <span style="color:var(--blu)">BLUE ${sc.blue}</span></h3>${objHtml}
+    <table><tr><td>TIP แดง</td><td>${S.stats.tips.red} (AUTO ${S.stats.autoTips.red})</td></tr>${S.end.det.filter(d => d[2] === 'red').map(d => `<tr><td>${esc(d[0])}</td><td>${d[1]}</td></tr>`).join('')}
+    <tr><td>LEAVE + PARK แดง</td><td>${S.stats.leavePark.red}</td></tr><tr><td>R1 ยิง / เข้า</td><td>${S.stats.shots} / ${S.stats.hits} (${acc}%)</td></tr>
+    <tr><td>ชนหุ่น</td><td>${S.stats.collisions} ครั้ง · เลือด R1 ${R1().hp}%</td></tr><tr><td>FOUL ของแดง</td><td>${S.fouls.filter(f => f.all === 'red').map(f => f.rule).join(', ') || 'ไม่มี'}</td></tr>
+    ${R1().cycles.length ? `<tr><td>เวลา cycle (วิ)</td><td>${R1().cycles.join(' · ')}</td></tr>` : ''}</table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="again">ลองใหม่</button><a href="../coach-training/index.html"><button class="sec">กลับหน้าบทเรียน</button></a>${SCN ? '<a href="index.html"><button class="sec">เมนู simulator</button></a>' : ''}</div>`);
+  $('again').onclick = () => SCN ? showIntro() : showMenu();
+}
+
+// =================== Free Control ===================
+function saveCk() { saved = clone(S); say('จำจุดนี้แล้ว (L = โหลด)'); }
+function loadCk() { if (!saved) return say('ยังไม่ได้จำจุด'); S = clone(saved); say('ซ้อมจากจุดที่จำ'); renderPanels(); }
+function resetFree() { const o = { ...S.opt }; startMatch('free'); S.opt = o; if (o.bots) S.robots.slice(1).forEach(rb => { rb.off = false; api.carry(rb.id, ['pollen', 'pollen']); }); renderPanels(); }
+function renderPanels() {
+  const sb = $('scnBox'), cb = $('coachBox'), fb = $('freeBox');
+  sb.innerHTML = SCN ? `<h4>สถานการณ์ ${esc(SCN_ID)}</h4><b>${esc(SCN.title)}</b><div id="objLive" style="margin-top:4px"></div>` : `<h4>${S.mode === 'free' ? 'Free Control' : 'แมตช์'}</h4>`;
+  const btns = [...(SCN?.coach || []), ...(S.mode === 'free' || S.opt.hpManual ? ['hp'] : [])].filter((v, i, a) => a.indexOf(v) === i);
+  const BL = { call: ['📣 ประกาศเวลา (B)', 'KeyB'], predict: ['🎯 ทาย: ลูกนี้ TIP (P)', 'KeyP'], confirm: ['✅ ยืนยันตำแหน่ง (Y)', 'KeyY'], hp: ['🟥 Human Player ปล่อย NECTAR (H)', 'KeyH'] };
+  cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
+  cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
+  const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
+  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${opt('fieldCentric', 'Field-centric (ดันขึ้น = ออกจากฝั่งแดง)')}${opt('gate', 'ต้องหยุดนิ่ง + อยู่ในจุดยิง')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+    <h4>ตั้งค่าหุ่นให้เหมือนหุ่นจริงของทีม</h4><div class="mut" style="font-size:12px">วัดจากหุ่นจริงแล้วใส่ ค่าจะถูกจำไว้และใช้กับทุกสถานการณ์</div>
+    ${[['vmax', 'ความเร็วสูงสุด', 0.8, 2.4, 0.05, 'm/s'], ['acc', 'อัตราเร่ง', 1.5, 9, 0.5, 'm/s²'], ['wmax', 'ความเร็วหมุน', 1.5, 6, 0.1, 'rad/s'], ['strafe', 'การสไลด์ข้าง (mecanum)', 0.4, 1, 0.05, '×'], ['dead', 'Deadzone แกนจอย', 0.02, 0.25, 0.01, '']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
+    <div style="margin-top:4px">เส้นโค้งจอย <select id="drvCurve" style="font:inherit">${[['linear', 'เส้นตรง'], ['square', 'ยกกำลังสอง (นุ่มตอนเริ่ม)'], ['cubic', 'ยกกำลังสาม (ละเอียดมาก)']].map(([v, t]) => `<option value="${v}" ${DRV.curve === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    <div style="display:flex;gap:6px;margin-top:4px"><button class="sec" id="drvReset">ค่าเริ่มต้น</button></div>
+    <div style="margin-top:6px">ความเร็วชั่วคราว <span id="spdV">${Math.round(S.opt.speed * 100)}%</span></div><input type="range" id="spdR" min="40" max="120" value="${Math.round(S.opt.speed * 100)}">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="sec" id="fRefill">เติม POLLEN 4 ลูก</button><button class="sec" id="fScatter">โปรยลูก 10 ลูก</button><button class="sec" id="fReset">รีเซ็ตสนาม (R)</button><button class="sec" id="fSave">จำจุด (K)</button><button class="sec" id="fLoad">โหลดจุด (L)</button><button class="sec" id="fMenu">เมนู</button></div>`
+    : !SCN ? `<div style="display:flex;gap:6px;margin-top:6px"><button class="sec" id="fMenu">เมนู</button></div>` : '';
+  fb.querySelectorAll('input[data-opt]').forEach(i => i.onchange = () => { S.opt[i.dataset.opt] = i.checked; if (i.dataset.opt === 'bots') S.robots.slice(1).forEach(rb => { rb.off = !i.checked; if (i.checked && rb.load.length === 0) api.carry(rb.id, ['pollen', 'pollen']); }); });
+  const q = id => fb.querySelector('#' + id);
+  fb.querySelectorAll('input[data-drv]').forEach(i => i.oninput = () => { DRV[i.dataset.drv] = +i.value; q('dv_' + i.dataset.drv).textContent = i.value; saveDrv(); });
+  if (q('drvCurve')) q('drvCurve').onchange = e => { DRV.curve = e.target.value; saveDrv(); };
+  if (q('drvReset')) q('drvReset').onclick = () => { DRV = { ...DEFAULT_DRIVE }; saveDrv(); renderPanels(); };
+  if (q('spdR')) q('spdR').oninput = e => { S.opt.speed = e.target.value / 100; q('spdV').textContent = e.target.value + '%'; };
+  if (q('fRefill')) q('fRefill').onclick = () => api.carry('R1', ['pollen', 'pollen', 'pollen', 'pollen']);
+  if (q('fScatter')) q('fScatter').onclick = () => api.randomPoints(10, { xMin: -1.55, xMax: 1.55, zMin: -1.55, zMax: 1.55 }, 0.15).forEach(p => { const j = S.balls.findIndex(b => b.kind === 'pollen' && (b.where === 'out' || (b.where === 'floor' && Math.hypot(b.x - R1().x, b.z - R1().z) > 1.2))); if (j >= 0) Object.assign(S.balls[j], { where: 'floor', x: p[0], z: p[1], y: F.pollenR, owner: null }); });
+  if (q('fReset')) q('fReset').onclick = resetFree; if (q('fSave')) q('fSave').onclick = saveCk; if (q('fLoad')) q('fLoad').onclick = loadCk;
+  if (q('fMenu')) q('fMenu').onclick = () => { S.running = false; showMenu(); };
+}
+document.querySelectorAll('#ds button').forEach(b => b.onclick = () => {
+  const d = S.ds; if (!d) return; const order = { stop: 'lost', select: 'stopped', init: 'selected', start: 'init' }, nextState = { stop: 'stopped', select: 'selected', init: 'init', start: 'ok' }, k = b.dataset.ds;
+  if (d.state !== order[k]) { d.wrong++; say('ลำดับผิด! ■ Stop → เลือก OpMode → INIT → ▶ Start', 2); return; }
+  d.state = nextState[k];
+  if (d.state === 'ok') { S.dsLog.push({ dur: +(S.el - d.t0).toFixed(1), wrong: d.wrong }); say(`กลับมาขับได้แล้ว ใช้เวลา ${(S.el - d.t0).toFixed(1)} วิ`, 2.5); S.ds = null; }
+});
+
+// =================== HUD ===================
+function hud(inp) {
+  const r = R1(), ph = phase(), rem = remaining();
+  $('clock').textContent = S.opt.hideClock && S.running ? '— : —' : S.mode === 'free' ? '∞' : ph === 'auto' ? fmt(AUTO_LEN - S.el) : ph === 'trans' ? fmt(AUTO_LEN + TRANS_LEN - S.el) : fmt(rem);
+  $('phase').textContent = S.mode === 'free' ? 'Free Control' : S.over ? 'จบ' : !S.running ? 'หยุด' : ph === 'auto' ? 'AUTO' : ph === 'trans' ? 'ช่วงเปลี่ยน · ห้ามขยับ' : rem <= 60 ? 'TELEOP · FLOWER เปิด' : 'TELEOP';
+  $('sRed').textContent = total('red'); $('sBlue').textContent = total('blue');
+  const p = projected(); $('projTxt').textContent = S.mode === 'free' ? '' : `ถ้าจบตอนนี้: แดง ${p.red} – น้ำเงิน ${p.blue}`;
+  $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
+  $('carryTxt').textContent = `${r.load.length}/4`; $('slots').innerHTML = [0, 1, 2, 3].map(i => { const b = r.load[i] != null ? S.balls[r.load[i]] : null; return `<div class="slot ${b ? (b.kind === 'pollen' ? 'pollen' : b.color) : ''}"></div>`; }).join('');
+  $('intakeTxt').textContent = r.intake ? 'เปิด' : 'ปิด'; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (S.opt.fieldCentric ? 'field-centric' : 'robot-centric') : 'AI ขับ';
+  const g = gateCheck(r); $('gate').textContent = g.ok ? 'พร้อม' : 'ยังไม่ได้'; $('gate').className = g.ok ? 'ok' : 'bad'; $('gateWhy').textContent = g.why;
+  let pin = ''; for (const [k, v] of Object.entries(S.pins)) if (v.t > 0.4 && v.sep === 0) { const [a, b] = k.split('>'); if (a === 'R1') pin = `⚠ เรากำลัง PIN ${b} ${v.t.toFixed(1)} วิ ถอย!`; else if (b === 'R1' && !pin) pin = `${a} กำลัง PIN เรา ${v.t.toFixed(1)} วิ`; }
+  $('pinTxt').textContent = pin;
+  $('loadBox').classList.toggle('hidden', !!S.opt.hideLoad); const rule = tipRule(), load = cellLoad('red'); $('loadTxt').textContent = `${load.toFixed(2)} / ${rule.threshold}`; $('load').style.width = Math.min(100, load / rule.threshold * 100) + '%';
+  $('tips').textContent = S.stats.tips.red; $('stash').textContent = S.balls.filter(b => b.where === 'staged' && b.color === 'red').length;
+  $('credit').textContent = S.opt.hpManual ? `· สิทธิ์ปล่อย ${rem <= 60 && ph === 'teleop' ? 'ทั้งหมด' : Math.max(0, S.stats.tips.red - S.hp.red.used)}` : '· ปล่อยอัตโนมัติ';
+  const fr = S.fouls.filter(f => f.all === 'red'); $('fouls').innerHTML = fr.length ? fr.slice(-5).map(f => `${f.rule} ${f.sev === 'WARN' ? 'เตือน' : '+' + f.pts} · ${fmt(f.rem)}`).join('<br>') : '<span class="mut">ไม่มี</span>';
+  if (inp.padName) { $('padTxt').textContent = 'จอย: ' + inp.padName.slice(0, 42); $('padTxt').className = 'ok'; }
+  const ol = $('objLive'); if (ol && SCN) { const ok = S.mode === 'scenario' ? evalObj() : SCN.obj.map(() => false); ol.innerHTML = SCN.obj.map((o, i) => { const s = ok[i] ? ['✓', 'ok'] : o.live ? ['✗', 'bad'] : ['…', 'mut']; return `<div class="obj"><b class="${s[1]}">${s[0]}</b><span>${esc(o.t)}</span></div>`; }).join('') + (SCN.status && S.mode === 'scenario' ? `<div class="mut" style="margin-top:4px">${esc((() => { try { return SCN.status(api) || ''; } catch { return ''; } })())}</div>` : ''); }
+  const cc = $('coachClock'); if (cc) cc.textContent = `นาฬิกาโค้ช: ${S.mode === 'free' ? '∞' : ph === 'teleop' ? fmt(rem) : ph === 'auto' ? 'AUTO ' + fmt(AUTO_LEN - S.el) : 'เปลี่ยนช่วง'} · ประกาศแล้ว ${S.calls.length} ครั้ง`;
+  $('ds').classList.toggle('hidden', !(S.ds && S.running)); if (S.ds) $('dsTime').textContent = `หุ่นหยุดนิ่ง · ${(S.el - S.ds.t0).toFixed(1)} วิ (ต้องไม่เกิน 15)`;
+  $('msg').textContent = S.msgT > 0 ? S.msg : ''; $('msg').style.opacity = S.msgT > 0 ? 1 : 0;
+}
+
+// =================== ลูป ===================
+let last = performance.now(), acc = 0, hudT = 1;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt;
+  if (acc >= DT) { const inp = readInput(); let first = true; while (acc >= DT) { tick(DT, first ? inp : { ...inp, ...Object.fromEntries(EDGE.map(k => [k, false])) }); first = false; acc -= DT; } hudT += dt; if (hudT > 0.1) { hudT = 0; hud(inp); } }
+  sync(); updateCamera(dt); renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('gamepadconnected', e => say('พบจอย: ' + e.gamepad.id.slice(0, 40), 3));
+window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()) };
+renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else showMenu();
+sync(); hud(emptyInput()); requestAnimationFrame(frame);
+</script>
+</body>
+</html>

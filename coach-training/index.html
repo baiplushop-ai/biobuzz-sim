@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drive Team Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f6f4ee; --surface:#ffffff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0;
+  --acc:#d9a400; --accfg:#1d1f24; --ok:#1f9d55; --bad:#c9382f; --red:#d6453c; --blue:#2f6fd0; --lock:#a8a59c;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
+  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --lock:#59606b;
+} }
+:root[data-theme="dark"] {
+  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
+  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --lock:#59606b;
+}
+* { box-sizing:border-box }
+html,body { margin:0; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; line-height:1.55 }
+a { color:var(--blue) }
+header { position:sticky; top:0; z-index:5; background:var(--surface); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap }
+header h1 { font-size:18px; margin:0; white-space:nowrap; cursor:pointer }
+header h1 span { color:var(--acc) }
+.prog { flex:1; min-width:140px; height:10px; background:var(--surface2); border-radius:6px; overflow:hidden }
+.prog > div { height:100%; background:var(--acc); transition:width .3s }
+#progTxt { font-size:13px; color:var(--mut); white-space:nowrap }
+.hbtn { font:inherit; font-size:13px; background:var(--surface2); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:5px 10px; cursor:pointer }
+.hbtn.on { border-color:var(--acc); outline:1px solid var(--acc) }
+.layout { display:grid; grid-template-columns:300px 1fr; max-width:1280px; margin:0 auto }
+nav { border-right:1px solid var(--line); padding:12px; height:calc(100vh - 54px); overflow:auto; position:sticky; top:54px }
+.lvl { margin-bottom:12px }
+.lvl h3 { font-size:13px; margin:6px 4px; color:var(--mut); display:flex; justify-content:space-between; gap:6px }
+.lvl h3 b { color:var(--fg) }
+.item { display:flex; gap:8px; align-items:flex-start; width:100%; text-align:left; font:inherit; font-size:14px; background:transparent; color:var(--fg); border:0; border-radius:8px; padding:6px 8px; cursor:pointer }
+.item:hover:not(:disabled) { background:var(--surface2) }
+.item.cur { background:var(--surface2); outline:2px solid var(--acc) }
+.item:disabled { color:var(--lock); cursor:not-allowed }
+.dot { flex:0 0 20px; height:20px; border-radius:50%; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; margin-top:1px }
+.item.done .dot { background:var(--ok); border-color:var(--ok); color:#fff }
+.item.open .dot { border-color:var(--acc) }
+main { padding:20px 24px 80px; min-width:0 }
+.home { max-width:1080px; margin:0 auto; padding:24px 16px 80px }
+.home h2 { font-size:26px; margin:0 0 4px }
+.roles { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:18px 0 }
+.role { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:8px }
+.role .ico { font-size:30px }
+.role h3 { margin:0; font-size:19px }
+.role p { margin:0; color:var(--mut); font-size:14px; flex:1 }
+.role .bar { height:8px; background:var(--surface2); border-radius:5px; overflow:hidden } .role .bar > div { height:100%; background:var(--acc) }
+.role.free { border-style:dashed }
+.crumb { font-size:13px; color:var(--mut) }
+.diff { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:var(--surface2); border:1px solid var(--line); margin-left:6px }
+h2 { margin:4px 0 12px; font-size:24px }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:12px 0 }
+.card h4 { margin:0 0 8px; font-size:15px }
+.scn { border-left:4px solid var(--acc) }
+.rule { display:inline-block; font-size:12px; padding:0 7px; border-radius:6px; background:var(--surface2); border:1px solid var(--line); margin:2px 3px 2px 0; color:var(--mut) }
+ul.act { margin:0; padding-left:20px } ul.act li { margin:3px 0 }
+.tag { font-size:11px; color:var(--mut); border:1px solid var(--line); border-radius:5px; padding:0 5px; margin-left:4px; white-space:nowrap }
+.q { padding:10px 0; border-top:1px dashed var(--line) } .q:first-of-type { border-top:0 }
+.q p { margin:0 0 6px; font-weight:600 }
+.opt { display:flex; gap:8px; align-items:flex-start; padding:6px 8px; border-radius:8px; cursor:pointer; border:1px solid transparent }
+.opt:hover { background:var(--surface2) }
+.opt input { margin-top:5px }
+.opt.right { border-color:var(--ok) } .opt.wrong { border-color:var(--bad) }
+.exp { font-size:13px; margin:6px 0 0 4px; padding:6px 10px; border-radius:8px; background:var(--surface2) }
+.exp.ok { color:var(--ok) } .exp.bad { color:var(--bad) }
+.btn { font:inherit; font-weight:700; background:var(--acc); color:var(--accfg); border:0; border-radius:8px; padding:8px 16px; cursor:pointer; text-decoration:none; display:inline-block }
+.btn.sec { background:var(--surface2); color:var(--fg); border:1px solid var(--line); font-weight:600 }
+.btn:disabled { opacity:.45; cursor:not-allowed }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+.chk { display:flex; gap:8px; align-items:flex-start; padding:4px 0; cursor:pointer }
+.chk input { margin-top:5px }
+.autoobj { display:flex; gap:8px; padding:3px 0 } .autoobj b { width:18px; flex:0 0 18px }
+.status { font-weight:700 } .status.ok { color:var(--ok) } .status.bad { color:var(--bad) }
+.ok { color:var(--ok) } .bad { color:var(--bad) } .mut { color:var(--mut) }
+table.t { width:100%; border-collapse:collapse; font-size:14px } table.t td, table.t th { border-bottom:1px solid var(--line); padding:5px 6px; text-align:left } table.t th { color:var(--mut); font-weight:600 }
+.cert { text-align:center; padding:28px 16px } .cert h2 { font-size:28px; color:var(--acc) }
+input[type=text], input[type=url] { font:inherit; font-size:14px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface2); color:var(--fg); width:100%; max-width:420px }
+dialog { border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--fg); max-width:520px; width:92% }
+dialog::backdrop { background:rgba(0,0,0,.45) }
+#navToggle { display:none }
+.pad { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:5px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface2); color:var(--fg); text-decoration:none; white-space:nowrap }
+.pad i { width:9px; height:9px; border-radius:50%; background:var(--lock); flex:0 0 9px }
+.pad.on { border-color:var(--ok) } .pad.on i { background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent) }
+.pad.off { border-color:var(--bad) } .pad.off i { background:var(--bad) }
+.hidden { display:none !important }
+@media (max-width:860px) {
+  .layout { grid-template-columns:1fr }
+  nav { position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); display:none }
+  nav.show { display:block }
+  #navToggle { display:inline-block }
+  main { padding:16px 16px 60px }
+}
+</style>
+</head>
+<body>
+<header>
+  <button class="hbtn" id="navToggle">☰ บทเรียน</button>
+  <h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1>
+  <div class="row" id="roleTabs"></div>
+  <div class="prog"><div id="progBar" style="width:0%"></div></div>
+  <span id="progTxt"></span>
+  <a class="pad" id="padChip" href="../mockup/gamepad-test.html" target="_blank" title="คลิกเพื่อเปิดหน้าทดสอบจอย"><i></i><span id="padChipTxt">จอย: ยังไม่เชื่อม</span></a>
+  <button class="hbtn" id="btnSettings">ตั้งค่า</button>
+</header>
+<div id="homeView" class="home"></div>
+<div class="layout hidden" id="roleView">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+
+<dialog id="dlg">
+  <h3 style="margin-top:0">ตั้งค่า</h3>
+  <p style="margin:6px 0 2px">ลิงก์ simulator 3D ของเรา (สถานการณ์ฝึก)</p>
+  <input type="url" id="mockUrl">
+  <p style="margin:10px 0 2px">ลิงก์ simulator ตัวเต็ม (fork caryden)</p>
+  <input type="url" id="simUrl">
+  <p style="margin:10px 0 2px">ชื่อผู้ฝึก (แสดงบนใบผ่าน)</p>
+  <input type="text" id="trainee">
+  <label class="chk" style="margin-top:10px"><input type="checkbox" id="teacher"> โหมดครู: เปิดทุกบทโดยไม่ต้องผ่านตามลำดับ</label>
+  <div class="row" style="margin-top:12px; justify-content:space-between">
+    <button class="btn sec" id="btnReset">ล้างความคืบหน้าของบทบาทนี้</button>
+    <button class="btn" id="btnClose">บันทึก</button>
+  </div>
+</dialog>
+
+<script src="../mockup/scenarios.js"></script>
+<script>
+// ======================================================================
+// หลักสูตร 3 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
+// แบบทดสอบ (ต้องถูกทุกข้อ) · สถานการณ์จำลอง 3D (ต้องผ่านเป้าหมายครบในรอบเดียว)
+// อ้างอิงกติกา: BIOBUZZ Competition Manual TU05–TU08 (Section 9, 10, 11)
+// "แนวปฏิบัติ" = เทคนิคการฝึก ไม่ใช่กฎ
+// ======================================================================
+const COACH = [
+{ name:'ระดับ 1 · รู้กติกาที่โค้ชต้องใช้', diff:'ง่าย', drills:[
+ { id:'1.1', title:'บทบาทของ Drive Team',
+   scn:'ก่อนแมตช์แรก ทีมมีนักเรียน 5 คนและครู 2 คนที่อยากลงสนาม คุณต้องจัด Drive Team ให้ถูกกติกา',
+   rules:['10.2','Table 10-1'],
+   act:['Drive Team มีได้ไม่เกิน 4 คน จากทีมเดียวกัน: Drive Coach 1 คน + Driver/Human Player รวมกันไม่เกิน 3 คน',
+        'คนที่ไม่ใช่นักเรียนลงได้ไม่เกิน 1 คน และต้องเป็นตำแหน่ง Drive Coach เท่านั้น เพราะ Driver และ Human Player ต้องเป็นนักเรียน',
+        'Drive Coach ติดป้าย "DRIVE COACH" ส่วน Driver/Human Player ติดป้าย "DRIVE TEAM" เหนือเอวให้เห็นชัด (10.3.2 D)',
+        'ตารางงานไทย: Drivers Meeting 9 ธ.ค. 17:30 เฉพาะ Driver 2 คน/ทีม <span class="tag">ตารางงานไทย</span>'],
+   quiz:[
+    { q:'Drive Team มีได้มากที่สุดกี่คน', o:['3 คน','4 คน','5 คน','ไม่จำกัด'], a:1, e:'สูงสุด 4 คน: Coach 1 + Driver/Human Player 3' },
+    { q:'ครูที่ปรึกษาลงสนามได้ในตำแหน่งใด', o:['Driver','Human Player','Drive Coach','ได้ทุกตำแหน่ง'], a:2, e:'Driver และ Human Player ต้องเป็นนักเรียน ผู้ใหญ่เป็นได้แค่ Drive Coach และได้ไม่เกิน 1 คน' },
+    { q:'ทีมใช้ Driver 2 คน + Human Player 1 คน + Coach 1 คน ถูกกติกาไหม', o:['ถูก','ผิด เพราะ Driver ได้แค่ 1 คน','ผิด เพราะต้องมี Human Player 2 คน'], a:0, e:'Driver + Human Player รวมไม่เกิน 3 จึงจัด 2+1 ได้' } ] },
+ { id:'1.2', title:'สิ่งที่โค้ชทำได้ และห้ามทำ',
+   scn:'กลางแมตช์ Driver ทำจอยหล่น และ NECTAR สีเรากระเด็นออกนอกสนามมาตกที่เท้าโค้ช',
+   rules:['G422','G423','G424','G425'],
+   act:['หลังแมตช์เริ่ม โค้ชห้ามจับจอย (G423) แต่ช่วยถือ Driver Station, แก้ปัญหาเครื่อง, เลือก OpMode, กด INIT / Start / Stop ได้',
+        'โค้ชห้ามแตะลูก (G424) ยกเว้นเพื่อความปลอดภัย ให้ Human Player เป็นคนเก็บ NECTAR สีเราที่ออกนอกสนาม (G422)',
+        'ทุกคนใน Drive Team ห้ามแตะหุ่น ลูกที่อยู่บนพื้น/หุ่น และอุปกรณ์สนาม (G425) ระวังสายจอยหรือเสื้อห้อยเข้าไปในสนาม',
+        'ทุกคนต้องอยู่ใน ALLIANCE AREA ตลอดแมตช์ (G422)'],
+   quiz:[
+    { q:'Driver ทำจอยหล่น โค้ชหยิบขึ้นมาบังคับต่อได้ไหม', o:['ได้ ถ้าเป็นช่วงสั้น ๆ','ไม่ได้ ผิด G423','ได้ ถ้าโค้ชเป็นนักเรียน'], a:1, e:'G423: โค้ชห้ามจับจอยหลังแมตช์เริ่ม โดนเตือน และ MAJOR FOUL + YELLOW CARD ถ้าจงใจ' },
+    { q:'NECTAR สีเราออกนอกสนามมาที่เท้าโค้ช ควรทำอย่างไร', o:['โค้ชหยิบส่งให้ Human Player','ให้ Human Player หยิบเอง แล้วใส่ทาง LOADING ZONE','โค้ชโยนกลับเข้าสนาม'], a:1, e:'G424 ห้ามโค้ชแตะลูก Drive Team คนอื่นเก็บ NECTAR สีตัวเองได้ (G422) และต้องใส่ผ่าน LOADING ZONE (G427)' },
+    { q:'ข้อใดโค้ช "ทำได้" ระหว่างแมตช์', o:['กดปุ่ม Stop บน Driver Station','ดันหุ่นที่ติดกำแพง','หยิบ POLLEN ที่ค้างบนกำแพงออก'], a:0, e:'G423 F อนุญาตให้โค้ชกด Stop ได้' } ] },
+ { id:'1.3', title:'เวลาแมตช์และสัญญาณเสียง',
+   scn:'คุณต้องสั่งงานตามเวลาให้แม่น เพราะ FLOWER, Human Player และ PARK ผูกกับนาฬิกาทั้งหมด',
+   rules:['10.4','Table 9-1','G403','G410'],
+   act:['แมตช์ยาว 2:30: AUTO 0:30 → ช่วงเปลี่ยน 0:08 → TELEOP 2:00',
+        'ช่วงเปลี่ยน 8 วิ เสียง "Drivers, pick up your controllers" หุ่นห้ามขยับด้วยกำลัง (G403) แต่เลือก/INIT OpMode TELEOP ได้',
+        'เหลือ 1:00 เสียง Chime = FLOWER ปลดล็อก ใส่ NECTAR ได้ (G410) และ Human Player ปล่อย NECTAR ที่เหลือได้ทั้งหมด (G426)',
+        'เหลือ 0:20 เสียงหวูดรถไฟ = ช่วงสุดท้าย',
+        'ถ้าเสียงกับนาฬิกาบนจอไม่ตรงกัน ให้ยึดนาฬิกาบนจอ (9.11)'],
+   quiz:[
+    { q:'FLOWER ปลดล็อกให้ใส่ NECTAR ได้เมื่อไหร่', o:['ตั้งแต่เริ่ม TELEOP','เหลือ 1:00','เหลือ 0:20','เหลือ 0:30'], a:1, e:'G410 ใส่ NECTAR ใน FLOWER ได้ใน 60 วิสุดท้าย' },
+    { q:'เสียงเตือนกับนาฬิกาบนจอไม่ตรงกัน ยึดอะไร', o:['เสียง','นาฬิกาบนจอ','นาฬิกาข้อมือโค้ช'], a:1, e:'คู่มือ 9.11: นาฬิกาบนจอคือตัวตัดสิน' },
+    { q:'ช่วงเปลี่ยน 8 วิ Driver ขยับหุ่นเข้าใกล้ลูกได้ไหม', o:['ได้','ไม่ได้ ผิด G403','ได้ถ้าช้า ๆ'], a:1, e:'G403 ห้ามมี powered movement ระหว่าง AUTO กับ TELEOP' } ] },
+ { id:'1.4', title:'คะแนนทั้งหมด (Table 10-2)',
+   scn:'โค้ชต้องคิดคะแนนในหัวได้เร็ว เพื่อเลือกว่าหุ่นควรทำอะไรต่อ',
+   rules:['Table 10-2','10.5'],
+   table:[['LEAVE (ออกจากกำแพงตอนจบ AUTO)','3','–'],['PARK (อยู่ใน LOADING ZONE บางส่วน)','5','5'],['HIVE TIP','20','20'],['ลูกค้างใน CELL หงาย ตอนจบ (ต่อลูก)','–','2'],['Bottom NECTAR Bonus (ต่อ FLOWER)','–','5'],['ลูกใน FLOWER ที่เราเป็นเจ้าของ (ต่อลูก)','–','2'],['ลูกใน GARDEN สีเรา (ต่อลูก)','–','1'],['MINOR / MAJOR FOUL','+5 / +20 ให้คู่แข่ง','']],
+   act:['เจ้าของ FLOWER = ฝ่ายที่มี NECTAR สีตัวเอง "อยู่บนสุด" ในโซนคะแนน ได้ 2 แต้มต่อทุกลูกในโซน ไม่ว่าใครใส่',
+        'Bottom Bonus = ฝ่ายที่มี NECTAR สีตัวเอง "อยู่ล่างสุด" ในโซนคะแนน อาจเป็นคนละฝ่ายกับเจ้าของ',
+        'GARDEN นับให้สีของ GARDEN ไม่ว่าลูกสีอะไรหรือใครใส่ และไม่ใช่โซนป้องกัน คู่แข่งดึงออกได้',
+        'TIP ทำให้ลูกที่ค้างใน CELL ร่วงออก ช่วงท้ายแมตช์จึงต้องคิดว่า TIP คุ้มกว่าลูกค้าง 2 แต้ม/ลูก หรือไม่'],
+   quiz:[
+    { q:'HIVE TIP 1 ครั้งใน TELEOP ได้กี่แต้ม', o:['5','10','20','40'], a:2, e:'HIVE TIP = 20 ทั้ง AUTO และ TELEOP' },
+    { q:'FLOWER มีลูกในโซนคะแนน 5 ลูก NECTAR น้ำเงินอยู่บนสุด NECTAR แดงอยู่ล่างสุด ผลคือ', o:['น้ำเงิน 10, แดง 5','แดง 10, น้ำเงิน 5','น้ำเงิน 15','ไม่มีใครได้'], a:0, e:'ตัวอย่างในคู่มือ 10.5.2: เจ้าของ (บนสุด) ได้ 5×2 = 10 และ Bottom Bonus 5 ไปที่แดง' },
+    { q:'NECTAR สีน้ำเงินอยู่ใน GARDEN แดง นับให้ใคร', o:['น้ำเงิน','แดง','ไม่นับ'], a:1, e:'GARDEN นับให้สีของ GARDEN เสมอ' } ] },
+ { id:'1.5', title:'กฎ 10 ข้อที่โค้ชต้องคอยเตือน',
+   scn:'กรรมการไม่เตือนล่วงหน้า โค้ชต้องเป็นคนเห็นก่อนและสั่งแก้ทันที',
+   rules:['G402','G407','G408','G409','G410','G417','G418','G421','G426','G427'],
+   act:['G407 ถือได้ไม่เกิน 4 ลูก ถ้าดูดเข้า 5 ลูก ให้คายออกทันที',
+        'G408 ห้ามควบคุม NECTAR ของคู่แข่ง · G409 ห้ามรับลูกที่ร่วงจาก HIVE ก่อนแตะพื้น',
+        'G410 NECTAR เข้า FLOWER ได้เมื่อเหลือ 1:00 (MAJOR ต่อลูก) · G418 ใส่ FLOWER ทางบน ดึง POLLEN ออกทางล่างเท่านั้น',
+        'G417 ทำให้ HIVE พลิกได้ทางเดียวคือยิงเข้า CELL หงาย ห้ามชนโครง ห้ามยิงขัด HIVE คู่แข่ง',
+        'G421 PIN คู่แข่งได้ไม่เกิน 3 วิ · G402 ช่วง AUTO ห้ามข้ามไปกวนฝั่งคู่แข่ง (คอลัมน์ A–C = แดง, D–F = น้ำเงิน)',
+        'G426 Human Player ใส่ NECTAR ได้ 1 ลูกต่อ TIP ของ HIVE สีเรา หรือทั้งหมดเมื่อเหลือ 1:00 · G427 ใส่ทาง LOADING ZONE ให้ลูกแตะพื้นก่อนแตะหุ่น'],
+   quiz:[
+    { q:'หุ่นเราดูดลูกเข้าไป 5 ลูก โค้ชควรสั่งอะไร', o:['"ยิงเลย"','"คายออก 1 ลูก ทันที"','ไม่ต้องทำอะไร','"ไปจอด PARK"'], a:1, e:'G407: ควบคุม 5 ลูกชั่วครู่แล้วคายคืนทันทีมักไม่ถือว่าจงใจ แต่ถ้าถือต่อหรือทำซ้ำเสี่ยง MAJOR + YELLOW' },
+    { q:'PIN หุ่นคู่แข่งได้นานที่สุดกี่วินาที', o:['1','3','5','10'], a:1, e:'G421: เกิน 3 วิ MAJOR FOUL และเพิ่มอีก 1 MAJOR ทุก 3 วิที่ไม่แก้' },
+    { q:'วิธีเดียวที่ทำให้ HIVE พลิกได้ถูกกติกาคือ', o:['ดันโครง HIVE','ยิงลูกเข้า CELL ที่หงายขึ้น','ยิงใส่ด้านล่างของ CELL','ให้ Human Player โยน'], a:1, e:'10.5.1 และ G417' } ] },
+]},
+{ name:'ระดับ 2 · การสื่อสาร', diff:'ง่าย–กลาง', drills:[
+ { id:'2.1', title:'คำสั่งมาตรฐาน (Call sheet)',
+   scn:'สนามเสียงดัง Driver จ้องหุ่นตลอด คำสั่งยาว ๆ จะไม่ถูกได้ยิน',
+   rules:['แนวปฏิบัติ'],
+   act:['คำสั่ง 1–3 คำ ขึ้นต้นด้วยคำกริยาเสมอ เช่น "เก็บ ซ้าย", "หยุด ยิง", "ถอย", "PARK"',
+        'ทิศทางใช้มุมมองของคนขับ (ซ้าย/ขวาของคนยืน) ไม่ใช่ของหุ่น ตกลงกันก่อนแข่ง',
+        'ใช้ตัวเลขแทนคำบรรยาย: "อีก 2 TIP", "อีก 3 ลูก", "10 วิ"',
+        'ให้ Driver ตอบรับสั้น ๆ ("รับ") เฉพาะคำสั่งสำคัญ เช่น PARK',
+        'ทำบัตรคำสั่ง 10 คำ ติดหลังป้าย Coach แล้วซ้อมจนเป็นอัตโนมัติ'],
+   quiz:[
+    { q:'คำสั่งแบบไหนดีที่สุดระหว่างแมตช์', o:['"ตอนนี้ลูกเหลืองมีอยู่ทางด้านซ้ายใกล้กำแพง ลองไปเก็บดูนะ"','"เก็บ ซ้าย กำแพง"','"ไปตรงนั้น"'], a:1, e:'สั้น มีกริยา มีทิศ และไม่กำกวม' },
+    { q:'คำว่า "ซ้าย" ควรหมายถึงซ้ายของใคร', o:['ของหุ่น','ของคนขับที่ยืนอยู่','ของกรรมการ'], a:1, e:'หุ่นหมุนตลอด ทิศของหุ่นสับสนง่าย ใช้มุมคนขับที่คงที่' } ],
+   sim:{ scn:'2.1', task:'โค้ชยืนข้างคนขับ ดูวงแหวนสีเขียวบนจอแล้วสั่งด้วยบัตรคำสั่งเท่านั้น คนขับทำตามคำสั่ง', checks:['สั่งครบ 10 คำในบัตรอย่างน้อยคำละ 1 ครั้ง','ไม่มีคำสั่งไหนยาวเกิน 3 คำ'] } },
+ { id:'2.2', title:'นาฬิกาของทีม (Time calls)',
+   scn:'Driver ไม่มีเวลาดูนาฬิกา โค้ชเป็นนาฬิกาของทีม',
+   rules:['10.4','G410','10.5.4'],
+   act:['ประกาศเวลาตายตัวทุกแมตช์: 1:30 · 1:05 "เตรียม NECTAR" · 1:00 "FLOWER เปิด" · 0:30 · 0:20 · 0:10 · 0:05 นับถอยหลัง',
+        'จับเวลาว่าหุ่นเราขับจากกลางสนามไป LOADING ZONE ใช้กี่วิ แล้วกำหนด "เวลาเรียก PARK" = เวลาขับ + เวลายิงลูกสุดท้าย + เผื่อ 1–2 วิ',
+        'PARK นับตอนจบแมตช์ ต้องมีส่วนหนึ่งของหุ่นอยู่ใน LOADING ZONE และหุ่นต้องหยุดนิ่งเมื่อหมดเวลา (G404)'],
+   quiz:[
+    { q:'หุ่นใช้เวลาขับไป LOADING ZONE 5 วิ และกำลังจะยิงลูกสุดท้ายซึ่งใช้ 2 วิ ควรเรียก "PARK" ไม่ช้ากว่าเท่าไร', o:['0:03','0:08','0:20','0:45'], a:1, e:'5 + 2 = 7 วิ เผื่อ 1 วิ จึงเรียกที่ 0:08 ส่วน 0:20 ก็ทันแต่เสียโอกาสทำแต้ม' },
+    { q:'ควรเตือน "เตรียม NECTAR" ก่อน FLOWER เปิดเพื่ออะไร', o:['ให้ใส่ NECTAR ก่อน 1:00 ได้','ให้หุ่นถือ NECTAR และไปจอดรอข้าง FLOWER พอดี 1:00','ให้ Human Player โยน NECTAR เข้า FLOWER'], a:1, e:'ใส่ก่อน 1:00 = MAJOR ต่อลูก (G410) และคนห้ามใส่ลูกเข้า FLOWER (G427)' } ],
+   sim:{ scn:'2.2', task:'นาฬิกาใหญ่ถูกซ่อน โค้ชดูนาฬิกาเล็กในแผงโค้ช แล้วกด B ทุกครั้งที่พูดเวลาออกไป', checks:['จับเวลาขับจากกลางสนามไป LOADING ZONE และจดค่าไว้'] } },
+ { id:'2.3', title:'อ่าน HIVE และนับลูกถึง TIP',
+   scn:'Driver มองไม่เห็นว่าใน CELL มีลูกกี่ลูก โค้ชต้องนับและบอก "อีกกี่ลูก"',
+   rules:['10.3.1','10.5.1','Field Setup Guide §12.3'],
+   act:['เริ่มแมตช์ CELL หงายของเรามี NECTAR 3 ลูก: 3 NECTAR + 2 POLLEN ยังไม่พลิก ลูก POLLEN ที่ 3 ทำให้พลิก',
+        'หลัง TIP CELL ใหม่ที่หงายขึ้นว่างเปล่า: 7 POLLEN ยังไม่พลิก ลูกที่ 8 ทำให้พลิก',
+        'หุ่นถือได้ 4 ลูก ดังนั้น CELL ว่างต้องใช้ 2 รอบเต็ม (4 + 4) โค้ชต้องบอก "รอบนี้ยังไม่ TIP" ให้ Driver ไม่เสียจังหวะ',
+        'นับดัง ๆ ทุกลูกที่เข้า: "เข้า 5 · อีก 3" · ลูกที่ยิงพลาดไม่นับ'],
+   quiz:[
+    { q:'เริ่มแมตช์ CELL หงายมี NECTAR 3 ลูก ต้องยิง POLLEN อีกกี่ลูกจึง TIP', o:['1','2','3','5'], a:2, e:'ตามการปรับตั้งสนาม 3 NECTAR + 2 POLLEN ยังไม่พลิก ลูกที่ 3 พลิก' },
+    { q:'CELL ว่างหลังพลิก ต้องใช้ POLLEN กี่ลูกจึง TIP', o:['4','6','8','10'], a:2, e:'7 ลูกยังไม่พลิก ลูกที่ 8 พลิก' },
+    { q:'ใน CELL มี POLLEN 5 ลูก หุ่นถือ 4 ลูก ยิงเข้าทั้งหมดจะเกิดอะไร', o:['ยังไม่ TIP','TIP 1 ครั้ง ลูกที่ยิงหลังจากนั้นต้องเข้า CELL ใหม่','TIP 2 ครั้ง'], a:1, e:'ลูกที่ 3 ของรอบนี้ทำให้ครบ 8 จึงพลิก ลูกที่เหลือ 1 ลูกต้องยิงเข้า CELL ใหม่' } ],
+   sim:{ scn:'2.3', task:'มิเตอร์น้ำหนักใน CELL ถูกซ่อน โค้ชนับเองแล้วกด P ก่อนยิงลูกที่คิดว่าจะ TIP', checks:['นับดัง ๆ "เข้า X · อีก Y" ทุกลูก'] } },
+ { id:'2.4', title:'สั่ง Human Player',
+   scn:'HIVE สีเราเพิ่ง TIP และหุ่นเรากำลังขับผ่าน LOADING ZONE',
+   rules:['G426','G427','G428'],
+   act:['ทุกครั้งที่ HIVE สีเรา TIP ได้สิทธิ์ใส่ NECTAR เพิ่ม 1 ลูก ไม่จำเป็นต้องใส่ทันที เก็บสิทธิ์ไว้ได้',
+        'เมื่อเหลือ 1:00 ใส่ NECTAR ที่เหลือได้ทั้งหมด',
+        'ต้องใส่ผ่าน LOADING ZONE ด้วยมือ (ห้ามใช้อุปกรณ์) และลูกต้องแตะพื้นใน LOADING ZONE ก่อนแตะหุ่นหรืออุปกรณ์สนาม (G427)',
+        'ห้าม Human Player เอาลูกออกจากสนาม (G428) และระวังอย่าแตะลูกที่อยู่บนพื้น (G425)',
+        'ตกลงสัญญาณมือกับ Human Player: ชู 1 นิ้ว = "ปล่อย 1 ลูก", กำมือ = "รอ" <span class="tag">แนวปฏิบัติ</span>'],
+   quiz:[
+    { q:'HIVE สีเรา TIP มาแล้ว 2 ครั้ง ตอนนี้เหลือ 1:30 ใส่ NECTAR ได้รวมกี่ลูก', o:['0','1','2','5'], a:2, e:'G426 A: 1 ลูกต่อ 1 TIP' },
+    { q:'หุ่นเราจอดทับ LOADING ZONE อยู่ Human Player ควรทำอย่างไร', o:['วาง NECTAR บนหุ่นเลย','รอให้หุ่นขยับออก หรือวางให้ลูกแตะพื้นก่อน','โยนเข้า CELL ให้เลย'], a:1, e:'G427 C: ลูกต้องแตะพื้นใน LOADING ZONE ก่อนแตะหุ่น ไม่งั้น MINOR ต่อลูก' },
+    { q:'ใส่ NECTAR ก่อนได้สิทธิ์ โดนอะไร', o:['MINOR FOUL ต่อลูก','MAJOR FOUL','ไม่มีโทษ'], a:0, e:'G426: MINOR FOUL per NECTAR' } ] },
+ { id:'2.5', title:'คุยกับ Alliance partner ก่อนแมตช์',
+   scn:'คุณเจอโค้ชทีมพันธมิตรครั้งแรกในคิว มีเวลาคุยประมาณ 2 นาที',
+   rules:['G402','แนวปฏิบัติ'],
+   act:['ใช้สคริปต์ 5 ข้อ: (1) AUTO ของแต่ละทีมไปทางไหน ยิงกี่ลูก (2) ใครยิง HIVE ช่วง TELEOP (3) ใครทำ FLOWER ช่วง 1:00 (4) ใคร PARK และเรียกเมื่อไร (5) โค้ชคนไหนเป็นคนสั่งการหลัก',
+        'ช่วง AUTO ทั้งสองหุ่นอยู่ฝั่งเดียวกัน ต้องเช็กเส้นทางไม่ให้ชนกัน และห้ามข้ามไปฝั่งคู่แข่ง (G402)',
+        'ตกลงคำเรียกร่วมกัน เช่น "TIP" "สลับ" "PARK"'],
+   quiz:[
+    { q:'ช่วง AUTO ฝั่งแดงคือคอลัมน์ไหนของสนาม', o:['A–C','D–F','ทั้งสนาม'], a:0, e:'G402: คอลัมน์ A, B, C เป็นฝั่งแดง D, E, F เป็นฝั่งน้ำเงิน' },
+    { q:'ข้อใดสำคัญที่สุดที่ต้องตกลงกันเรื่อง AUTO', o:['สีเสื้อ','ลำดับการยิง และเส้นทางไม่ชนกัน','ชื่อหุ่น'], a:1, e:'หุ่นสองตัวยิง CELL เดียวกันในฝั่งเดียวกัน ถ้าชนกัน AUTO เสียทั้งคู่' } ] },
+]},
+{ name:'ระดับ 3 · วางแผนก่อนแมตช์', diff:'กลาง', drills:[
+ { id:'3.1', title:'Checklist ก่อนลงสนาม',
+   scn:'เหลือ 1 แมตช์ก่อนถึงคิวคุณ ต้องเช็กให้ครบใน 3 นาที',
+   rules:['10.3','G304','G305'],
+   act:['ป้าย Drive Team ครบและติดเหนือเอว',
+        'หุ่นเริ่มในฝั่งตัวเอง แตะกำแพง อยู่นอก LOADING ZONE และไม่แตะ FLOWER (G304)',
+        'หุ่นต้องสัมผัส POLLEN pre-load 4 ลูก ในหุ่น บนหุ่น หรือบนพื้นฝั่งตัวเองที่แตะหุ่น',
+        'เลือก OpMode AUTO พร้อมเปิดตัวจับเวลา 30 วิ แล้วกด INIT (10.3.3) · แบตเตอรี่เต็ม · จอยเชื่อมต่อ',
+        'ถ้าลำดับวางหุ่นสำคัญ แจ้ง Head Referee ก่อนตั้งหุ่น จะได้วางสลับ แดง 1 → น้ำเงิน 1 → แดง 2 → น้ำเงิน 2'],
+   quiz:[
+    { q:'ตำแหน่งเริ่มแมตช์ใดถูกต้อง', o:['ใน LOADING ZONE ติดกำแพง','แตะกำแพงฝั่งตัวเอง นอก LOADING ZONE ไม่แตะ FLOWER','กลางสนามใต้ HIVE'], a:1, e:'G304' },
+    { q:'Pre-load ต่อหุ่นคือ', o:['POLLEN 4 ลูก','NECTAR 3 ลูก','POLLEN 2 + NECTAR 2'], a:0, e:'10.3.4' } ],
+   sim:{ scn:'3.1', task:'โค้ชสั่งให้คนขับเก็บ pre-load แล้วตั้งหุ่นในตำแหน่งเริ่มที่ถูกต้อง โค้ชเป็นคนกด Y ยืนยัน', checks:['ทำ checklist กับหุ่นจริงจบใน 3 นาที','พิมพ์ checklist เป็นการ์ดติดกล่องเครื่องมือแล้ว'] } },
+ { id:'3.2', title:'Scouting: ดูพันธมิตรและคู่แข่ง',
+   scn:'แมตช์ถัดไปคุณจะเจอทีมที่ไม่เคยเห็น มีเวลาดูเขาเล่น 1 แมตช์',
+   rules:['แนวปฏิบัติ','Table 10-3'],
+   act:['จดต่อทีม: TIP ต่อแมตช์, คะแนน AUTO, PARK ได้ไหม, ทำ FLOWER ได้ไหม, เล่นเกมรับไหม, โดน FOUL อะไรบ่อย',
+        'ดูว่าหุ่นยิงจากจุดไหน ถ้าคู่แข่งมีจุดยิงเดียว เป็นจุดที่ควรระวังการปะทะ',
+        'ข้อมูลสำคัญต่อ RP: จำนวน TIP (POLLINATOR 4 และ 7 TIP) และ LEAVE+PARK (SWARM 16 แต้ม)'],
+   quiz:[
+    { q:'ข้อมูลไหนบอกโอกาสได้ POLLINATOR RP มากที่สุด', o:['ความเร็วหุ่น','จำนวน TIP เฉลี่ยต่อแมตช์','สีหุ่น'], a:1, e:'POLLINATOR 1 = 4 TIP, POLLINATOR 2 = 7 TIP (งานทั่วไป)' },
+    { q:'พันธมิตร PARK ไม่เคยทัน ควรวางแผนอย่างไร', o:['ไม่ต้องสนใจ','ตกลงให้เขาเริ่มไป PARK เร็วขึ้น และโค้ชเราช่วยเรียกเวลา','ให้หุ่นเราดันเขาเข้า LOADING ZONE'], a:1, e:'SWARM ต้องการ LEAVE+PARK ของทั้งพันธมิตรรวมกัน' } ] },
+ { id:'3.3', title:'แบ่งบทบาทในแมตช์',
+   scn:'หุ่นเรายิงแม่นแต่เก็บลูกช้า หุ่นพันธมิตรเก็บไวแต่ยิงไม่แม่น',
+   rules:['แนวปฏิบัติ','G407'],
+   act:['บทบาทหลัก: ตัวยิง HIVE (Scorer), ตัวเก็บ/ทำ GARDEN (Support), ตัวปิดงาน FLOWER ช่วง 1:00 (Closer), ตัวป้องกัน (Defender) ใช้เมื่อจำเป็น',
+        'ให้หุ่นที่ยิงแม่นทำ TIP เป็นหลัก อีกตัวเก็บลูกอีกฝั่งของ HIVE, ทำ GARDEN และเตรียม NECTAR สำหรับ FLOWER',
+        'แต่ละหุ่นยังถือได้ไม่เกิน 4 ลูก (G407) การแบ่งงานช่วยลดเวลาวิ่งว่าง'],
+   quiz:[
+    { q:'จากสถานการณ์นี้ แบ่งงานแบบไหนเหมาะที่สุด', o:['ทั้งสองยิง HIVE แข่งกัน','หุ่นเรายิง TIP หุ่นพันธมิตรเก็บลูก ทำ GARDEN และเตรียมงาน FLOWER','หุ่นเราป้องกันอย่างเดียว'], a:1, e:'ใช้จุดแข็งของแต่ละหุ่น และไม่ชนกันที่จุดยิง' },
+    { q:'POLLEN ใน GARDEN สีเรา ควรเก็บออกไปยิงไหม', o:['ควรเสมอ','คิดก่อน: ออกจาก GARDEN เสีย 1 แต้ม/ลูก แต่ถ้าใช้ทำ TIP ได้ 20','ห้ามแตะ'], a:1, e:'GARDEN ไม่ใช่โซนป้องกัน หยิบได้ แต่เทียบค่าคะแนนก่อน' } ] },
+ { id:'3.4', title:'คำนวณ Ranking Points',
+   scn:'รอบคัดเลือก (Qualification) ทุก RP มีค่าต่ออันดับพอ ๆ กับการชนะ',
+   rules:['Table 10-2','Table 10-3'],
+   table:[['WIN','3 RP'],['TIE','1 RP'],['SWARM: LEAVE + PARK ≥ 16 แต้ม','1 RP'],['POLLINATOR 1: ≥ 4 TIP','1 RP'],['POLLINATOR 2: ≥ 7 TIP','1 RP']],
+   act:['SWARM: LEAVE 2 หุ่น = 6 + PARK ตอนจบ 2 หุ่น = 10 รวม 16 พอดี ดังนั้น "ทั้งสองหุ่นต้อง LEAVE และ PARK" หรือชดเชยด้วย PARK ตอนจบ AUTO (5)',
+        'ค่า threshold ของ Regional/FIRST Championship ยัง TBA งานทั่วไปใช้ 16 / 4 / 7 <span class="tag">ตรวจ Team Update ก่อนแข่ง</span>'],
+   quiz:[
+    { q:'ทั้งสองหุ่น LEAVE และ PARK ตอนจบได้ 1 หุ่น ได้ SWARM ไหม', o:['ได้ (11 แต้ม)','ไม่ได้ ได้ 11 ต้อง 16','ได้ เพราะ LEAVE ครบ'], a:1, e:'3+3+5 = 11 < 16' },
+    { q:'วิธีไหนทำให้ได้ SWARM', o:['LEAVE 2 + PARK ตอนจบ 2','LEAVE 1 + PARK ตอนจบ 2','PARK ตอนจบ 2 อย่างเดียว'], a:0, e:'6 + 10 = 16' },
+    { q:'แพ้ แต่ได้ SWARM + POLLINATOR 1 ได้กี่ RP', o:['0','2','3','5'], a:1, e:'แพ้ได้ 0 จาก WIN แต่ได้ 1+1 = 2 RP' } ] },
+ { id:'3.5', title:'แผน AUTO 30 วินาที',
+   scn:'หุ่นสองตัวมี POLLEN pre-load รวม 8 ลูก CELL หงายมี NECTAR 3 ลูก',
+   rules:['10.5','G401','G402'],
+   act:['LEAVE 3 แต้มต่อหุ่นเป็นแต้มที่ง่ายที่สุด ต้องได้ทุกแมตช์',
+        'ลูก POLLEN 3 ลูกแรกที่เข้า CELL ทำให้ TIP ใน AUTO = 20 แต้ม',
+        'หลัง TIP CELL ใหม่ว่าง ลูกที่เหลือ 5 ลูกยังไม่พอ TIP (ต้อง 8) แต่ลูกที่ค้างใน CELL หงายตอนจบแมตช์ได้ 2 แต้ม/ลูก',
+        'ระวังยิงขณะ HIVE กำลังพลิก อาจขัดการพลิก (10.5.1) ตกลงลำดับยิงกับพันธมิตร',
+        'จอด PARK ตอนจบ AUTO แบบไม่แตะกำแพง ได้ทั้ง LEAVE 3 และ PARK 5',
+        'ช่วง AUTO Drive Team ห้ามแตะจอย/หุ่น ยกเว้นกด Start, Stop หรือเพื่อความปลอดภัย (G401)'],
+   quiz:[
+    { q:'ใช้ pre-load อย่างเดียว 8 ลูก TIP ได้มากสุดกี่ครั้งใน AUTO', o:['0','1','2','3'], a:1, e:'3 ลูกแรก TIP 1 ครั้ง เหลือ 5 ลูก < 8' },
+    { q:'หุ่นตัวแรกยิง 3 ลูกแล้ว HIVE กำลังพลิก หุ่นตัวที่สองควร', o:['ยิงตามทันที','รอให้ HIVE นิ่งแล้วยิงเข้า CELL ที่หงายใหม่','ยิงเข้า CELL เดิม'], a:1, e:'ยิงขณะพลิกอาจทำให้ TIP ไม่สำเร็จ' } ],
+   sim:{ scn:'3.5', task:'เลือกแผน AUTO ของ R1 และ R2 ในหน้าเริ่มสถานการณ์ แล้วดูผลการรัน 30 วิ', checks:['ลองแผนอย่างน้อย 2 แบบ และอธิบายได้ว่าทำไมแบบที่ผ่านดีกว่า'] } },
+]},
+{ name:'ระดับ 4 · ระหว่างแมตช์ สถานการณ์ปกติ', diff:'กลาง–ยาก', drills:[
+ { id:'4.1', title:'คุมจังหวะ cycle',
+   scn:'TELEOP เริ่มแล้ว เป้าหมายคือ cycle ให้ไวและสม่ำเสมอ',
+   rules:['G407','แนวปฏิบัติ'],
+   act:['1 cycle = เก็บ 4 ลูก → ไปจุดยิง → หยุดนิ่ง → ยิง → กลับไปเก็บ',
+        'โค้ชเลือก "แหล่งลูกถัดไป" ล่วงหน้าตอนหุ่นยังยิงอยู่ เช่น "ต่อไป GARDEN" หรือ "ลูกที่ร่วงจาก HIVE"',
+        'จับเวลา cycle แต่ละรอบ ตั้งเป้าลดลงทุกการซ้อม',
+        'ถ้าเก็บได้ 3 ลูกแล้วลูกที่ 4 อยู่ไกล ให้ตัดสินใจไปยิงเลย'],
+   quiz:[
+    { q:'หุ่นถือ 3 ลูก ลูกที่ 4 อยู่อีกฝั่งสนาม และ CELL ต้องอีก 3 ลูกจะ TIP ควรสั่งอะไร', o:['"ไปเก็บลูกที่ 4 ก่อน"','"ไปยิงเลย"','"PARK"'], a:1, e:'3 ลูกพอ TIP แล้ว เสียเวลาวิ่งไกลไม่คุ้ม' } ],
+   sim:{ scn:'4.1', task:'โค้ชเลือกแหล่งลูกถัดไปให้คนขับทุก cycle', checks:['จดเวลา cycle ทั้ง 5 รอบลงสมุด'] } },
+ { id:'4.2', title:'หลัง TIP: สลับฝั่ง และลูกที่ร่วง',
+   scn:'HIVE สีเราเพิ่งพลิก ลูกใน CELL เก่าร่วงลงมาที่พื้น',
+   rules:['G409','10.5.1'],
+   act:['หลัง TIP CELL ที่หงายขึ้นใหม่อยู่ฝั่งตรงข้ามของ HIVE โค้ชต้องสั่ง "สลับ" ทันทีพร้อมจุดยิงใหม่',
+        'ลูกที่ร่วงจาก HIVE ต้องให้แตะพื้นก่อน ห้ามรับกลางอากาศ (G409) อย่าจอดรอใต้ HIVE ซ้ำ ๆ',
+        'ลูกที่ร่วงกองอยู่ใกล้ HIVE เป็นแหล่งลูกที่ดีที่สุดสำหรับ cycle ถัดไป',
+        'อย่าลืมบอก Human Player ว่าได้สิทธิ์ NECTAR เพิ่ม 1 ลูก'],
+   quiz:[
+    { q:'หลัง TIP CELL ที่หงายขึ้นใหม่อยู่ที่ไหน', o:['ที่เดิม','ฝั่งตรงข้ามของ HIVE เดียวกัน','HIVE ของคู่แข่ง'], a:1, e:'HIVE เป็นคานสองข้าง พลิกแล้วอีกข้างหงายขึ้น' },
+    { q:'หุ่นเราจอดใต้ HIVE รอลูกร่วงซ้ำ ๆ ผลคือ', o:['ถูกกติกา','เสี่ยงผิด G409 แบบจงใจ YELLOW CARD','ได้แต้มเพิ่ม'], a:1, e:'ตัวอย่าง A ของ G409' } ],
+   sim:{ scn:'4.2', task:'สั่ง "สลับ" ทันทีที่ HIVE พลิก แล้วพาหุ่นไปจุดยิงอีกฝั่ง', checks:['สั่ง "สลับ" ภายใน 1 วิหลัง HIVE พลิก'] } },
+ { id:'4.3', title:'ช่วง 1:00: เปลี่ยนไปทำ FLOWER',
+   scn:'เหลือ 1:05 หุ่นเราถือ NECTAR 1 ลูก FLOWER ใกล้เรามี POLLEN 4 ลูก ยังไม่มี NECTAR',
+   rules:['G410','G418','10.5.2'],
+   act:['พาหุ่นไปจอดข้าง FLOWER ก่อน 1:00 แต่ห้ามใส่ NECTAR จนกว่านาฬิกาจะถึง 1:00',
+        'NECTAR ลูกแรกใน FLOWER ที่ยังไม่มี NECTAR = ได้ทั้งเจ้าของ FLOWER (บนสุด) และ Bottom Bonus (ล่างสุด) ในคราวเดียว',
+        'ใส่ทางบนเท่านั้น ดึงได้เฉพาะ POLLEN ทางล่าง (G418) NECTAR ไม่ออกทางล่าง',
+        'คู่แข่งวาง NECTAR ทับบนของเราได้ = เขาเป็นเจ้าของแทน เราเหลือแค่ Bottom Bonus'],
+   quiz:[
+    { q:'ใส่ NECTAR ลูกแรกใน FLOWER ที่ยังไม่มี NECTAR เราได้อะไร', o:['แค่ 2 แต้มของลูกนั้น','เป็นเจ้าของ FLOWER (2 แต้มต่อทุกลูกในโซนคะแนน) และได้ Bottom Bonus 5','แค่ Bottom Bonus'], a:1, e:'NECTAR ลูกเดียวเป็นทั้งบนสุดและล่างสุด จึงได้ทั้งสองอย่าง ลูกที่อยู่ต่ำกว่าวงกลางไม่นับ' },
+    { q:'นาฬิกาบอก 1:02 หุ่นพร้อมใส่ ควรสั่งอะไร', o:['"ใส่เลย"','"รอ… 1:00 ใส่"','"ไปทำอย่างอื่น"'], a:1, e:'ใส่ก่อน 1:00 = MAJOR FOUL 20 แต้มต่อลูก' } ],
+   sim:{ scn:'4.3', task:'เรียก "รอ… 1:00 ใส่" แล้วพาหุ่นกลับไป PARK ให้ทัน', checks:['เรียก "รอ… 1:00 ใส่" ก่อนใส่ NECTAR'] } },
+ { id:'4.4', title:'ตัดสินใจ: PARK หรือยิงต่อ',
+   scn:'เหลือ 0:12 หุ่นถือ POLLEN 4 ลูก อยู่ห่างจุดยิง 2 วิ ห่าง LOADING ZONE 5 วิ',
+   rules:['Table 10-2','Table 10-3'],
+   act:['เทียบค่าเสมอ: TIP 20 · ลูกค้างใน CELL 2/ลูก · PARK 5',
+        'ถ้า CELL ขาดไม่เกิน 4 ลูก → ยิงให้ TIP (20) คุ้มกว่า PARK',
+        'ถ้า TIP ไม่ได้ ลูก 4 ลูกค้างใน CELL = 8 แต้ม ก็ยังมากกว่า PARK 5',
+        'แต่รอบคัดเลือก ถ้าพันธมิตรต้องการ PARK ของเราเพื่อ SWARM RP ให้ PARK ก่อน'],
+   quiz:[
+    { q:'รอบ Playoff, CELL ขาดอีก 2 ลูกจะ TIP ควรสั่งอะไร', o:['"PARK"','"ยิง" แล้วค่อย PARK ถ้าทัน','"ไปทำ FLOWER"'], a:1, e:'TIP 20 > PARK 5 และ 2 + 2 + 5 = 9 วิ ยังพอเวลา' },
+    { q:'รอบคัดเลือก ทั้งสองหุ่น LEAVE แล้ว พันธมิตร PARK แล้ว CELL ขาดอีก 6 ลูก ควรสั่งอะไร', o:['"ยิง"','"PARK" เพื่อ SWARM RP','"เก็บลูกเพิ่ม"'], a:1, e:'PARK ของเราทำให้ครบ 16 แต้ม ได้ 1 RP ซึ่งมีค่ามากในรอบคัดเลือก' } ],
+   sim:{ scn:'4.4', task:'โค้ชตัดสินใจและสั่งภายใน 1 วิแรก', checks:['อธิบายเหตุผลการตัดสินใจให้ทีมฟังหลังจบ'] } },
+ { id:'4.5', title:'ตามสกอร์และ RP ระหว่างแมตช์',
+   scn:'เหลือ 1:30 เราได้ 3 TIP แล้ว',
+   rules:['Table 10-3'],
+   act:['บอกทีมเป็นระยะ: "TIP 3 · อีก 1 ได้ POLLINATOR"',
+        'คะแนนสดบนจอเป็นแค่ตัวช่วย อาจคลาดเคลื่อน (10.5) โค้ชควรนับเองด้วย',
+        'ใช้กระดาษแข็งหรือนิ้วนับ TIP และสิทธิ์ NECTAR ของ Human Player'],
+   quiz:[
+    { q:'ได้ 3 TIP ต้องอีกกี่ TIP ถึง POLLINATOR 2', o:['1','2','4','7'], a:2, e:'POLLINATOR 2 = 7 TIP, 7 − 3 = 4' },
+    { q:'คะแนนบนจอต่างจากที่โค้ชนับ แปลว่า', o:['ต้องหยุดแมตช์','อาจล่าช้า ไม่ถือเป็น ARENA FAULT เช็กกับกรรมการหลังแมตช์ได้','กรรมการผิดแน่นอน'], a:1, e:'10.5: ความล่าช้าของคะแนนสดไม่ใช่ ARENA FAULT' } ] },
+]},
+{ name:'ระดับ 5 · สถานการณ์ยากและฉุกเฉิน', diff:'ยาก', drills:[
+ { id:'5.1', title:'PIN: ถูกบล็อก หรือเราบล็อกเขา',
+   scn:'หุ่นเราดันหุ่นคู่แข่งติดกำแพงมา 2 วินาทีแล้ว',
+   rules:['G421','G419','G420'],
+   act:['เราเป็นฝ่าย PIN: สั่ง "ถอย" ทันที ให้ห่างอย่างน้อย 2 ฟุต (~61 ซม.) ก่อนครบ 3 วิ',
+        'เราถูก PIN: สั่ง Driver ลองขยับออกทางอื่น อย่าดันกลับแรง ๆ ให้กรรมการนับ',
+        'ห้ามทำให้หุ่นคู่แข่งพลิก พันกัน หรือเสียหาย (G419, G420) โทษสูงถึง RED CARD',
+        'ระบบเลือด 2% ต่อการชนใน simulator ใช้ฝึกให้ Driver ขับเลี่ยงการปะทะ <span class="tag">โหมดฝึก</span>'],
+   quiz:[
+    { q:'หุ่นเราดันคู่แข่งติดกำแพงมา 2 วิ ควรสั่งอะไร', o:['"ดันต่อ"','"ถอย 2 ฟุต" ทันที','"หยุดนิ่ง"'], a:1, e:'หยุดนิ่งแต่ยังบล็อกอยู่ก็ยังนับเป็น PIN' },
+    { q:'PIN ค้างไว้ 15 วิ โดน MAJOR FOUL กี่ครั้ง', o:['1','3','5','6'], a:3, e:'ตัวอย่างในคู่มือ 10.6.4: 1 ครั้งตอนเริ่ม + 1 ทุก 3 วิ = 6' } ],
+   sim:{ scn:'5.1', task:'B1 จะพุ่งเข้าชนเป็นระยะ โค้ชต้องเรียก "ระวัง" ก่อนชน', checks:['เรียก "ระวัง" ก่อนการชนได้อย่างน้อย 3 ครั้ง'] } },
+ { id:'5.2', title:'หุ่นพันธมิตรดับกลางแมตช์',
+   scn:'เหลือ 1:20 หุ่นพันธมิตรหยุดนิ่งกลางสนามใกล้ HIVE',
+   rules:['G409','G423','แนวปฏิบัติ'],
+   act:['ปรับแผนทันที: หุ่นเรารับทั้งงาน TIP และ PARK',
+        'บอกโค้ชพันธมิตรว่าเราจะทำอะไร เขาอาจรีสตาร์ท OpMode ได้ (โค้ชกด Stop/Start ได้ตาม G423)',
+        'ขับหลบหุ่นที่ดับ อย่าชนจนพันกัน',
+        'ลูกที่ร่วงจาก HIVE แล้วค้างบนหุ่นที่ดับใต้ HIVE ไม่ถือว่าผิด G409 (ตัวอย่าง E)',
+        'คิด SWARM ใหม่: ถ้าพันธมิตร PARK ไม่ได้ SWARM จะหลุด จึงเน้นแต้มจาก TIP แทน'],
+   quiz:[
+    { q:'พันธมิตรดับ เหลือ 1:20 ลำดับความสำคัญของหุ่นเราควรเป็น', o:['ไปดันหุ่นพันธมิตรเข้า LOADING ZONE','ทำ TIP ต่อ → FLOWER หลัง 1:00 ถ้าคุ้ม → PARK','ไปเล่นเกมรับ'], a:1, e:'ทำแต้มที่ทำได้เองก่อน การดันหุ่นอื่นเสียเวลาและเสี่ยงพันกัน' },
+    { q:'โค้ชพันธมิตรช่วยหุ่นที่ดับได้อย่างไรตามกติกา', o:['เดินเข้าไปเสียบสาย','กด Stop/Start OpMode บน Driver Station','ยกหุ่นออก'], a:1, e:'G423 อนุญาตให้โค้ชจัดการ Driver Station แต่ G425 ห้ามแตะหุ่น' } ],
+   sim:{ scn:'5.2', task:'เมื่อ R2 ดับ โค้ชแจ้งแผนใหม่ให้คนขับ', checks:['แจ้งแผนใหม่ให้คนขับภายใน 5 วิหลังพันธมิตรดับ'] } },
+ { id:'5.3', title:'คู่แข่งเล่นเกมรับ บล็อกจุดยิง',
+   scn:'หุ่นน้ำเงินมาจอดตรงจุดยิงประจำของเราทุกครั้ง',
+   rules:['G421','G417','แนวปฏิบัติ'],
+   act:['เตรียมจุดยิงสำรองอย่างน้อย 2 จุดตั้งแต่ซ้อม ตั้งชื่อให้เรียกสั้น เช่น "จุด A" "จุด B"',
+        'สั่ง "เปลี่ยนจุด B" แทนการดันเข้าไป',
+        'ถ้าคู่แข่ง PIN เราเกิน 3 วิ เป็น FOUL ของเขา ไม่ต้องดันสู้',
+        'ถ้าคู่แข่งยิงลูกใส่ HIVE เราเพื่อขัดการพลิก เป็น G417 D แจ้งได้หลังแมตช์ตามขั้นตอน'],
+   quiz:[
+    { q:'คู่แข่งจอดขวางจุดยิง A ควรสั่งอะไร', o:['"ดันออก"','"เปลี่ยนจุด B"','"รอ"'], a:1, e:'ประหยัดเวลาและไม่เสี่ยง FOUL' } ],
+   sim:{ scn:'5.3', task:'B1 จะไปขวางจุดยิงที่ใกล้หุ่นเราที่สุด โค้ชสั่งเปลี่ยนจุดยิง', checks:['ตั้งชื่อจุดยิงสำรองและเรียกชื่อจุดได้'] } },
+ { id:'5.4', title:'เผลอทำ FOUL แล้วต้องแก้เกม',
+   scn:'หุ่นเราใส่ NECTAR ลง FLOWER ตอนเหลือ 1:03',
+   rules:['G410','10.5.2','G426'],
+   act:['ไม่ตกใจ แผนเดิมยังเดินต่อ',
+        'NECTAR ที่ใส่ก่อนเวลายังนับคะแนนตามปกติ แต่โดน MAJOR FOUL 20 แต้มต่อลูกให้คู่แข่ง (10.5.2)',
+        'NECTAR เอาออกทางล่างไม่ได้ ห้ามพยายามดึงออก (G418)',
+        'หลังแมตช์บันทึกสาเหตุ แล้วปรับการเรียกเวลา เช่น เปลี่ยนเป็น "รอ… 1:00 ใส่"'],
+   quiz:[
+    { q:'NECTAR ที่ใส่ตอน 1:03 ยังนับคะแนน FLOWER ไหม', o:['นับ แต่โดน MAJOR FOUL','ไม่นับ','กรรมการเอาออก'], a:0, e:'10.5.2: ยังนับ แต่โดนโทษ' },
+    { q:'Human Player ใส่ NECTAR 2 ลูกก่อนได้สิทธิ์ คู่แข่งได้กี่แต้ม', o:['5','10','20','40'], a:1, e:'G426 MINOR 5 แต้มต่อลูก × 2' } ] },
+ { id:'5.5', title:'อุปกรณ์มีปัญหา',
+   scn:'Driver Station ขึ้นว่าหลุดการเชื่อมต่อกลาง TELEOP',
+   rules:['G423','G425','G401'],
+   act:['โค้ชถือและแก้ปัญหา Driver Station ได้ (G423 B) เลือก OpMode, INIT, Start ใหม่ได้',
+        'ห้ามเดินไปแตะหุ่น (G425) ห้ามโค้ชจับจอย',
+        'เตรียมแผนก่อนแข่ง: แบตสำรองของ Driver Station, สายจอยสำรอง, ขั้นตอนรีสตาร์ทที่ซ้อมจนทำได้ใน 15 วิ'],
+   quiz:[
+    { q:'ข้อใดโค้ชทำไม่ได้', o:['รีสตาร์ท OpMode','ถือ Driver Station ให้ Driver','เดินเข้าสนามไปกดปุ่มบนหุ่น'], a:2, e:'G425 ห้ามแตะหุ่น และ G422 ต้องอยู่ใน ALLIANCE AREA' } ],
+   sim:{ scn:'5.5', task:'เมื่อแผง Driver Station ขึ้น โค้ชคลิก ■ Stop → เลือก OpMode → INIT → ▶ Start', checks:['ซ้อมกับหุ่นจริง รีสตาร์ทได้ภายใน 15 วิ','โค้ชไม่จับจอยระหว่างขั้นตอน'] } },
+ { id:'5.6', title:'HIVE กำลังพลิก แต่ยังยิงอยู่',
+   scn:'ลูกที่ 8 เพิ่งเข้า HIVE เริ่มพลิก หุ่นพันธมิตรกำลังจะยิงลูกต่อไป',
+   rules:['10.5.1','G417'],
+   act:['เรียก "หยุดยิง" ทันทีเมื่อเห็น HIVE เริ่มพลิก ยิงใส่ CELL ที่กำลังลงอาจขัดการพลิกทำให้ TIP ไม่สำเร็จ',
+        'รอให้ HIVE นิ่ง ให้กรรมการเห็นชัดว่า TIP แล้ว จากนั้นสั่ง "สลับ"',
+        'ห้ามใช้หุ่นหรือลูกที่ถืออยู่ไปแตะ HIVE เพื่อช่วยให้พลิก (G417 E)'],
+   quiz:[
+    { q:'HIVE เริ่มพลิก ควรสั่งอะไร', o:['"ยิงต่อเร็ว ๆ"','"หยุดยิง… รอนิ่ง… สลับ"','"ดันโครง"'], a:1, e:'10.5.1 แนะนำให้หยุดยิงเพื่อให้ TIP ชัดเจน' } ],
+   sim:{ scn:'5.6', task:'โค้ชเรียก "หยุดยิง… รอนิ่ง… สลับ" ทุกครั้งที่ HIVE เริ่มพลิก', checks:['เรียกครบทุกครั้งที่ HIVE พลิก'] } },
+]},
+{ name:'ระดับ 6 · ระดับแข่งจริง', diff:'ยากที่สุด', drills:[
+ { id:'6.1', title:'คำนวณเพื่อชนะในช่วงสุดท้าย',
+   scn:'เหลือ 0:25 เราตามหลังเล็กน้อย หุ่นเราถือ POLLEN 4 ลูก CELL ขาดอีก 2 ลูก พันธมิตรอยู่ใน LOADING ZONE แล้ว',
+   rules:['Table 10-2'],
+   act:['ใช้สูตรในหัว: ส่วนต่าง − แต้มที่ทำได้ = ชนะหรือไม่',
+        'TIP +20 แต่ลูกที่ค้างใน CELL จะร่วงออก เสีย 2 แต้มต่อลูก ดังนั้น TIP ช่วงท้ายมีค่าจริง = 20 − 2 × ลูกที่ค้าง',
+        'หลัง TIP ลูกที่ยิงเข้า CELL ใหม่ได้ +2/ลูก และ PARK +5 ถ้าทัน',
+        'คิดเผื่อคู่แข่งด้วย: เขายังทำ TIP หรือ FLOWER ได้อีกไหม'],
+   quiz:[
+    { q:'CELL มีลูกค้าง 6 ลูก ยิงอีก 2 ลูกให้ TIP แล้วยิงอีก 2 ลูกเข้า CELL ใหม่ และ PARK ทัน ได้เพิ่มสุทธิกี่แต้ม', o:['17','24','29','34'], a:0, e:'TIP 20 − ลูกค้างที่ร่วง 6×2 = 8 · บวกลูกใน CELL ใหม่ 2×2 = 4 · บวก PARK 5 รวม 17' },
+    { q:'ถ้าไม่ TIP แต่ยิงลูกเดียวให้ค้าง (CELL 7 ลูกยังไม่พลิก) แล้ว PARK ได้เพิ่มกี่แต้ม', o:['7','12','17','25'], a:0, e:'ลูกค้างเพิ่ม 1×2 = 2 · PARK 5 รวม 7' } ],
+   sim:{ scn:'6.1', task:'โค้ชดูบรรทัด "ถ้าจบตอนนี้" แล้วตัดสินใจภายใน 5 วิแรก', checks:['คำนวณให้คนขับฟังได้ภายใน 5 วิแรก'] } },
+ { id:'6.2', title:'สงคราม FLOWER',
+   scn:'เหลือ 0:40 คู่แข่งวาง NECTAR ทับบน NECTAR เราใน FLOWER ใกล้ฝั่งเรา',
+   rules:['10.5.2','G408','G418'],
+   act:['เจ้าของคือ NECTAR สีที่อยู่บนสุดในโซนคะแนน ถ้าเรามี NECTAR อีกลูก วางทับเพื่อเอาคืน',
+        'เรายังได้ Bottom Bonus 5 อยู่ เพราะ NECTAR เราอยู่ล่างสุด',
+        'ห้ามแตะ NECTAR คู่แข่ง (G408) และห้ามดึง NECTAR ออกจาก FLOWER (G418)',
+        'โค้ชต้องรู้ว่าเหลือ NECTAR สีเรากี่ลูก (ในหุ่น บนพื้น และที่ Human Player)',
+        'FLOWER เต็มได้ ถ้าใส่เร็วเกินไป คู่แข่งวางทับทีหลังแล้วเราไม่มีที่ใส่ ดึง POLLEN ออกทางก้นเพื่อเปิดที่ว่างได้'],
+   quiz:[
+    { q:'คู่แข่งทับบนแล้ว เรามี NECTAR อีก 1 ลูก ควรทำอะไร', o:['ดึง NECTAR คู่แข่งออกทางล่าง','วาง NECTAR เราทับบนอีกชั้น','ปล่อยไป'], a:1, e:'ได้ความเป็นเจ้าของคืน และยังรักษา Bottom Bonus' },
+    { q:'หุ่นเราดูด NECTAR น้ำเงิน (คู่แข่ง) ติดมาหนึ่งลูก', o:['เก็บไว้ใส่ GARDEN เรา','คายออกทันที','ใส่ FLOWER'], a:1, e:'G408 ห้ามควบคุม NECTAR คู่แข่ง ถ้าทำซ้ำเสี่ยง YELLOW CARD' } ],
+   sim:{ scn:'6.2', task:'โค้ชตัดสินใจว่าจะวาง NECTAR ตอนไหน และเมื่อไรต้องดึง POLLEN ออกเพื่อเปิดที่', checks:['นับ NECTAR สีเราที่เหลือได้ถูกต้อง'] } },
+ { id:'6.3', title:'Qualification ต่างจาก Playoff',
+   scn:'วันที่ 10 ธ.ค. เป็นรอบคัดเลือก วันที่ 11 ธ.ค. เป็น Playoff',
+   rules:['Table 10-2','10.6.3','13.6.3'],
+   act:['Qualification: เก็บ RP ให้ได้มากที่สุด (WIN 3, SWARM, POLLINATOR 1, 2) บางครั้งเลือก RP มากกว่าเสี่ยงแต้ม',
+        'Playoff: เป้าหมายเดียวคือชนะ ไม่มี RP',
+        'Playoff ใบเหลือง/แดงนับทั้ง alliance ได้ YELLOW 2 ใบ = RED = ตกรอบแมตช์นั้น (10.6.3) โค้ชต้องเข้มเรื่องกฎมากขึ้น',
+        'ตารางไทย: Alliance Selection 10 ธ.ค. ช่วงบ่าย ต้องมีรายชื่อทีมที่อยากเลือก/อยากถูกเลือกจาก Scouting <span class="tag">ตารางงานไทย</span>'],
+   quiz:[
+    { q:'รอบ Playoff เหลือ 0:08 การ PARK มีค่าเท่าไร', o:['5 แต้มเท่านั้น (ไม่มี RP)','5 แต้ม + 1 RP','ไม่มีค่า'], a:0, e:'Playoff ไม่มี RP คิดเป็นแต้มอย่างเดียว' },
+    { q:'Playoff หุ่นพันธมิตรได้ YELLOW แล้ว 1 ใบ หุ่นเราได้อีก 1 ใบ', o:['ไม่เป็นไร','alliance ได้ RED CARD ถูกตัดสิทธิ์แมตช์นั้น','เตือนด้วยวาจา'], a:1, e:'10.6.3: ใบเหลืองนับรวมทั้ง alliance ใน Playoff' } ] },
+ { id:'6.4', title:'กรรมการ และการสรุปหลังแมตช์',
+   scn:'คุณคิดว่าการเรียก FOUL ผิด และทีมเสียกำลังใจหลังแพ้',
+   rules:['10.7','10.5'],
+   act:['Head Referee มีคำตัดสินสุดท้าย และจะไม่ดูวิดีโอหรือภาพใด ๆ ทั้งสิ้น (10.7)',
+        'สอบถามอย่างสุภาพตามขั้นตอนของงาน ใช้เลขกฎอ้างอิง และพูดถึงเหตุการณ์ ไม่ใช่ตัวบุคคล',
+        'Debrief 3 นาทีหลังแมตช์: (1) อะไรได้ผล (2) อะไรพลาด (3) แก้อะไร 1 อย่างในแมตช์ถัดไป',
+        'จดตัวเลข: TIP, cycle เฉลี่ย, FOUL, PARK ทัน/ไม่ทัน'],
+   quiz:[
+    { q:'โค้ชเปิดวิดีโอในมือถือให้ Head Referee ดูเพื่อขอเปลี่ยนคำตัดสิน', o:['กรรมการจะดูให้','กรรมการไม่ดูวิดีโอใด ๆ ตามกติกา 10.7','ได้ถ้าเป็น Playoff'], a:1, e:'10.7: ไม่ดูวิดีโอ ภาพ หรือภาพวาดใด ๆ ไม่ว่าจากแหล่งไหน' },
+    { q:'Debrief หลังแมตช์ ควรจบด้วยอะไร', o:['หาคนผิด','เลือกสิ่งที่จะแก้ 1 อย่างในแมตช์ถัดไป','ไม่ต้องคุย'], a:1, e:'ข้อเดียวที่ชัดเจนทำได้จริงในเวลาสั้น' } ] },
+ { id:'6.5', title:'สอบปลายภาค: โค้ชแมตช์เต็ม',
+   scn:'เล่นแมตช์เต็ม 2:30 โดยโค้ชสั่งการทั้งหมด Driver ห้ามดูนาฬิกาเอง',
+   rules:['ทุกหัวข้อ'],
+   act:['ใช้ทุกอย่างที่ฝึก: checklist, call sheet, time calls, นับ HIVE, สั่ง Human Player, FLOWER หลัง 1:00, PARK',
+        'ให้เพื่อนเป็นกรรมการคอยจด FOUL และคะแนนจริงเทียบกับที่โค้ชนับ',
+        'ทำซ้ำจนผ่านเกณฑ์ 2 แมตช์ติดกัน'],
+   quiz:[
+    { q:'เกณฑ์ผ่านที่สำคัญที่สุดของโค้ชคือ', o:['หุ่นขับเร็ว','ไม่มี FOUL จากสิ่งที่โค้ชป้องกันได้ และนับคะแนนตรงกับจริง','ชนะทุกแมตช์'], a:1, e:'ผลแพ้ชนะขึ้นกับหลายปัจจัย แต่ความแม่นของโค้ชวัดได้ตรง' } ],
+   sim:{ scn:'6.5', task:'แมตช์เต็มพร้อมแผน AUTO · กด B ทุกครั้งที่ประกาศเวลา · กด H สั่ง Human Player ปล่อย NECTAR', checks:['มีเพื่อนเป็นกรรมการจดคะแนน','คะแนนที่โค้ชนับต่างจากจริงไม่เกิน 5 แต้ม','ผ่านสถานการณ์นี้ 2 ครั้งติดกัน (ดูตัวนับด้านบน)'] } },
+]},
+];
+
+const DRIVER = [
+{ name:'ระดับ 1 · พื้นฐานการควบคุม', diff:'ง่าย', drills:[
+ { id:'D1.1', title:'จอย DualShock 4 และปุ่มควบคุม',
+   scn:'ก่อนซ้อมครั้งแรก ต้องจับคู่จอยกับเครื่องและรู้ว่าปุ่มไหนทำอะไร',
+   rules:['แนวปฏิบัติ','Section 12.9 OPERATOR CONSOLE'],
+   act:['จับคู่ Bluetooth: กด Share + PS ค้างจนไฟกะพริบ แล้วเลือก "Wireless Controller" ใน Bluetooth ของเครื่อง',
+        'เปิดหน้า simulator แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง เบราว์เซอร์จึงจะเห็นจอย',
+        'ปุ่มใน simulator: แกนซ้าย เดิน/สไลด์ · แกนขวา หมุน · R1 ยิง POLLEN · L1 ยิง NECTAR · L2/R2 วาง POLLEN/NECTAR ใน FLOWER · ✕ intake · ○ คายลูก · □ ค้าง = โหมดช้า',
+        'สนามจริงใช้จอยต่อกับ Driver Station ตรวจรุ่นจอยที่อนุญาตในหมวด OPERATOR CONSOLE ของคู่มือก่อนแข่ง',
+        'ตั้งปุ่มของหุ่นจริงให้เหมือนใน simulator จะได้ฝึกแล้วใช้ได้ทันที'],
+   quiz:[
+    { q:'จับคู่ DualShock 4 ทาง Bluetooth ต้องกดปุ่มอะไร', o:['Options + PS','Share + PS ค้าง','กด ✕ 3 ครั้ง'], a:1, e:'กด Share + PS ค้างจนไฟกะพริบ' },
+    { q:'เปิดหน้าเว็บแล้วยังไม่เห็นจอย ต้องทำอะไร', o:['รีสตาร์ทเครื่อง','กดปุ่มใดก็ได้บนจอย 1 ครั้ง','ถอดถ่าน'], a:1, e:'Gamepad API จะเห็นจอยหลังมี input แรก' },
+    { q:'ใน simulator ปุ่มไหนยิง POLLEN', o:['R1','L1','✕'], a:0, e:'R1 ยิง POLLEN, L1 ยิง NECTAR' } ],
+   sim:{ padTest:true, free:true, task:'เปิดหน้าทดสอบจอยให้ผ่านทุกข้อ แล้วลองขับใน Free Control', checks:['ลองทุกปุ่มใน Free Control ครบ'] } },
+ { id:'D1.2', title:'Field-centric และทิศทาง',
+   scn:'หุ่นหมุนไปมาตลอดเวลา ถ้าคนขับต้องคิดว่า "หน้าหุ่นอยู่ทางไหน" จะช้าและสับสน',
+   rules:['แนวปฏิบัติ'],
+   act:['Field-centric: ดันแกนซ้ายขึ้น หุ่นวิ่ง "ออกจากฝั่งแดง" เสมอ ไม่ว่าหน้าหุ่นจะหันไปทางไหน',
+        'Robot-centric: ดันขึ้น หุ่นวิ่งไปทางหน้าหุ่น ต้องหมุนความคิดตามหุ่น',
+        'หุ่นจริงต้องมี IMU และโปรแกรม field-centric ถ้าทีมใช้แบบนี้ ให้ตั้ง simulator ให้ตรงกัน (ตั้งค่าได้ใน Free Control)',
+        'มองหุ่นจากมุมยืนจริง (กล้อง Driver Station) จะได้ฝึกการกะระยะแบบเดียวกับสนาม'],
+   quiz:[
+    { q:'โหมด field-centric ดันแกนซ้ายขึ้น หุ่นวิ่งไปทางไหน', o:['ทางหน้าหุ่น','ออกจากฝั่งแดงเสมอ','ทางซ้ายของหุ่น'], a:1, e:'อ้างอิงทิศสนาม ไม่ขึ้นกับหน้าหุ่น' },
+    { q:'โหมด robot-centric ดันแกนซ้ายขึ้น หุ่นวิ่งไปทางไหน', o:['ทางหน้าหุ่น','ออกจากฝั่งแดงเสมอ','ไม่ขยับ'], a:0, e:'อ้างอิงตัวหุ่น' } ],
+   sim:{ scn:'D1.2', task:'ขับผ่านวงแหวน 8 จุดรอบสนามตามลำดับ', checks:[] } },
+ { id:'D1.3', title:'หยุดให้ตรงจุด',
+   scn:'การยิงและ PARK ต้องการหุ่นที่หยุดตรงจุดได้แม่น ไม่ไถลเลย',
+   rules:['10.5.4','แนวปฏิบัติ'],
+   act:['ผ่อนแกนจอยก่อนถึงเป้าประมาณครึ่งเมตร อย่าปล่อยจอยกะทันหัน',
+        'ใช้โหมดช้า (□ ค้าง) ตอนเข้าเป้า แล้วปล่อยเมื่อออกวิ่งต่อ',
+        'PARK นับเมื่อส่วนหนึ่งของหุ่นอยู่ใน LOADING ZONE ตอนจบแมตช์ และหุ่นต้องหยุดนิ่งเมื่อหมดเวลา (G404)'],
+   quiz:[
+    { q:'PARK ได้แต้มเมื่อไร', o:['หุ่นทั้งคันอยู่ใน LOADING ZONE','ส่วนหนึ่งของหุ่นอยู่ใน LOADING ZONE ตอนจบแมตช์','ผ่าน LOADING ZONE ครั้งเดียว'], a:1, e:'10.5.4: at least partially in the LOADING ZONE' },
+    { q:'วิธีหยุดให้ตรงจุดที่ดีที่สุด', o:['ปล่อยจอยตอนถึงเป้าพอดี','ผ่อนจอยก่อนถึง และใช้โหมดช้าตอนเข้าเป้า','ชนกำแพงให้หยุด'], a:1, e:'ลดความเร็วก่อนถึง จะไม่ไถลเลย' } ],
+   sim:{ scn:'D1.3', task:'หยุดนิ่งในวงแหวนเล็ก 1 วินาทีเต็ม ครบ 4 จุด', checks:[] } },
+ { id:'D1.4', title:'เก็บลูกให้ไวและถูกลูก',
+   scn:'เวลาเก็บลูกคือเวลาส่วนใหญ่ของ cycle',
+   rules:['G407','G408'],
+   act:['เข้าหาลูกตรง ๆ ให้ intake หน้าหุ่นชนลูก ไม่ต้องเลี้ยวกลางทาง',
+        'ถือได้ไม่เกิน 4 ลูก (G407) ดูแถบช่องลูกบนจอ',
+        'ห้ามควบคุม NECTAR ของคู่แข่ง (G408) ถ้าดูดติดมา กด ○ คายออกทันที',
+        'ไล่เก็บลูกที่อยู่ใกล้กันก่อน แล้วค่อยไปลูกที่ไกล'],
+   quiz:[
+    { q:'หุ่นถือลูกได้มากที่สุดกี่ลูก', o:['3','4','5','8'], a:1, e:'G407' },
+    { q:'ดูด NECTAR สีน้ำเงินติดมา (เราเป็นแดง) ต้องทำอะไร', o:['ยิงเข้า HIVE','กด ○ คายออกทันที','เก็บไว้'], a:1, e:'G408 ห้ามควบคุม NECTAR คู่แข่ง' } ],
+   sim:{ scn:'D1.4', task:'เก็บ POLLEN 12 ลูกใน 60 วิ หลบ NECTAR น้ำเงิน', checks:[] } },
+ { id:'D1.5', title:'ยิงตามกฎของทีม: หยุดก่อนยิง',
+   scn:'ทีมกำหนดว่าหุ่นต้องยิงจากจุดที่สมเหตุสมผลและหยุดนิ่งก่อนยิงเท่านั้น',
+   rules:['กฎฝึกของทีม','G417'],
+   act:['จุดยิงคือวงแหวนสีเหลืองรอบ CELL ที่หงาย ห่าง 0.9–1.6 ม. <span class="tag">ค่าจากหุ่นของทีม ปรับได้</span>',
+        'หันหน้าเข้า CELL ไม่เกิน 10° และหยุดนิ่งสนิทก่อนกดยิง แผงซ้ายบอกเหตุผลถ้ายังยิงไม่ได้',
+        'กติกา FTC ไม่ได้บังคับให้ยิงนิ่ง ข้อนี้เป็นกฎฝึกของทีมเพื่อให้ยิงแม่น',
+        'ห้ามยิงใส่ด้านล่าง ด้านข้าง หรือด้านบนของ CELL โดยตั้งใจ (G417 C) ยิงเข้าช่องเปิดของ CELL ที่หงายเท่านั้น'],
+   quiz:[
+    { q:'ตามกฎฝึกของทีม ระยะยิงจาก CELL ที่หงายคือ', o:['0.3–0.8 ม.','0.9–1.6 ม.','ยิงได้ทุกระยะ'], a:1, e:'วงแหวนสีเหลืองใน simulator' },
+    { q:'ตั้งใจยิงลูกใส่ใต้ CELL เพื่อดัน HIVE ผลคือ', o:['ถูกกติกา','ผิด G417 ถ้าจงใจ MAJOR + YELLOW','ได้แต้ม TIP'], a:1, e:'G417 C' } ],
+   sim:{ scn:'D1.5', task:'ยิงเข้า 8 ลูก จากอย่างน้อย 2 จุด และกดยิงตอนยังไม่พร้อมไม่เกิน 3 ครั้ง', checks:[] } },
+]},
+{ name:'ระดับ 2 · ทำคะแนน', diff:'กลาง', drills:[
+ { id:'D2.1', title:'TIP แล้วสลับฝั่ง',
+   scn:'HIVE พลิกแล้ว CELL ที่ต้องยิงย้ายไปอีกฝั่ง',
+   rules:['10.5.1','G409'],
+   act:['หลัง TIP ขับอ้อมโครง HIVE ไปจุดยิงอีกฝั่งทันที',
+        'ห้ามจอดรอใต้ HIVE เพื่อรับลูกที่ร่วงลงมา (G409) ให้ลูกแตะพื้นก่อนแล้วค่อยเก็บ',
+        'ลูกที่ร่วงอยู่ใกล้ HIVE เป็นแหล่งลูกที่ดีที่สุดของ cycle ถัดไป'],
+   quiz:[
+    { q:'ลูกกำลังร่วงจาก HIVE ลงมาตรงหุ่น ควรทำอะไร', o:['จอดนิ่งให้ลูกตกใส่','ขับออกให้ลูกแตะพื้นก่อน แล้วค่อยเก็บ','เปิด intake รอ'], a:1, e:'G409' } ],
+   sim:{ scn:'4.2', task:'ทำ TIP แล้วยิงเข้า CELL ใหม่ 3 ลูกภายใน 15 วิ', checks:[] } },
+ { id:'D2.2', title:'จังหวะ cycle',
+   scn:'cycle ที่ไวและสม่ำเสมอคือที่มาของ TIP',
+   rules:['แนวปฏิบัติ'],
+   act:['1 cycle = เก็บ → ไปจุดยิง → หยุด → ยิง ตั้งเป้าให้ cycle สั้นลงทุกครั้ง',
+        'ระหว่างยิง ให้มองหาแหล่งลูกถัดไปไว้เลย',
+        'ถ้า CELL ต้องอีกไม่กี่ลูก ไม่ต้องเก็บให้ครบ 4'],
+   quiz:[
+    { q:'CELL ขาดอีก 2 ลูกจะ TIP หุ่นถือ 2 ลูกแล้ว ควรทำอะไร', o:['เก็บให้ครบ 4 ก่อน','ไปยิงเลย','PARK'], a:1, e:'2 ลูกพอ TIP แล้ว' } ],
+   sim:{ scn:'4.1', task:'ทำ 5 cycle ให้รอบสุดท้ายเร็วกว่ารอบแรก', checks:[] } },
+ { id:'D2.3', title:'FLOWER: วางและดึงลูก',
+   scn:'FLOWER ใช้ทำแต้มช่วงท้าย คนขับต้องวางลูกทางปากบนได้แม่น',
+   rules:['G418','10.5.2'],
+   act:['ชิด FLOWER หันหน้าเข้าหา แล้วกด L2 (POLLEN) หรือ R2 (NECTAR)',
+        'ใส่ได้ทางบนเท่านั้น ดึงออกได้เฉพาะ POLLEN ทางก้น (G418)',
+        'ดึง POLLEN ทางก้น: เปิด intake แล้วดันหน้าหุ่นเข้าหาฐาน FLOWER',
+        'NECTAR ใส่ได้เมื่อเหลือ 1:00 เท่านั้น (G410) POLLEN ใส่ได้ตลอด'],
+   quiz:[
+    { q:'ลูกไหนดึงออกทางก้น FLOWER ได้', o:['POLLEN เท่านั้น','NECTAR เท่านั้น','ทั้งสองแบบ'], a:0, e:'G418 B' } ],
+   sim:{ scn:'D2.3', task:'วาง POLLEN ใน FLOWER 2 ต้น และดึง POLLEN ออกทางก้น 1 ลูก', checks:[] } },
+ { id:'D2.4', title:'ช่วง 1:00: FLOWER แล้ว PARK',
+   scn:'ช่วงท้ายแมตช์ต้องทำ FLOWER และ PARK ให้ทันทั้งคู่',
+   rules:['G410','10.5.2','10.5.4'],
+   act:['ไปรอข้าง FLOWER ก่อน 1:00 แต่ใส่ NECTAR หลังนาฬิกาถึง 1:00 เท่านั้น',
+        'วาง NECTAR ลูกแรกใน FLOWER ที่ยังไม่มี NECTAR ได้ทั้งเจ้าของและ Bottom Bonus',
+        'จำเวลาขับไป LOADING ZONE ของตัวเอง แล้วออกเดินทางให้ทัน'],
+   quiz:[
+    { q:'ใส่ NECTAR ลง FLOWER ตอน 1:01 ผลคือ', o:['ไม่เป็นไร','MAJOR FOUL 20 แต้มต่อลูก','ลูกไม่นับ'], a:1, e:'G410' } ],
+   sim:{ scn:'4.3', task:'ใส่ NECTAR หลัง 1:00 เป็นเจ้าของ FLOWER และ PARK ให้ทัน', checks:[] } },
+ { id:'D2.5', title:'จาก AUTO เข้า TELEOP',
+   scn:'AUTO จบแล้ว 8 วิถัดไปคือช่วงเปลี่ยน คนขับห้ามขยับหุ่น',
+   rules:['G401','G403'],
+   act:['ช่วง AUTO ห้ามแตะจอยหรือหุ่น (G401) ยกเว้นกด Start, Stop หรือเพื่อความปลอดภัย',
+        'ช่วงเปลี่ยน 8 วิ ห้ามขยับหุ่น (G403) หยิบจอยขึ้นมาเตรียมได้',
+        'ระหว่างรอ วางแผนว่าลูกแรกของ TELEOP จะเก็บจากไหน'],
+   quiz:[
+    { q:'ช่วงเปลี่ยน 8 วิ คนขับทำอะไรได้', o:['ขับเข้าหาลูก','หยิบจอยเตรียมไว้ ห้ามขยับหุ่น','ยิงลูกที่ค้าง'], a:1, e:'G403' } ],
+   sim:{ scn:'D2.5', task:'ไม่ขยับช่วงเปลี่ยน แล้วยิงลูกแรกภายใน 15 วิหลัง TELEOP เริ่ม', checks:[] } },
+]},
+{ name:'ระดับ 3 · กติกาขณะขับ', diff:'กลาง–ยาก', drills:[
+ { id:'D3.1', title:'G408 และ G417 ขณะเก็บและยิง',
+   scn:'ลูกของคู่แข่งปนอยู่กับลูกของเรา และโครง HIVE อยู่ใกล้จุดเก็บลูก',
+   rules:['G408','G417'],
+   act:['มองสีลูกก่อนเก็บ NECTAR สีคู่แข่งห้ามเก็บ (G408)',
+        'ขับผ่านโครง HIVE ช้า ๆ ห้ามชนแรงหรือชนซ้ำ (G417 A, B)',
+        'การชนโครงเบา ๆ ระหว่างเก็บลูกโดยไม่ตั้งใจไม่ถือว่าจงใจ (G417 G) แต่ต้องไม่บ่อย'],
+   quiz:[
+    { q:'ชนโครง HIVE ด้วยความเร็วสูงซ้ำ ๆ ผลคือ', o:['ไม่มีโทษ','ผิด G417 ถ้าจงใจ MAJOR + YELLOW','ได้ TIP'], a:1, e:'G417' } ],
+   sim:{ scn:'D3.1', task:'ยิงเข้า 8 ลูก โดยไม่เก็บ NECTAR น้ำเงินและไม่ชนโครงแรง', checks:[] } },
+ { id:'D3.2', title:'PIN และการปะทะ',
+   scn:'หุ่นคู่แข่งพุ่งเข้าชนและอยากให้เราดันกลับ',
+   rules:['G421','G419','G420'],
+   act:['ดันหุ่นคู่แข่งติดกำแพงหรือสิ่งกีดขวางได้ไม่เกิน 3 วิ (G421) ดูข้อความเตือน PIN ในแผงซ้าย',
+        'ถ้าโดนชน ให้ขับหลบออกทางอื่น อย่าดันสู้',
+        'ระบบเลือด 2% ต่อการชนใน simulator ใช้ฝึกขับเลี่ยงการปะทะ <span class="tag">โหมดฝึก</span>'],
+   quiz:[
+    { q:'แผงซ้ายขึ้นว่า "เรากำลัง PIN B1 2.4 วิ" ต้องทำอะไร', o:['ดันต่อ','ถอยออกทันที','หยุดนิ่ง'], a:1, e:'เกิน 3 วิ MAJOR FOUL' } ],
+   sim:{ scn:'5.1', task:'เลือดเหลือ ≥ 90% ไม่โดน PIN FOUL และ TIP ≥ 2', checks:[] } },
+ { id:'D3.3', title:'ตั้งหุ่นก่อนแมตช์ (G304)',
+   scn:'คนขับเป็นคนวางหุ่นในตำแหน่งเริ่มก่อนทุกแมตช์',
+   rules:['G304','10.3.4'],
+   act:['หุ่นแตะกำแพงฝั่งตัวเอง อยู่นอก LOADING ZONE ไม่แตะ FLOWER',
+        'POLLEN pre-load 4 ลูกต้องสัมผัสหุ่น'],
+   quiz:[
+    { q:'หุ่นเริ่มแมตช์แตะ FLOWER ได้ไหม', o:['ได้','ไม่ได้ ผิด G304','ได้ถ้าเป็นหุ่นแดง'], a:1, e:'G304 D' } ],
+   sim:{ scn:'3.1', task:'เก็บ pre-load 4 ลูกแล้วตั้งหุ่นให้ถูกตำแหน่ง กด Y ยืนยัน', checks:[] } },
+]},
+{ name:'ระดับ 4 · สถานการณ์ยาก', diff:'ยาก', drills:[
+ { id:'D4.1', title:'โดนเล่นเกมรับ', scn:'หุ่นคู่แข่งจอดขวางจุดยิงของเราทุกครั้ง', rules:['G421','แนวปฏิบัติ'],
+   act:['เตรียมจุดยิงสำรองอย่างน้อย 2 จุดบนวงแหวน','อ้อมไปจุดอื่นทันที ไม่ดันสู้','ถ้าเขา PIN เราเกิน 3 วิ เป็น FOUL ของเขา'],
+   quiz:[{ q:'คู่แข่งขวางจุดยิง ควรทำอะไร', o:['ดันออก','อ้อมไปจุดยิงอื่นบนวงแหวน','รอ'], a:1, e:'ไม่เสียเวลาและไม่เสี่ยง FOUL' }],
+   sim:{ scn:'5.3', task:'TIP ≥ 3 จากจุดยิงอย่างน้อย 2 จุด', checks:[] } },
+ { id:'D4.2', title:'พันธมิตรดับ', scn:'หุ่นพันธมิตรดับกลางสนาม คุณต้องทำงานคนเดียว', rules:['แนวปฏิบัติ'],
+   act:['รับงานทั้ง TIP และ PARK','ขับหลบหุ่นที่ดับ ไม่ชนจนพันกัน'],
+   quiz:[{ q:'พันธมิตรดับ ควรทำอะไรก่อน', o:['ดันพันธมิตรไป PARK','ทำแต้มต่อ แล้ว PARK เอง','หยุดรอ'], a:1, e:'ทำแต้มที่ทำได้เองก่อน' }],
+   sim:{ scn:'5.2', task:'TIP ≥ 2 หลังพันธมิตรดับ PARK ทัน และชนหุ่นที่ดับไม่เกิน 1 ครั้ง', checks:[] } },
+ { id:'D4.3', title:'HIVE กำลังพลิก', scn:'คุณกำลังยิงอยู่แล้ว HIVE เริ่มพลิก', rules:['10.5.1'],
+   act:['หยุดยิงทันทีเมื่อ HIVE เริ่มพลิก','รอนิ่งแล้วค่อยสลับไปจุดยิงอีกฝั่ง'],
+   quiz:[{ q:'ยิงลูกเข้า CELL ตอน HIVE กำลังพลิก เสี่ยงอะไร', o:['ไม่มี','TIP อาจไม่สำเร็จ','ได้ TIP 2 ครั้ง'], a:1, e:'10.5.1' }],
+   sim:{ scn:'5.6', task:'TIP 3 ครั้งโดยไม่มี TIP ถูกขัด', checks:[] } },
+ { id:'D4.4', title:'ช่วงสุดท้ายของแมตช์', scn:'เหลือ 0:25 ตามหลังเล็กน้อย ต้องเลือกให้ถูกและ PARK ทัน', rules:['Table 10-2'],
+   act:['ฟังโค้ช และดูบรรทัด "ถ้าจบตอนนี้"','TIP ทำให้ลูกที่ค้างใน CELL ร่วงออก','PARK ให้ทันเสมอ'],
+   quiz:[{ q:'ข้อใดสำคัญที่สุดใน 5 วิสุดท้าย', o:['ยิงลูกสุดท้าย','ให้หุ่นอยู่ใน LOADING ZONE และหยุดนิ่ง','เก็บลูก'], a:1, e:'PARK 5 แต้มและ G404' }],
+   sim:{ scn:'6.1', task:'ชนะแมตช์และ PARK ทัน', checks:[] } },
+ { id:'D4.5', title:'สงคราม FLOWER', scn:'คู่แข่งมาวาง NECTAR ทับของเรา', rules:['10.5.2','G408','G418'],
+   act:['เก็บ NECTAR ไว้วางทีหลังคู่แข่ง','ดึง POLLEN ทางก้นเพื่อเปิดที่ว่างได้','ห้ามแตะ NECTAR คู่แข่ง'],
+   quiz:[{ q:'FLOWER เต็มแล้ว แต่ต้องวาง NECTAR อีกลูก ทำอย่างไร', o:['ดึง NECTAR คู่แข่งออก','ดึง POLLEN ออกทางก้นก่อน','ใส่ทางข้าง'], a:1, e:'G418: ดึงได้เฉพาะ POLLEN ทางก้น' }],
+   sim:{ scn:'6.2', task:'เป็นเจ้าของ FLOWER ตอนจบ ได้ Bottom Bonus ไม่แตะ NECTAR คู่แข่ง และ PARK ทัน', checks:[] } },
+]},
+{ name:'ระดับ 5 · สอบ Driver', diff:'ยากที่สุด', drills:[
+ { id:'D5.1', title:'สอบ Driver: แมตช์เต็ม', scn:'แมตช์เต็ม 2:30 กับหุ่น AI อีก 3 ตัว', rules:['ทุกหัวข้อ'],
+   act:['เลือกแผน AUTO ที่ซ้อมไว้','ห้ามขยับช่วงเปลี่ยน','ทำ TIP ให้ถึง 4 ครั้ง ไม่โดน FOUL และ PARK ทัน'],
+   quiz:[{ q:'SWARM RP ต้องได้ LEAVE + PARK รวมกี่แต้ม', o:['10','16','20'], a:1, e:'Table 10-3 งานทั่วไป' }],
+   sim:{ scn:'D5.1', task:'ผ่านเป้าหมายทั้งหมดในแมตช์เดียว', checks:['ผ่านสถานการณ์นี้ 2 ครั้งติดกัน (ดูตัวนับด้านบน)'] } },
+]},
+];
+
+const HP = [
+{ name:'ระดับ 1 · บทบาทและกติกา', diff:'ง่าย', drills:[
+ { id:'H1.1', title:'หน้าที่ของ Human Player',
+   scn:'คุณได้รับเลือกเป็น Human Player ของทีมในแมตช์แรก',
+   rules:['10.2','Table 10-1'],
+   act:['Human Player คือผู้จัดการลูก (SCORING ELEMENT manager) ใน BIOBUZZ คือคนส่ง NECTAR เข้าสนาม',
+        'ต้องเป็นนักเรียน และติดป้าย "DRIVE TEAM" เหนือเอว',
+        'นับรวมกับ Driver ได้ไม่เกิน 3 คนต่อทีม',
+        'NECTAR สีเรา 5 ลูกวางอยู่ใน ALLIANCE AREA ตั้งแต่เริ่มแมตช์ (10.3.1)'],
+   quiz:[
+    { q:'ใครเป็น Human Player ได้', o:['ผู้ใหญ่ในทีม','นักเรียนในทีม','ใครก็ได้ในงาน'], a:1, e:'Table 10-1: STUDENT' },
+    { q:'เริ่มแมตช์ Human Player มี NECTAR กี่ลูก', o:['3','5','8'], a:1, e:'10.3.1 B: 5 NECTAR ใน ALLIANCE AREA' } ] },
+ { id:'H1.2', title:'กฎของมนุษย์ในสนาม',
+   scn:'ระหว่างแมตช์ Human Player อยู่ใกล้สนามที่สุด จึงเสี่ยง FOUL มากที่สุด',
+   rules:['G422','G425','G427','G428'],
+   act:['อยู่ใน ALLIANCE AREA ตลอดแมตช์ (G422)',
+        'ห้ามแตะหุ่น ลูกที่อยู่บนพื้นหรือบนหุ่น และอุปกรณ์สนาม (G425)',
+        'ใส่ NECTAR ด้วยมือ ไม่ใช้อุปกรณ์ ผ่าน LOADING ZONE ให้ลูกแตะพื้นก่อนแตะหุ่น (G427)',
+        'ห้ามเอาลูกออกจากสนาม (G428) และห้ามมนุษย์ใส่ลูกเข้า HIVE หรือ FLOWER เด็ดขาด'],
+   quiz:[
+    { q:'ใส่ NECTAR เข้าสนามต้องผ่านที่ไหน', o:['ที่ไหนก็ได้','LOADING ZONE สีเรา','ใส่เข้า HIVE ตรง ๆ'], a:1, e:'G427' },
+    { q:'ใช้ท่อช่วยปล่อย NECTAR ได้ไหม', o:['ได้','ไม่ได้ ต้องใช้มือ','ได้ถ้ายาวไม่เกิน 1 ม.'], a:1, e:'G427 A: without the use of a tool' },
+    { q:'เอื้อมไปหยิบ POLLEN ที่ค้างบนกำแพงด้านในสนามได้ไหม', o:['ได้','ไม่ได้ ผิด G428 / G425','ได้ถ้ากรรมการไม่เห็น'], a:1, e:'ห้ามเอาลูกออกจากสนาม' } ] },
+ { id:'H1.3', title:'นับสิทธิ์ NECTAR (G426)',
+   scn:'คุณต้องรู้ตลอดเวลาว่าตอนนี้ปล่อย NECTAR ได้กี่ลูก',
+   rules:['G426'],
+   act:['ทุกครั้งที่ HIVE สีเรา TIP ได้สิทธิ์ปล่อย 1 ลูก',
+        'เมื่อเหลือ 1:00 ปล่อยที่เหลือได้ทั้งหมด',
+        'สิทธิ์สะสมได้ ไม่ต้องปล่อยทันทีที่ TIP',
+        'ปล่อยเกินสิทธิ์ = MINOR FOUL ต่อลูก',
+        'นับด้วยนิ้ว: TIP 1 ครั้ง ยกนิ้ว 1 นิ้ว ปล่อย 1 ลูก พับนิ้ว 1 นิ้ว <span class="tag">แนวปฏิบัติ</span>'],
+   quiz:[
+    { q:'TIP แล้ว 3 ครั้ง ปล่อยไปแล้ว 1 ลูก เหลือ 1:40 ปล่อยได้อีกกี่ลูก', o:['0','1','2','4'], a:2, e:'3 − 1 = 2' },
+    { q:'เหลือ 0:58 ยังไม่เคย TIP เลย ปล่อยได้กี่ลูก', o:['0','1','ทั้งหมดที่เหลือ'], a:2, e:'G426 B: เหลือ ≤ 60 วิ ปล่อยที่เหลือได้ทั้งหมด' },
+    { q:'ปล่อย NECTAR ก่อนได้สิทธิ์ 1 ลูก โดนอะไร', o:['MINOR FOUL 5 แต้ม','MAJOR FOUL 20 แต้ม','ไม่มีโทษ'], a:0, e:'G426: MINOR FOUL per NECTAR' } ] },
+]},
+{ name:'ระดับ 2 · จังหวะการปล่อย', diff:'กลาง', drills:[
+ { id:'H2.1', title:'ปล่อยตามจังหวะ TIP',
+   scn:'HIVE สีเรา TIP แล้ว หุ่นต้องการ NECTAR ไปใช้ต่อ',
+   rules:['G426','G427'],
+   act:['มอง HIVE สีเราตลอด เมื่อพลิกเสร็จ ยกนิ้วนับสิทธิ์',
+        'ดู LOADING ZONE ว่างก่อน แล้วปล่อยภายในไม่กี่วินาที',
+        'ปล่อยลูกให้ตกบนพื้นใน LOADING ZONE ไม่โยนใส่หุ่น'],
+   quiz:[
+    { q:'HIVE กำลังพลิกแต่ยังไม่นิ่ง ควรปล่อยเลยไหม', o:['ปล่อยเลย','รอให้พลิกเสร็จก่อน','ไม่ต้องปล่อยเลยทั้งแมตช์'], a:1, e:'TIP นับเมื่อเปลี่ยนสถานะเสร็จ (10.5.1) รอให้ชัดเจนก่อน' } ],
+   sim:{ scn:'H2.1', task:'หุ่นทุกตัวขับโดย AI คุณกด H เมื่อปล่อย NECTAR', checks:[] } },
+ { id:'H2.2', title:'ช่วง 1:00: ปล่อยที่เหลือทั้งหมด',
+   scn:'เหลือ 1:05 และยังถือ NECTAR หลายลูก',
+   rules:['G426','G410'],
+   act:['ดูนาฬิกาบนจอ เตรียม NECTAR ไว้ในมือ',
+        'ถึง 1:00 ปล่อยทีละลูกให้เร็วที่สุด แต่ต้องดู LOADING ZONE ว่างทุกลูก',
+        'หุ่นจะใช้ NECTAR ทำ FLOWER ช่วงท้าย ยิ่งปล่อยเร็ว หุ่นยิ่งมีเวลา'],
+   quiz:[
+    { q:'นาฬิกาบอก 1:02 ปล่อยทั้งหมดได้ไหม (ไม่มีสิทธิ์ค้าง)', o:['ได้','ไม่ได้ รออีก 2 วิ','ได้ 1 ลูก'], a:1, e:'G426 B: เมื่อเหลือ 60 วิหรือน้อยกว่า' } ],
+   sim:{ scn:'H2.2', task:'ปล่อยครบ 4 ลูกภายใน 5 วิหลัง 1:00 ห้ามปล่อยก่อน', checks:[] } },
+ { id:'H2.3', title:'เลือกจังหวะปล่อยให้คุ้ม',
+   scn:'ได้สิทธิ์ค้างไว้ 2 ลูก แต่หุ่นพันธมิตรกำลังขับผ่าน LOADING ZONE',
+   rules:['G426','G427','แนวปฏิบัติ'],
+   act:['สิทธิ์สะสมได้ รอจังหวะที่ LOADING ZONE ว่างได้เสมอ',
+        'ปล่อยตอนที่หุ่นเราพร้อมมาเก็บ เพื่อให้ NECTAR ถูกใช้เร็ว',
+        'คู่แข่งห้ามควบคุม NECTAR ของเรา (G408) ลูกที่วางไว้จึงไม่ถูกขโมย',
+        'บอกโค้ชทุกครั้งที่ปล่อย เช่น "NECTAR ลง 1"'],
+   quiz:[
+    { q:'หุ่นพันธมิตรกำลังขับผ่าน LOADING ZONE ควรทำอย่างไร', o:['ปล่อยใส่หุ่นเลย','รอให้ผ่านไปก่อนแล้วปล่อย','ทิ้งสิทธิ์'], a:1, e:'G427 C ลูกต้องแตะพื้นก่อนแตะหุ่น' },
+    { q:'คู่แข่งเก็บ NECTAR สีเราที่วางใน LOADING ZONE ไปได้ไหม', o:['ได้','ไม่ได้ ผิด G408','ได้ถ้าเร็ว'], a:1, e:'G408 ห้ามควบคุม NECTAR ของคู่แข่ง' } ] },
+]},
+{ name:'ระดับ 3 · การส่งลูกและการสื่อสาร', diff:'กลาง–ยาก', drills:[
+ { id:'H3.1', title:'LOADING ZONE มีหุ่นเข้าออก',
+   scn:'หุ่นเราวิ่งเข้าออก LOADING ZONE บ่อย และ HIVE TIP ถี่',
+   rules:['G427'],
+   act:['ดูหุ่นก่อนดูนาฬิกา ปล่อยเมื่อจุดวางลูกว่างเท่านั้น',
+        'ถ้าหุ่นกำลังเข้ามา ให้รอ 1–2 วิ แล้วค่อยปล่อย',
+        'แผงสถานการณ์ใน simulator บอกสถานะ LOADING ZONE ไว้ช่วยฝึก แต่ในสนามจริงต้องมองเอง'],
+   quiz:[
+    { q:'NECTAR ตกใส่หุ่นก่อนแตะพื้น ผลคือ', o:['ไม่มีโทษ','MINOR FOUL ต่อลูก (G427)','MAJOR FOUL'], a:1, e:'G427' } ],
+   sim:{ scn:'H3.1', task:'ปล่อยครบ 4 ลูกโดยไม่ปล่อยใส่หุ่น', checks:[] } },
+ { id:'H3.2', title:'ลูกออกนอกสนาม',
+   scn:'NECTAR สีเรากระเด็นออกนอกสนามมาตกใน ALLIANCE AREA และมี POLLEN ตกมาด้วย',
+   rules:['G422','G426','G427','10.8.2'],
+   act:['NECTAR สีเราที่ออกนอกสนาม เก็บได้ถ้าเอื้อมถึงโดยไม่ออกจาก ALLIANCE AREA (G422)',
+        'NECTAR ที่ออกนอกสนามใส่กลับเข้าได้ทุกเวลาผ่าน LOADING ZONE ไม่ใช้สิทธิ์ TIP (หมายเหตุใต้ G426)',
+        'POLLEN หรือ NECTAR ของคู่แข่งที่ตกมา ให้ส่งให้ FIELD STAFF ที่ใกล้ที่สุด (หมายเหตุใต้ G427)'],
+   quiz:[
+    { q:'NECTAR สีเราออกนอกสนาม ใส่กลับได้เมื่อไร', o:['รอ TIP ครั้งถัดไป','ได้ทุกเวลา ผ่าน LOADING ZONE','เมื่อเหลือ 1:00'], a:1, e:'G426 หมายเหตุ: re-entered at any time' },
+    { q:'POLLEN ตกมาที่เท้า Human Player ควรทำอย่างไร', o:['ใส่กลับทาง LOADING ZONE','ส่งให้ FIELD STAFF','เก็บไว้'], a:1, e:'หมายเหตุใต้ G427 และ 10.8.2' } ] },
+ { id:'H3.3', title:'สัญญาณกับโค้ชและคนขับ',
+   scn:'สนามเสียงดัง โค้ชกับ Human Player ต้องสื่อสารด้วยสัญญาณที่ชัด',
+   rules:['แนวปฏิบัติ'],
+   act:['ตกลงสัญญาณมือ: ชู 1 นิ้ว = ปล่อย 1 ลูก · กำมือ = รอ · ชี้ LOADING ZONE = ลูกลงแล้ว',
+        'พูดสั้น ๆ เมื่อปล่อย: "NECTAR ลง" ให้คนขับรู้ว่ามีลูกรอ',
+        'รายงานจำนวนที่เหลือในมือเมื่อโค้ชถาม: "เหลือ 3"'],
+   quiz:[
+    { q:'ปล่อย NECTAR แล้วควรบอกทีมว่าอะไร', o:['ไม่ต้องบอก','"NECTAR ลง"','อธิบายยาว ๆ'], a:1, e:'สั้นและชัด คนขับจะรู้ทันทีว่ามีลูกรอ' } ],
+   sim:{ free:true, task:'ซ้อมกับโค้ชใน Free Control: โค้ชให้สัญญาณ Human Player กด H', checks:['ตกลงสัญญาณมือ 3 แบบกับโค้ชแล้ว','ซ้อมพูด "NECTAR ลง" ทุกครั้งที่ปล่อย'] } },
+]},
+{ name:'ระดับ 4 · สอบ Human Player', diff:'ยากที่สุด', drills:[
+ { id:'H4.1', title:'สอบ Human Player: แมตช์เต็ม', scn:'แมตช์เต็ม 2:30 หุ่นทุกตัวขับโดย AI คุณคุม NECTAR ฝั่งแดงคนเดียว', rules:['G426','G427'],
+   act:['ปล่อยภายใน 5 วิหลังทุก TIP','ปล่อยที่เหลือทั้งหมดทันทีเมื่อเหลือ 1:00','ไม่โดน G426 / G427'],
+   quiz:[{ q:'NECTAR เหลือในมือตอนจบแมตช์ ได้แต้มไหม', o:['ได้ 2 ต่อลูก','ไม่ได้ ควรปล่อยให้หุ่นใช้ให้หมด','ได้ 5'], a:1, e:'NECTAR ต้องอยู่ในสนามจึงทำแต้มได้' }],
+   sim:{ scn:'H4.1', task:'ผ่านเป้าหมายทั้งหมดในแมตช์เดียว', checks:['ผ่านสถานการณ์นี้ 2 ครั้งติดกัน (ดูตัวนับด้านบน)'] } },
+]},
+];
+
+const ROLES = {
+  coach: { name:'Drive Coach', ico:'🧭', levels:COACH, desc:'ผู้วางแผนและสั่งการ: นาฬิกาของทีม นับคะแนน นับ TIP สั่งคนขับและ Human Player คุยกับพันธมิตร และตัดสินใจในสถานการณ์ยาก' },
+  driver: { name:'Driver', ico:'🎮', levels:DRIVER, desc:'ผู้บังคับหุ่น: ต่อจอย DualShock 4 ขับ field-centric เก็บลูก ยิงตามกฎของทีม ทำ FLOWER และ PARK และขับให้ไม่โดน FOUL' },
+  hp: { name:'Human Player', ico:'🟥', levels:HP, desc:'ผู้จัดการลูก: นับสิทธิ์ NECTAR ปล่อยลูกเข้า LOADING ZONE ให้ถูกจังหวะ และไม่โดน G426 / G427' },
+};
+
+// ---------------- สถานะ ----------------
+const KEY = 'dta-biobuzz-v2';
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const blankRole = () => ({ passed:{}, checks:{}, answers:{}, cur:null });
+let ST = Object.assign({ role:null, roles:{ coach:blankRole(), driver:blankRole(), hp:blankRole() }, sim:{}, mockUrl:'../mockup/index.html', simUrl:'http://localhost:5173/sim/', name:'', teacher:false }, store.get(KEY) || {});
+(() => { const v1 = store.get('dca-biobuzz-v1'); if (v1 && !store.get(KEY)) { Object.assign(ST.roles.coach, { passed:v1.passed || {}, checks:{}, answers:v1.answers || {} }); ['simUrl','name','teacher'].forEach(k => { if (v1[k] != null) ST[k] = v1[k]; }); } })();
+for (const r of Object.keys(ROLES)) ST.roles[r] ??= blankRole();
+const save = () => store.set(KEY, ST);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SC = () => window.SCENARIOS || {};
+const ALL = role => ROLES[role].levels.flatMap(l => l.drills.map(d => ({ ...d, level:l })));
+const R = () => ST.roles[ST.role];
+
+// ---------------- ผลจาก simulator ----------------
+function mergeSim(r) {
+  if (!r || !r.id) return; const p = ST.sim[r.id] || {};
+  if (p.last && p.last.ts === r.ts) return;
+  ST.sim[r.id] = { last:r, best: r.allOk ? r : (p.best || null), passes:(p.passes || 0) + (r.allOk ? 1 : 0), streak: r.allOk ? (p.streak || 0) + 1 : 0 };
+  save(); render();
+}
+function pullSim() { const all = store.get('dca-sim-results') || {}; let ch = false; for (const [id, v] of Object.entries(all)) { const p = ST.sim[id]; if (!p || (v.last && (!p.last || v.last.ts > p.last.ts))) { ST.sim[id] = v; ch = true; } } if (ch) { save(); render(); } }
+addEventListener('message', e => { if (e.data && e.data.type === 'dca-sim-result') mergeSim(e.data.result); });
+addEventListener('storage', e => { if (e.key === 'dca-sim-results') pullSim(); if (e.key === 'dca-pad-test') render(); });
+addEventListener('focus', pullSim);
+const openSim = q => { const w = window.open(ST.mockUrl + q, 'biobuzz-sim'); if (w) w.focus(); };
+const padUrl = () => { try { return new URL('gamepad-test.html', new URL(ST.mockUrl, location.href)).href; } catch { return '../mockup/gamepad-test.html'; } };
+const padOk = () => !!(store.get('dca-pad-test') || {}).ok;
+
+// ---------------- เงื่อนไขผ่าน ----------------
+const simScn = d => d.sim && d.sim.scn && SC()[d.sim.scn] ? d.sim.scn : null;
+const quizOk = (role, d) => d.quiz.every((q, qi) => (ST.roles[role].answers[d.id] || {})[qi] === q.a);
+const checksOk = (role, d) => !d.sim || (d.sim.checks || []).every((_, ci) => (ST.roles[role].checks[d.id] || {})[ci]);
+const scnOk = d => { const s = simScn(d); return !s || !!(ST.sim[s] && ST.sim[s].best); };
+const drillOk = (role, d) => quizOk(role, d) && checksOk(role, d) && scnOk(d) && (!d.sim?.padTest || padOk());
+const unlocked = (role, i) => { const a = ALL(role); return ST.teacher || i === 0 || !!ST.roles[role].passed[a[i - 1].id]; };
+const firstOpen = role => { const a = ALL(role), i = a.findIndex(d => !ST.roles[role].passed[d.id]); return i < 0 ? a.length - 1 : i; };
+function refreshPassed(role) { let ch = false; for (const d of ALL(role)) { const ok = drillOk(role, d); if (ok && !ST.roles[role].passed[d.id]) { ST.roles[role].passed[d.id] = Date.now(); ch = true; } } if (ch) save(); }
+const roleProg = role => { const a = ALL(role); return [a.filter(d => ST.roles[role].passed[d.id]).length, a.length]; };
+
+// ---------------- หน้าแรก ----------------
+function renderHome() {
+  $('homeView').classList.remove('hidden'); $('roleView').classList.add('hidden'); $('navToggle').classList.add('hidden');
+  $('progBar').parentElement.classList.add('hidden'); $('progTxt').textContent = '';
+  $('homeView').innerHTML = `<div class="crumb">FIRST Tech Challenge Thailand ครั้งที่ 8 · BIOBUZZ · 9–11 ธ.ค. 2569 · The Prince Royal's College เชียงใหม่</div>
+    <h2>เลือกบทบาทที่อยากฝึก</h2>
+    <p class="mut" style="margin:0">แต่ละบทบาทไล่จากง่ายไปยาก ต้องผ่านทีละข้อ ข้อที่มีสถานการณ์ 3D จะเปิด simulator ที่จัดฉากตรงกับข้อนั้น และส่งผลผ่าน/ไม่ผ่านกลับมาที่นี่เอง</p>
+    <div class="roles">${Object.entries(ROLES).map(([k, r]) => { const [a, b] = roleProg(k); return `<div class="role"><div class="ico">${r.ico}</div><h3>${esc(r.name)}</h3><p>${esc(r.desc)}</p>
+      <div class="bar"><div style="width:${a / b * 100}%"></div></div><div class="mut" style="font-size:13px">ผ่าน ${a}/${b} ข้อ · ${r.levels.length} ระดับ</div>
+      <button class="btn" data-role="${k}">${a ? (a === b ? 'ดูใบผ่าน' : 'ฝึกต่อ') : 'เริ่มฝึก'}</button></div>`; }).join('')}
+      <div class="role free"><div class="ico">🕹️</div><h3>Free Control</h3><p>คนขับบังคับหุ่นได้ทุกฟังก์ชันเหมือนหุ่นจริงบนสนามเต็ม: เดิน สไลด์ หมุน เก็บลูก ยิง วาง FLOWER ดึงลูก คายลูก ไม่จับเวลา ตั้งค่าหุ่นให้ตรงกับหุ่นจริงของทีมได้ (ความเร็ว อัตราเร่ง การหมุน การสไลด์ mecanum เส้นโค้งจอย deadzone) และค่านี้ใช้กับทุกสถานการณ์</p>
+      <button class="btn" id="goFree">เปิด Free Control</button><button class="btn sec" id="goMenu">เมนู simulator ทั้งหมด</button></div>
+      <div class="role free"><div class="ico">✅</div><h3>ทดสอบจอย DualShock 4</h3><p>เช็กว่าจอยเชื่อมต่อเรียบร้อย ปุ่มครบ แกนไปสุดทุกทิศ ไม่มี drift พร้อมวิธีจับคู่ Bluetooth และวิธีแก้ปัญหา ควรทำก่อนซ้อมทุกครั้ง</p>
+      <div class="mut" style="font-size:13px">${padOk() ? '✓ ผ่านการทดสอบแล้ว · ' + esc((store.get('dca-pad-test') || {}).id?.slice(0, 36) || '') : 'ยังไม่ได้ทดสอบบนเครื่องนี้'}</div>
+      <a class="btn" href="${esc(padUrl())}" target="_blank">เปิดหน้าทดสอบจอย</a></div></div>
+    <div class="card"><h4>ฝึกเป็นทีม</h4><ul class="act"><li>Drive Coach กับ Driver ใช้สถานการณ์ร่วมกันได้ เช่น 5.3 คู่แข่งเล่นเกมรับ ผ่านรอบเดียวนับให้ทั้งสองบทบาท</li><li>สถานการณ์ของ Human Player ให้หุ่นทุกตัวขับโดย AI คนฝึกกดปุ่ม H เพื่อปล่อย NECTAR</li><li>ความคืบหน้าเก็บไว้ในเบราว์เซอร์ของเครื่องนี้ ถ้าเปลี่ยนเครื่องต้องเริ่มนับใหม่</li></ul></div>`;
+  $('homeView').querySelectorAll('button[data-role]').forEach(b => b.onclick = () => go(b.dataset.role));
+  $('goFree').onclick = () => openSim('?mode=free'); $('goMenu').onclick = () => openSim('');
+}
+function renderTabs() { $('roleTabs').innerHTML = Object.entries(ROLES).map(([k, r]) => `<button class="hbtn ${ST.role === k ? 'on' : ''}" data-tab="${k}">${r.ico} ${esc(r.name)}</button>`).join(''); $('roleTabs').querySelectorAll('button').forEach(b => b.onclick = () => go(b.dataset.tab)); }
+function go(role) { ST.role = role; save(); location.hash = role || ''; render(); scrollTo(0, 0); }
+
+// ---------------- หน้าบทเรียน ----------------
+function renderNav() {
+  const role = ST.role, all = ALL(role), [done] = roleProg(role);
+  $('progBar').parentElement.classList.remove('hidden'); $('progBar').style.width = (done / all.length * 100) + '%'; $('progTxt').textContent = `${ROLES[role].name}: ผ่าน ${done}/${all.length}`;
+  $('nav').innerHTML = `<button class="item" data-id="home"><span class="dot">⌂</span><span>หน้าแรก · เลือกบทบาท</span></button>` + ROLES[role].levels.map(l => {
+    const n = l.drills.filter(d => R().passed[d.id]).length;
+    return `<div class="lvl"><h3><b>${esc(l.name)}</b><span>${n}/${l.drills.length}</span></h3>` + l.drills.map(d => {
+      const i = all.findIndex(x => x.id === d.id), ok = !!R().passed[d.id], open = unlocked(role, i);
+      return `<button class="item ${ok ? 'done' : open ? 'open' : ''} ${R().cur === d.id ? 'cur' : ''}" data-id="${d.id}" ${open ? '' : 'disabled'}><span class="dot">${ok ? '✓' : open ? '' : '🔒'}</span><span>${d.id} ${esc(d.title)}${simScn(d) ? ' <span class="tag">3D</span>' : ''}</span></button>`;
+    }).join('') + '</div>';
+  }).join('') + (done === all.length ? `<button class="item done" data-id="cert"><span class="dot">★</span><span>ใบผ่านการฝึก</span></button>` : '');
+  $('nav').querySelectorAll('.item').forEach(b => b.onclick = () => { if (b.dataset.id === 'home') return go(null); R().cur = b.dataset.id; save(); render(); $('nav').classList.remove('show'); scrollTo(0, 0); });
+}
+function simCard(d) {
+  if (!d.sim) return '';
+  const role = ST.role, chk = R().checks[d.id] || {}, s = simScn(d), sc = s && SC()[s], res = s && ST.sim[s];
+  let auto = '';
+  if (sc) {
+    const last = res && res.last, best = res && res.best;
+    auto = `<div style="margin:6px 0"><b>สถานการณ์ ${esc(s)}: ${esc(sc.title)}</b>${sc.role && sc.role !== role ? ` <span class="tag">ใช้ร่วมกับบทบาท ${esc(ROLES[sc.role]?.name || sc.role)}</span>` : ''}</div>
+      <p class="mut" style="margin:0 0 6px;font-size:14px">${esc(sc.brief)}</p>
+      <div><b style="font-size:13px">เป้าหมาย (ตรวจอัตโนมัติ ต้องผ่านครบในรอบเดียว)</b></div>
+      ${sc.obj.map((o, i) => { const st = best ? ['✓', 'ok'] : last ? (last.ok[i] ? ['✓', 'ok'] : ['✗', 'bad']) : ['•', 'mut']; return `<div class="autoobj"><b class="${st[1]}">${st[0]}</b><span>${esc(o.t)}</span></div>`; }).join('')}
+      <div class="mut" style="font-size:13px;margin-top:4px">${res ? `ผ่านแล้ว ${res.passes || 0} ครั้ง · ติดกัน ${res.streak || 0} ครั้ง · ล่าสุด ${new Date(res.last.ts).toLocaleString('th-TH')}` : 'ยังไม่เคยเล่นสถานการณ์นี้'}</div>`;
+  }
+  const pt = d.sim.padTest ? (() => { const r = store.get('dca-pad-test'); return `<div class="autoobj"><b class="${r && r.ok ? 'ok' : 'mut'}">${r && r.ok ? '✓' : '•'}</b><span>ทดสอบจอยผ่านครบทุกข้อ${r && r.ok ? ` · ${esc(r.id.slice(0, 40))} · ${new Date(r.ts).toLocaleString('th-TH')}` : ' (ตรวจอัตโนมัติจากหน้าทดสอบจอย)'}</span></div>`; })() : '';
+  const btn = (d.sim.padTest ? `<a class="btn" href="${esc(padUrl())}" target="_blank">🎮 เปิดหน้าทดสอบจอย</a>` : '') + (sc ? `<button class="btn" id="openScn">▶ เปิดสถานการณ์นี้ใน simulator 3D</button>` : d.sim.free ? `<button class="btn ${d.sim.padTest ? 'sec' : ''}" id="openFree">▶ เปิด Free Control</button>` : '');
+  return `<div class="card"><h4>ฝึกใน simulator ${sc ? '<span class="tag">3D · ตรวจอัตโนมัติ</span>' : ''}</h4>
+    <p style="margin:0 0 6px">${esc(d.sim.task)}</p>${pt}${auto}
+    <div class="row" style="margin:10px 0">${btn}${role === 'coach' && d.id === '6.5' ? `<a class="btn sec" href="${esc(ST.simUrl)}" target="_blank" rel="noopener">simulator ตัวเต็ม (caryden) ↗</a>` : ''}</div>
+    ${(d.sim.checks || []).length ? `<div><b style="font-size:13px">ติ๊กเองเมื่อทำได้จริง</b></div>` + d.sim.checks.map((c, ci) => `<label class="chk"><input type="checkbox" data-c="${ci}" ${chk[ci] ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('') : ''}
+    ${sc ? '<p class="mut" style="font-size:12px;margin:6px 0 0">เปิด simulator จากปุ่มนี้เท่านั้น ผลจึงส่งกลับมาหน้านี้ได้ ถ้าผลยังไม่ขึ้น ให้กลับมาที่แท็บนี้อีกครั้ง</p>' : ''}</div>`;
+}
+function renderDrill(d) {
+  const role = ST.role, all = ALL(role), i = all.findIndex(x => x.id === d.id), ans = R().answers[d.id] || {}, passed = !!R().passed[d.id];
+  $('main').innerHTML = `
+    <div class="crumb">${ROLES[role].ico} ${esc(ROLES[role].name)} · ${esc(d.level.name)} <span class="diff">${esc(d.level.diff)}</span></div>
+    <h2>${d.id} ${esc(d.title)} ${passed ? '<span class="status ok">· ผ่านแล้ว</span>' : ''}</h2>
+    <div class="card scn"><h4>สถานการณ์</h4>${esc(d.scn)}<div style="margin-top:8px">${d.rules.map(r => `<span class="rule">${esc(r)}</span>`).join('')}</div></div>
+    <div class="card"><h4>สิ่งที่ต้องทำ</h4><ul class="act">${d.act.map(a => `<li>${a}</li>`).join('')}</ul>
+      ${d.table ? `<table class="t" style="margin-top:10px">${d.table[0].length === 3 ? '<tr><th>การกระทำ</th><th>AUTO</th><th>TELEOP</th></tr>' : '<tr><th>รายการ</th><th>ค่า</th></tr>'}${d.table.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>` : ''}</div>
+    <div class="card"><h4>แบบทดสอบ <span class="tag">ต้องตอบถูกทุกข้อ</span></h4><div id="quiz">${d.quiz.map((q, qi) => `
+      <div class="q" data-q="${qi}"><p>${qi + 1}. ${esc(q.q)}</p>${q.o.map((o, oi) => `<label class="opt" data-o="${oi}"><input type="radio" name="q${qi}" value="${oi}" ${ans[qi] === oi ? 'checked' : ''}><span>${esc(o)}</span></label>`).join('')}<div class="exp" style="display:none"></div></div>`).join('')}</div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="btnCheck">ตรวจคำตอบ</button><span id="quizStatus" class="status"></span></div></div>
+    ${simCard(d)}
+    <div class="card"><div class="row" style="justify-content:space-between">
+      <button class="btn sec" id="btnPrev" ${i === 0 ? 'disabled' : ''}>← ก่อนหน้า</button>
+      <span id="gateTxt" class="status"></span>
+      <button class="btn" id="btnNext">${i === all.length - 1 ? 'รับใบผ่าน' : 'ข้อต่อไป →'}</button></div></div>`;
+  const markQuiz = show => {
+    let right = 0;
+    $('quiz').querySelectorAll('.q').forEach(el => {
+      const qi = +el.dataset.q, q = d.quiz[qi], a = (R().answers[d.id] || {})[qi], exp = el.querySelector('.exp');
+      el.querySelectorAll('.opt').forEach(o => o.classList.remove('right', 'wrong'));
+      if (!show || a === undefined) { exp.style.display = 'none'; return; }
+      const ok = a === q.a; if (ok) right++;
+      el.querySelector(`.opt[data-o="${a}"]`).classList.add(ok ? 'right' : 'wrong');
+      exp.style.display = 'block'; exp.className = 'exp ' + (ok ? 'ok' : 'bad'); exp.textContent = ok ? '✓ ถูก · ' + q.e : '✗ ยังไม่ถูก · ลองอ่าน "สิ่งที่ต้องทำ" อีกครั้ง';
+    });
+    if (show) { $('quizStatus').textContent = `ถูก ${right}/${d.quiz.length}`; $('quizStatus').className = 'status ' + (right === d.quiz.length ? 'ok' : 'bad'); }
+  };
+  const updateGate = () => {
+    const q = quizOk(role, d), c = checksOk(role, d), s = scnOk(d), pt = !d.sim?.padTest || padOk(), ok = q && c && s && pt;
+    if (ok && !R().passed[d.id]) { R().passed[d.id] = Date.now(); save(); renderNav(); }
+    $('gateTxt').textContent = ok ? '✓ ผ่านข้อนี้แล้ว' : !q ? 'ตอบแบบทดสอบให้ถูกทุกข้อก่อน' : !s ? 'ผ่านสถานการณ์ 3D ให้ครบทุกเป้าหมายก่อน' : !pt ? 'ทดสอบจอยให้ผ่านก่อน' : 'ติ๊กงานฝึกให้ครบก่อน';
+    $('gateTxt').className = 'status ' + (ok ? 'ok' : 'bad');
+    $('btnNext').disabled = !ok && !ST.teacher;
+  };
+  $('quiz').querySelectorAll('input[type=radio]').forEach(r => r.onchange = () => { const qi = +r.name.slice(1); R().answers[d.id] = { ...(R().answers[d.id] || {}), [qi]: +r.value }; save(); markQuiz(false); $('quizStatus').textContent = ''; });
+  $('btnCheck').onclick = () => { markQuiz(true); updateGate(); };
+  $('main').querySelectorAll('input[type=checkbox][data-c]').forEach(c => c.onchange = () => { R().checks[d.id] = { ...(R().checks[d.id] || {}), [c.dataset.c]: c.checked }; save(); updateGate(); });
+  const os = $('openScn'); if (os) os.onclick = () => openSim('?s=' + encodeURIComponent(simScn(d)));
+  const of = $('openFree'); if (of) of.onclick = () => openSim('?mode=free');
+  $('btnPrev').onclick = () => { R().cur = all[i - 1].id; save(); render(); scrollTo(0, 0); };
+  $('btnNext').onclick = () => { R().cur = i === all.length - 1 ? 'cert' : all[i + 1].id; save(); render(); scrollTo(0, 0); };
+  if (passed || Object.keys(ans).length === d.quiz.length) markQuiz(true);
+  updateGate();
+}
+function renderCert() {
+  const role = ST.role, all = ALL(role);
+  if (!all.every(d => R().passed[d.id])) { R().cur = all[firstOpen(role)].id; return render(); }
+  const last = Math.max(...all.map(d => R().passed[d.id]));
+  $('main').innerHTML = `<div class="card cert"><div class="crumb">FIRST Tech Challenge Thailand ครั้งที่ 8 · BIOBUZZ</div><h2>ผ่านการฝึก ${esc(ROLES[role].name)}</h2>
+    <p style="font-size:22px;margin:8px 0">${esc(ST.name || 'ผู้ฝึก')}</p><p>ผ่านครบ ${all.length} หัวข้อ ${ROLES[role].levels.length} ระดับ · ${new Date(last).toLocaleDateString('th-TH', { dateStyle:'long' })}</p>
+    <p class="crumb">ใบนี้เป็นการรับรองภายในทีม ไม่ใช่เอกสารของ FIRST</p>
+    <div class="row" style="justify-content:center;margin-top:12px"><button class="btn sec" onclick="print()">พิมพ์</button><button class="btn" id="toHome">ฝึกบทบาทอื่น</button></div></div>`;
+  $('toHome').onclick = () => go(null);
+}
+function render() {
+  renderTabs();
+  if (!ST.role || !ROLES[ST.role]) return renderHome();
+  $('homeView').classList.add('hidden'); $('roleView').classList.remove('hidden'); $('navToggle').classList.remove('hidden');
+  const role = ST.role, all = ALL(role); refreshPassed(role);
+  if (!R().cur || (R().cur !== 'cert' && !all.some(d => d.id === R().cur))) R().cur = all[firstOpen(role)].id;
+  if (R().cur !== 'cert' && !unlocked(role, all.findIndex(d => d.id === R().cur))) R().cur = all[firstOpen(role)].id;
+  renderNav();
+  R().cur === 'cert' ? renderCert() : renderDrill(all.find(d => d.id === R().cur));
+}
+
+// ---------------- ตั้งค่า ----------------
+$('btnSettings').onclick = () => { $('simUrl').value = ST.simUrl; $('mockUrl').value = ST.mockUrl; $('trainee').value = ST.name; $('teacher').checked = ST.teacher; $('btnReset').disabled = !ST.role; $('dlg').showModal(); };
+$('btnClose').onclick = () => { ST.simUrl = $('simUrl').value.trim() || ST.simUrl; ST.mockUrl = $('mockUrl').value.trim() || ST.mockUrl; ST.name = $('trainee').value.trim(); ST.teacher = $('teacher').checked; save(); $('dlg').close(); render(); };
+$('btnReset').onclick = () => { if (ST.role && confirm(`ล้างความคืบหน้าของบทบาท ${ROLES[ST.role].name}?`)) { ST.roles[ST.role] = blankRole(); save(); $('dlg').close(); render(); } };
+$('navToggle').onclick = () => $('nav').classList.toggle('show');
+$('homeLink').onclick = () => go(null);
+addEventListener('hashchange', () => { const h = location.hash.slice(1); if ((h || null) !== ST.role) { ST.role = ROLES[h] ? h : null; save(); render(); } });
+{ const h = location.hash.slice(1); if (ROLES[h]) ST.role = h; else if (location.hash === '#home') ST.role = null; }
+// ---------------- สถานะจอย DualShock 4 (มุมขวาบน) ----------------
+let padSeen = false;
+function padStatus() {
+  const chip = $('padChip'), txt = $('padChipTxt'); chip.href = padUrl();
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
+  const p = pads[0];
+  if (p) {
+    padSeen = true; const ds4 = /054c|wireless controller|dualshock|playstation|sony/i.test(p.id);
+    chip.className = 'pad on'; txt.textContent = `${ds4 ? 'DualShock 4' : 'จอย'}: เชื่อมต่อแล้ว${pads.length > 1 ? ` (${pads.length} ตัว)` : ''}`;
+    chip.title = `${p.id}\nmapping: ${p.mapping || 'ไม่ระบุ'}${padOk() ? '\nผ่านการทดสอบจอยแล้ว' : '\nคลิกเพื่อทดสอบปุ่มทั้งหมด'}`;
+  } else if (!navigator.getGamepads) {
+    chip.className = 'pad off'; txt.textContent = 'เบราว์เซอร์ไม่รองรับจอย'; chip.title = 'ใช้ Chrome, Edge หรือ Safari';
+  } else {
+    chip.className = 'pad' + (padSeen ? ' off' : ''); txt.textContent = padSeen ? 'DualShock 4: หลุดการเชื่อมต่อ' : 'DualShock 4: ยังไม่เชื่อม';
+    chip.title = padSeen ? 'ตรวจแบตเตอรี่และ Bluetooth แล้วกดปุ่มบนจอยอีกครั้ง' : 'จับคู่ Bluetooth (กด Share + PS ค้าง) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง ระหว่างที่หน้านี้เปิดอยู่';
+  }
+}
+addEventListener('gamepadconnected', padStatus); addEventListener('gamepaddisconnected', padStatus);
+setInterval(padStatus, 500);
+pullSim(); render(); padStatus();
+</script>
+</body>
+</html>

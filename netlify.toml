@@ -1,0 +1,16 @@
+# Netlify: เว็บ static ไม่ต้องติดตั้ง package
+# build คัดเฉพาะหน้าเว็บที่ใช้จริงไปไว้ใน dist (เอกสารและโน้ตอื่นในรีโปไม่ถูกเผยแพร่)
+[build]
+  command = "rm -rf dist && mkdir dist && cp -R coach-training mockup index.html dist/ && rm -f dist/mockup/index-v1.html"
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/mockup/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=300"

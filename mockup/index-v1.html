@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIOBUZZ Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0e1116; --panel:rgba(16,20,28,.86); --fg:#e9edf3; --mut:#9aa4b2; --yel:#f5c518; --red:#e4453c; --blu:#3a7bd5; --grn:#3ec97a; --line:rgba(255,255,255,.12); }
+  * { box-sizing:border-box }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; overflow:hidden }
+  canvas { display:block }
+  .hud { position:fixed; inset:0; pointer-events:none; }
+  .panel { position:absolute; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; backdrop-filter:blur(6px); font-size:14px; line-height:1.35 }
+  #top { top:12px; left:50%; transform:translateX(-50%); display:flex; gap:18px; align-items:center; padding:8px 16px; }
+  #top .t { font-size:30px; font-weight:700; letter-spacing:1px; min-width:90px; text-align:center }
+  #top .s { font-size:26px; font-weight:700; min-width:60px; text-align:center }
+  #top .red { color:var(--red) } #top .blue { color:var(--blu) }
+  #top .ph { font-size:12px; color:var(--mut); text-align:center }
+  #left { top:12px; left:12px; width:250px }
+  #right { top:12px; right:12px; width:250px }
+  #bottom { bottom:12px; left:50%; transform:translateX(-50%); font-size:13px; color:var(--mut); white-space:nowrap; pointer-events:auto }
+  #msg { bottom:60px; left:50%; transform:translateX(-50%); font-size:16px; font-weight:600; color:var(--yel); background:transparent; border:none; text-shadow:0 1px 4px #000 }
+  .bar { height:10px; background:rgba(255,255,255,.1); border-radius:5px; overflow:hidden; margin:3px 0 8px }
+  .bar > div { height:100%; background:var(--grn); transition:width .15s }
+  .slots { display:flex; gap:5px; margin:3px 0 8px }
+  .slot { width:34px; height:22px; border:1px solid var(--line); border-radius:5px; background:rgba(255,255,255,.04) }
+  .slot.pollen { background:var(--yel) } .slot.nectar { background:var(--red) }
+  h4 { margin:0 0 4px; font-size:12px; color:var(--mut); font-weight:600; text-transform:uppercase; letter-spacing:.6px }
+  .ok { color:var(--grn) } .bad { color:#ff7b6b }
+  .k { display:inline-block; min-width:26px; padding:1px 6px; border:1px solid var(--line); border-radius:4px; background:rgba(255,255,255,.06); font-size:12px; text-align:center; margin-right:4px }
+  label { display:flex; align-items:center; gap:6px; pointer-events:auto; cursor:pointer; margin:2px 0 }
+  button { pointer-events:auto; font:inherit; background:var(--yel); color:#000; border:0; border-radius:6px; padding:6px 12px; font-weight:700; cursor:pointer }
+  button.sec { background:rgba(255,255,255,.12); color:var(--fg) }
+  #overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); pointer-events:auto }
+  #overlay .box { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px 26px; max-width:560px; width:92% }
+  #overlay h2 { margin:0 0 6px; color:var(--yel) } #overlay p { margin:6px 0; color:var(--mut); font-size:14px }
+  #overlay table { width:100%; font-size:14px; border-collapse:collapse; margin:8px 0 } #overlay td { padding:3px 0; border-bottom:1px solid var(--line) } #overlay td:last-child { text-align:right; font-weight:700 }
+  .hidden { display:none !important }
+  @media (max-width:900px) { #left,#right { width:190px; font-size:12px } #top .t { font-size:22px } #top .s { font-size:18px } #bottom { display:none } }
+</style>
+</head>
+<body>
+<div class="hud">
+  <div id="top" class="panel">
+    <div><div class="s red" id="sRed">0</div><div class="ph">RED</div></div>
+    <div><div class="t" id="clock">2:00</div><div class="ph" id="phase">TELEOP</div></div>
+    <div><div class="s blue" id="sBlue">0</div><div class="ph">BLUE</div></div>
+  </div>
+  <div id="left" class="panel">
+    <h4>หุ่นของเรา (RED 1)</h4>
+    <div>พลังชีวิต <span id="hpTxt">100%</span></div><div class="bar"><div id="hp" style="width:100%"></div></div>
+    <div>ลูกที่ถืออยู่ <span id="carryTxt">0/4</span> (G407)</div><div class="slots" id="slots"></div>
+    <div>Intake: <b id="intakeTxt">เปิด</b> · ความเร็ว <span id="spd">0.00</span> m/s</div>
+    <div style="margin-top:6px">การยิง: <b id="gate">—</b></div>
+    <div id="gateWhy" style="font-size:12px;color:var(--mut)"></div>
+    <div style="margin-top:8px"><h4>HIVE แดง · CELL ที่หงาย</h4><div>น้ำหนักใน CELL <span id="loadTxt">0 / 7.4</span></div><div class="bar"><div id="load" style="width:0%;background:var(--yel)"></div></div></div>
+    <div>NECTAR ที่ Human Player ถือ: <b id="stash">5</b> · TIP แล้ว <b id="tips">0</b></div>
+  </div>
+  <div id="right" class="panel">
+    <h4>จอย</h4>
+    <div id="padTxt" class="bad">ไม่พบจอย กดปุ่มใดก็ได้บน DualShock 4</div>
+    <div style="margin:6px 0 2px"><span class="k">L</span>เดิน/สไลด์ <span class="k">R</span>หมุน</div>
+    <div><span class="k">R1</span>ยิง POLLEN <span class="k">L1</span>ยิง NECTAR</div>
+    <div><span class="k">R2</span>วาง NECTAR <span class="k">L2</span>วาง POLLEN ใน FLOWER</div>
+    <div><span class="k">✕</span>intake <span class="k">○</span>คายลูก <span class="k">△</span>training</div>
+    <div><span class="k">Options</span>เริ่ม/หยุด <span class="k">Share</span>กล้อง</div>
+    <h4 style="margin-top:8px">โหมดฝึก</h4>
+    <label><input type="checkbox" id="optGate" checked> ต้องหยุดนิ่ง + อยู่ในจุดยิง ถึงยิงได้</label>
+    <label><input type="checkbox" id="optHealth" checked> ชนหุ่น = เลือดลด 2%</label>
+    <label><input type="checkbox" id="optSimple"> คานแบบง่าย (เล็ก 1 / ใหญ่ 2 / ครบ 8)</label>
+    <label><input type="checkbox" id="optBots" checked> หุ่นอีก 3 ตัววิ่งในสนาม</label>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button id="btnStart">เริ่มแมตช์</button><button class="sec" id="btnCam">กล้อง</button><button class="sec" id="btnSave">จำจุดนี้</button><button class="sec" id="btnLoad">ซ้อมจากจุดที่จำ</button></div>
+  </div>
+  <div id="msg" class="panel"></div>
+  <div id="bottom" class="panel">คีย์บอร์ด: <span class="k">W A S D</span>เดิน <span class="k">Q E</span>หมุน <span class="k">Space</span>ยิง POLLEN <span class="k">N</span>ยิง NECTAR <span class="k">F</span>intake <span class="k">G</span>คาย <span class="k">1/2</span>วาง POLLEN/NECTAR <span class="k">C</span>กล้อง <span class="k">Enter</span>เริ่ม <span class="k">K/L</span>จำ/โหลดจุด · ลากเมาส์หมุนกล้อง</div>
+</div>
+<div id="overlay"><div class="box">
+  <h2>BIOBUZZ Trainer · mock-up 3D</h2>
+  <p>สนามตามขนาดในคู่มือ 2026‑27 (144 นิ้ว, HIVE กลางสนาม, FLOWER 4 ต้น, POLLEN 40 / NECTAR 16) คุณขับหุ่น RED 1 ด้วย DualShock 4 หรือคีย์บอร์ด</p>
+  <p>กติกาที่จำลอง: ถือได้ 4 ลูก (G407) · TIP = 20 แต้ม · ลูกค้างใน CELL 2 · FLOWER 2/ลูก + โบนัส 5 · GARDEN 1 · PARK 5 · ใส่ NECTAR ใน FLOWER ได้เมื่อเหลือ 1:00 (G410) · ทุก TIP ปล่อย NECTAR เพิ่ม 1 ลูก (G426)</p>
+  <div id="result"></div>
+  <div style="display:flex;gap:8px;margin-top:10px"><button id="btnGo">เริ่ม TELEOP 2:00</button><button class="sec" id="btnFree">ซ้อมอิสระ (ไม่จับเวลา)</button></div>
+</div></div>
+
+<script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- ค่าคงที่จากคู่มือ (เมตร) : X แดง→น้ำเงิน, Y ขึ้น, Z หลัง→ผู้ชม ----------
+const IN = 0.0254;
+const F = {
+  half: 1.7929, wallH: 0.3228, tile: 24 * IN,
+  pollenR: 0.03556, nectarR: 0.04572,
+  loading: { red: [-1.7929, -1.5012, -1.1836, -0.6072], blue: [1.5012, 1.7929, 0.6072, 1.1836] },
+  garden: { red: [-1.7806, -1.2042, 1.7298, 1.7929], blue: [1.2042, 1.7806, -1.7929, -1.7298] },
+  flowers: [ { id: 'rear', x: -0.5942, z: -1.7282 }, { id: 'audience', x: 0.5942, z: 1.7282 }, { id: 'red', x: -1.7282, z: 0.5942 }, { id: 'blue', x: 1.7282, z: -0.5942 } ],
+  flowerTop: 0.546, flowerScoreBottom: 0.101, flowerPlaceLimit: 0.506,
+};
+const H = { pivotY: 1.11655, pivotX: { red: -0.3237, blue: 0.3241 }, tilt: Math.PI / 6, cellDist: 0.39, cellW: 0.51, cellH: 0.36, cellD: 0.31, footX: 0.603, footHalfZ: 0.495 };
+const POINTS = { leave: 3, park: 5, tip: 20, cell: 2, bottomNectar: 5, flower: 2, garden: 1, minor: 5, major: 20 };
+const MATCH = { teleop: 120, flowerUnlock: 60 };
+const ROBOT = { size: 0.43, vmax: 1.6, acc: 4.5, wmax: 3.2, launchH: 0.36, elevDeg: 67, gateMin: 0.9, gateMax: 1.6, gateBearingDeg: 10, intakeReach: 0.2, placeRange: 0.32, placeBearingDeg: 30, capacity: 4 };
+const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { pollen: 1, nectar: 2, threshold: 8 } };
+const G = 9.81;
+
+// ---------- สถานะเกม (plain data เพื่อให้ save/load ได้) ----------
+let S;
+function newState() {
+  const balls = [];
+  const addBall = (kind, color, where, x, y, z, extra = {}) => { balls.push({ kind, color, where, x, y, z, vx: 0, vy: 0, vz: 0, ...extra }); return balls.length - 1; };
+  // POLLEN: 4 ต่อ FLOWER (16)
+  F.flowers.forEach((f, fi) => { for (let i = 0; i < 4; i++) addBall('pollen', 'yellow', 'flower', f.x, 0, f.z, { flower: fi }); });
+  // POLLEN ใน GARDEN 4+4 เรียงเป็นแถวจากมุมใกล้ ALLIANCE AREA ติดกำแพง
+  for (let i = 0; i < 4; i++) addBall('pollen', 'yellow', 'floor', -1.76 + i * 0.09, F.pollenR, 1.76);
+  for (let i = 0; i < 4; i++) addBall('pollen', 'yellow', 'floor', 1.76 - i * 0.09, F.pollenR, -1.76);
+  // NECTAR 3 ใน CELL ที่หงายของแต่ละสี
+  for (let i = 0; i < 3; i++) { addBall('nectar', 'red', 'cell', 0, 0, 0, { hive: 'red' }); addBall('nectar', 'blue', 'cell', 0, 0, 0, { hive: 'blue' }); }
+  // NECTAR 5 ใน ALLIANCE AREA (นอกสนาม)
+  for (let i = 0; i < 5; i++) { addBall('nectar', 'red', 'staged', -2.15, F.nectarR, -0.3 + i * 0.12); addBall('nectar', 'blue', 'staged', 2.15, F.nectarR, 0.3 - i * 0.12); }
+  // POLLEN pre-load 4 ต่อหุ่น (16) อยู่ในหุ่นตั้งแต่เริ่ม
+  for (let i = 0; i < 16; i++) addBall('pollen', 'yellow', 'carried', 0, 0, 0);
+  const robots = [
+    { id: 'R1', alliance: 'red', x: -1.7929 + ROBOT.size / 2 + 0.005, z: 0.35, th: -Math.PI / 2, vx: 0, vz: 0, w: 0, hp: 100, carried: ['pollen', 'pollen', 'pollen', 'pollen'], intake: true, human: true },
+    { id: 'R2', alliance: 'red', x: -1.7929 + ROBOT.size / 2 + 0.005, z: -1.45, th: -Math.PI / 2, vx: 0, vz: 0, w: 0, hp: 100, carried: ['pollen', 'pollen', 'pollen', 'pollen'], intake: true, human: false, wp: null },
+    { id: 'B1', alliance: 'blue', x: 1.7929 - ROBOT.size / 2 - 0.005, z: -0.35, th: Math.PI / 2, vx: 0, vz: 0, w: 0, hp: 100, carried: ['pollen', 'pollen', 'pollen', 'pollen'], intake: true, human: false, wp: null },
+    { id: 'B2', alliance: 'blue', x: 1.7929 - ROBOT.size / 2 - 0.005, z: 1.45, th: Math.PI / 2, vx: 0, vz: 0, w: 0, hp: 100, carried: ['pollen', 'pollen', 'pollen', 'pollen'], intake: true, human: false, wp: null },
+  ];
+  // HIVE: แดง CELL ผู้ชม (+Z) หงาย, น้ำเงิน CELL หลัง (−Z) หงาย; angle = มุมเอียง (เรเดียน) รอบแกน X, tipping = {from,to,t}
+  const hives = { red: { up: +1, angle: -H.tilt, tipping: null, tips: 0 }, blue: { up: -1, angle: +H.tilt, tipping: null, tips: 0 } };
+  return { t: MATCH.teleop, running: false, free: false, over: false, balls, robots, hives, score: { red: 0, blue: 0 }, fouls: { red: 0, blue: 0 }, stats: { shots: 0, hits: 0, collisions: 0, tips: 0 }, released: { red: 0, blue: 0 }, msg: '', msgT: 0, cam: 0 };
+}
+S = newState();
+let saved = null;
+
+// ---------- Three.js ฉาก ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight); renderer.shadowMap.enabled = true;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0e1116); scene.fog = new THREE.Fog(0x0e1116, 9, 16);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 50);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x202020, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(3, 6, 2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 }); scene.add(sun);
+
+const M = {
+  tileA: new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.95 }), tileB: new THREE.MeshStandardMaterial({ color: 0x7d838a, roughness: 0.95 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0x1b1f26, roughness: 0.7 }), frame: new THREE.MeshStandardMaterial({ color: 0x2a2e36, metalness: 0.5, roughness: 0.5 }),
+  red: new THREE.MeshStandardMaterial({ color: 0xe4453c, roughness: 0.6 }), blue: new THREE.MeshStandardMaterial({ color: 0x3a7bd5, roughness: 0.6 }),
+  yellow: new THREE.MeshStandardMaterial({ color: 0xf5c518, roughness: 0.5 }), tapeRed: new THREE.MeshBasicMaterial({ color: 0xff3b30 }), tapeBlue: new THREE.MeshBasicMaterial({ color: 0x2f7cff }),
+  clearRed: new THREE.MeshStandardMaterial({ color: 0xe4453c, transparent: true, opacity: 0.45, side: THREE.DoubleSide }), clearBlue: new THREE.MeshStandardMaterial({ color: 0x3a7bd5, transparent: true, opacity: 0.45, side: THREE.DoubleSide }),
+  pipe: new THREE.MeshStandardMaterial({ color: 0xd8dde3, roughness: 0.4 }), zone: new THREE.MeshBasicMaterial({ color: 0xf5c518, transparent: true, opacity: 0.12 }), dark: new THREE.MeshStandardMaterial({ color: 0x15181d }),
+};
+const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+
+// พื้น 6×6 แผ่น
+for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) { const t = box(F.tile - 0.004, 0.015, F.tile - 0.004, (i + j) % 2 ? M.tileA : M.tileB, -F.half + F.tile * (i + 0.5), -0.0075, -F.half + F.tile * (j + 0.5)); t.castShadow = false; }
+// กำแพง
+const wt = 0.03; [[0, -F.half - wt / 2, 2 * F.half + 2 * wt, wt], [0, F.half + wt / 2, 2 * F.half + 2 * wt, wt]].forEach(([x, z, w, d]) => box(w, F.wallH, d, M.wall, x, F.wallH / 2, z));
+[[-F.half - wt / 2, 0], [F.half + wt / 2, 0]].forEach(([x, z]) => box(wt, F.wallH, 2 * F.half, M.wall, x, F.wallH / 2, z));
+// เทป: LOADING ZONE, GARDEN
+const tape = (b, mat, y = 0.002) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(b[1] - b[0], b[3] - b[2]), mat); m.rotation.x = -Math.PI / 2; m.position.set((b[0] + b[1]) / 2, y, (b[2] + b[3]) / 2); scene.add(m); return m; };
+const zoneOutline = (b, mat) => { const w = 0.025; tape([b[0], b[1], b[2], b[2] + w], mat); tape([b[0], b[1], b[3] - w, b[3]], mat); tape([b[0], b[0] + w, b[2], b[3]], mat); tape([b[1] - w, b[1], b[2], b[3]], mat); };
+zoneOutline(F.loading.red, M.tapeRed); zoneOutline(F.loading.blue, M.tapeBlue); tape(F.garden.red, M.tapeRed); tape(F.garden.blue, M.tapeBlue);
+// ALLIANCE AREA นอกสนาม
+tape([-2.5, -1.85, -1.23, 1.23], new THREE.MeshBasicMaterial({ color: 0x3a1a1a }), -0.01); tape([1.85, 2.5, -1.23, 1.23], new THREE.MeshBasicMaterial({ color: 0x1a2238 }), -0.01);
+// โครง HIVE: ขาสามเหลี่ยม 2 ข้าง + คานบน + foot bar
+for (const sx of [-1, 1]) {
+  box(0.05, 0.055, 2 * H.footHalfZ, M.frame, sx * H.footX, 0.0275, 0);
+  for (const sz of [-1, 1]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.19, 0.03), M.frame); const a = new THREE.Vector3(sx * 0.598, 0.03, sz * 0.46), b = new THREE.Vector3(sx * 0.325, 1.08, 0); leg.position.copy(a).lerp(b, 0.5); leg.lookAt(b); leg.rotateX(Math.PI / 2); leg.castShadow = true; scene.add(leg); }
+}
+box(0.7, 0.05, 0.05, M.frame, 0, 1.105, 0);
+const panel = box(0.72, 0.16, 0.01, M.dark, 0, 1.0, 0.03); panel.castShadow = false;
+// HIVE แดง/น้ำเงิน: กลุ่มหมุนรอบแกน X ที่ pivot
+const hiveG = {};
+for (const c of ['red', 'blue']) {
+  const g = new THREE.Group(); g.position.set(H.pivotX[c], H.pivotY, 0); scene.add(g); hiveG[c] = g;
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 2 * H.cellDist), M.frame); g.add(bar);
+  for (const sz of [-1, 1]) {
+    const cell = new THREE.Group(); cell.position.set(0, 0, sz * H.cellDist); g.add(cell);
+    const mat = c === 'red' ? M.clearRed : M.clearBlue;
+    const back = new THREE.Mesh(new THREE.BoxGeometry(H.cellW, H.cellH, 0.012), mat); back.position.set(0, H.cellH / 2 - 0.04, -sz * H.cellD / 2); cell.add(back);
+    for (const sx of [-1, 1]) { const side = new THREE.Mesh(new THREE.BoxGeometry(0.012, H.cellH, H.cellD), mat); side.position.set(sx * H.cellW / 2, H.cellH / 2 - 0.04, 0); cell.add(side); }
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(H.cellW, 0.012, H.cellD), c === 'red' ? M.red : M.blue); floor.position.set(0, -0.04, 0); cell.add(floor);
+    const tag = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), new THREE.MeshBasicMaterial({ color: 0xffffff })); tag.rotation.x = Math.PI / 2; tag.position.set(0, -0.047, 0); cell.add(tag);
+    cell.userData.sz = sz;
+  }
+}
+// FLOWER 4 ต้น
+F.flowers.forEach(f => {
+  const ring = (y, r, tube) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 8, 32), M.pipe); m.rotation.x = Math.PI / 2; m.position.set(f.x, y, f.z); scene.add(m); };
+  ring(F.flowerTop, 0.065, 0.008); ring(0.101, 0.065, 0.008); ring(0.006, 0.05, 0.006);
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, F.flowerTop - 0.101, 8), M.pipe); p.position.set(f.x + Math.cos(a) * 0.062, (F.flowerTop + 0.101) / 2, f.z + Math.sin(a) * 0.062); scene.add(p); }
+  const towardWall = Math.abs(f.x) > Math.abs(f.z) ? [Math.sign(f.x), 0] : [0, Math.sign(f.z)];
+  const bs = box(0.17, 0.032, 0.02, M.pipe, f.x + towardWall[0] * 0.075, F.flowerTop + 0.016, f.z + towardWall[1] * 0.075); bs.rotation.y = towardWall[0] ? Math.PI / 2 : 0;
+});
+// ลูกบอล
+const ballMeshes = S.balls.map(b => { const m = new THREE.Mesh(new THREE.SphereGeometry(b.kind === 'pollen' ? F.pollenR : F.nectarR, 20, 14), b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue)); m.castShadow = true; scene.add(m); return m; });
+// หุ่น
+const robotMeshes = S.robots.map(r => {
+  const g = new THREE.Group(); scene.add(g);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(ROBOT.size, 0.18, ROBOT.size), M.dark); body.position.y = 0.11; body.castShadow = true; g.add(body);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(ROBOT.size + 0.01, 0.06, ROBOT.size + 0.01), r.alliance === 'red' ? M.red : M.blue); plate.position.y = 0.05; g.add(plate);
+  const hopper = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.2), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 })); hopper.position.set(0, 0.27, 0.02); g.add(hopper);
+  const shooter = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.16, 16), M.pipe); shooter.rotation.x = Math.PI / 2 - ROBOT.elevDeg * Math.PI / 180; shooter.position.set(0, 0.34, -0.1); g.add(shooter);
+  const intake = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, ROBOT.size - 0.08, 12), new THREE.MeshStandardMaterial({ color: 0x4ad66d })); intake.rotation.z = Math.PI / 2; intake.position.set(0, 0.05, -ROBOT.size / 2 - 0.02); g.add(intake);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 16), M.frame); w.rotation.z = Math.PI / 2; w.position.set(sx * 0.19, 0.052, sz * 0.168); g.add(w); }
+  const carried = []; for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), M.yellow); m.position.set(-0.06 + i * 0.04, 0.3, 0.02); g.add(m); carried.push(m); }
+  const num = makeLabel(r.id, r.alliance === 'red' ? '#e4453c' : '#3a7bd5'); num.position.y = 0.5; g.add(num);
+  g.userData = { carried, num, intake }; return g;
+});
+function makeLabel(text, color) { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, 0, 256, 96); x.font = 'bold 64px Sarabun, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 48); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.set(0.4, 0.15, 1); return s; }
+// จุดยิงที่แนะนำ (วงแหวนบนพื้น)
+const gateRing = new THREE.Mesh(new THREE.RingGeometry(ROBOT.gateMin, ROBOT.gateMax, 48, 1, 0, Math.PI * 2), M.zone); gateRing.rotation.x = -Math.PI / 2; gateRing.position.y = 0.003; scene.add(gateRing);
+
+// ---------- อินพุต ----------
+const keys = new Set(), pressedOnce = new Set();
+addEventListener('keydown', e => { if (e.repeat) return; keys.add(e.code); pressedOnce.add(e.code); if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); });
+addEventListener('keyup', e => keys.delete(e.code));
+const padWas = [];
+const emptyInput = () => ({ fwd: 0, strafe: 0, turn: 0, shootP: false, shootN: false, placeP: false, placeN: false, intakeT: false, eject: false, trainT: false, start: false, cam: false, padName: null });
+function readInput() {
+  const out = emptyInput();
+  const kd = c => keys.has(c), kp = c => pressedOnce.has(c);
+  out.fwd = (kd('KeyW') ? 1 : 0) - (kd('KeyS') ? 1 : 0); out.strafe = (kd('KeyD') ? 1 : 0) - (kd('KeyA') ? 1 : 0); out.turn = (kd('KeyE') ? 1 : 0) - (kd('KeyQ') ? 1 : 0);
+  out.shootP = kp('Space'); out.shootN = kp('KeyN'); out.placeP = kp('Digit1'); out.placeN = kp('Digit2'); out.intakeT = kp('KeyF'); out.eject = kp('KeyG'); out.start = kp('Enter'); out.cam = kp('KeyC'); out.trainT = kp('KeyT');
+  if (kp('KeyK')) saveCheckpoint(); if (kp('KeyL')) loadCheckpoint();
+  const pad = [...navigator.getGamepads()].find(g => g && g.connected);
+  if (pad) {
+    out.padName = pad.id; const shape = v => { const d = 0.1, a = Math.abs(v); return a < d ? 0 : Math.sign(v) * ((a - d) / (1 - d)); };
+    const b = i => (pad.buttons[i]?.value ?? 0) > 0.5, once = i => { const v = b(i), r = v && !padWas[i]; padWas[i] = v; return r; };
+    out.fwd = out.fwd || shape(-pad.axes[1]); out.strafe = out.strafe || shape(pad.axes[0]); out.turn = out.turn || shape(pad.axes[2]);
+    out.shootP = out.shootP || once(5); out.shootN = out.shootN || once(4); out.placeN = out.placeN || once(7); out.placeP = out.placeP || once(6);
+    out.intakeT = out.intakeT || once(0); out.eject = out.eject || once(1); out.trainT = out.trainT || once(3); out.start = out.start || once(9); out.cam = out.cam || once(8);
+  }
+  pressedOnce.clear(); return out;
+}
+
+// ---------- ตรรกะเกม ----------
+const say = (m, t = 2.2) => { S.msg = m; S.msgT = t; };
+const fwdOf = r => [-Math.sin(r.th), -Math.cos(r.th)];
+const inBox = (x, z, b) => x >= b[0] && x <= b[1] && z >= b[2] && z <= b[3];
+const tipRule = () => (document.getElementById('optSimple').checked ? TIP.simple : TIP.official);
+const cellLoad = c => S.balls.filter(b => b.where === 'cell' && b.hive === c).reduce((s, b) => s + (b.kind === 'pollen' ? tipRule().pollen : tipRule().nectar), 0);
+function upCellCenter(c) { const h = S.hives[c]; const a = h.angle; return { x: H.pivotX[c], y: H.pivotY + Math.abs(Math.sin(a)) * H.cellDist + 0.12, z: h.up * Math.cos(a) * H.cellDist }; }
+function gateCheck(r) {
+  if (!document.getElementById('optGate').checked) return { ok: true, why: 'โหมดฝึกปิดอยู่ ยิงได้ทุกที่' };
+  const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, d = Math.hypot(dx, dz), spd = Math.hypot(r.vx, r.vz);
+  const f = fwdOf(r), bearing = Math.acos(Math.max(-1, Math.min(1, (f[0] * dx + f[1] * dz) / d))) * 180 / Math.PI;
+  if (S.hives[r.alliance].tipping) return { ok: false, why: 'HIVE กำลังพลิก รอให้นิ่งก่อน' };
+  if (d < ROBOT.gateMin) return { ok: false, why: `ใกล้ HIVE เกินไป (${d.toFixed(2)} ม. ต้อง ≥ ${ROBOT.gateMin})` };
+  if (d > ROBOT.gateMax) return { ok: false, why: `ไกล HIVE เกินไป (${d.toFixed(2)} ม. ต้อง ≤ ${ROBOT.gateMax})` };
+  if (bearing > ROBOT.gateBearingDeg) return { ok: false, why: `หันไม่ตรง CELL ที่หงาย (${bearing.toFixed(0)}° ต้อง ≤ ${ROBOT.gateBearingDeg}°)` };
+  if (spd > 0.1) return { ok: false, why: `ต้องหยุดนิ่งก่อนยิง (${spd.toFixed(2)} m/s)` };
+  if (Math.abs(r.w) > 0.17) return { ok: false, why: 'ต้องหยุดหมุนก่อนยิง' };
+  return { ok: true, why: `พร้อมยิง ระยะ ${d.toFixed(2)} ม.` };
+}
+function launch(r, kind) {
+  const idx = r.carried.indexOf(kind); if (idx < 0) { say(kind === 'pollen' ? 'ไม่มี POLLEN ในหุ่น' : 'ไม่มี NECTAR ในหุ่น'); return; }
+  const g = gateCheck(r); if (!g.ok) { say('ยิงไม่ได้: ' + g.why); return; }
+  r.carried.splice(idx, 1);
+  const c = upCellCenter(r.alliance), f = fwdOf(r), sx = r.x + f[0] * 0.05, sz = r.z + f[1] * 0.05, sy = ROBOT.launchH;
+  let dx = c.x - sx, dz = c.z - sz; const d = Math.hypot(dx, dz), h = c.y - sy, al = ROBOT.elevDeg * Math.PI / 180;
+  const v2 = G * d * d / (2 * Math.cos(al) ** 2 * (d * Math.tan(al) - h)); let v = Math.sqrt(Math.max(v2, 1)) * (1 + gauss() * 0.02);
+  const yaw = Math.atan2(dx, dz) + gauss() * 1.2 * Math.PI / 180, color = kind === 'pollen' ? 'yellow' : r.alliance;
+  // ใช้ลูกที่เป็น 'carried' (ซ่อนอยู่) ตัวแรกที่ตรงชนิด/สี
+  const b = S.balls.find(b => b.where === 'carried' && b.kind === kind && b.color === color) || S.balls.find(b => b.where === 'carried' && b.kind === kind);
+  if (!b) return;
+  Object.assign(b, { where: 'air', x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al), vz: Math.cos(yaw) * v * Math.cos(al), vy: v * Math.sin(al), target: r.alliance });
+  S.stats.shots++;
+}
+const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+function pickup(r) {
+  if (!r.intake || r.carried.length >= ROBOT.capacity) return;
+  const f = fwdOf(r), px = r.x + f[0] * (ROBOT.size / 2 + 0.06), pz = r.z + f[1] * (ROBOT.size / 2 + 0.06);
+  for (const b of S.balls) {
+    if (b.where === 'floor' && !(b.cool > 0) && Math.hypot(b.x - px, b.z - pz) < ROBOT.intakeReach) {
+      if (b.kind === 'nectar' && b.color !== r.alliance) { if (r.human) say('G408: ห้ามเก็บ NECTAR ฝ่ายตรงข้าม', 1.5); continue; }
+      b.where = 'carried'; r.carried.push(b.kind); return;
+    }
+  }
+  // ดึง POLLEN จากก้น FLOWER (G418) เฉพาะคนขับที่ดันหุ่นเดินหน้าเข้าหา FLOWER
+  if (!r.human || !(r.lastFwd > 0.2)) return;
+  for (let fi = 0; fi < 4; fi++) { const fl = F.flowers[fi]; if (Math.hypot(fl.x - px, fl.z - pz) < ROBOT.intakeReach + 0.05) { const stack = flowerStack(fi); if (stack.length && stack[0].kind === 'pollen') { stack[0].where = 'carried'; r.carried.push('pollen'); return; } } }
+}
+const flowerStack = fi => S.balls.filter(b => b.where === 'flower' && b.flower === fi).sort((a, b) => a.order - b.order);
+function place(r, kind) {
+  const idx = r.carried.indexOf(kind); if (idx < 0) { say(kind === 'pollen' ? 'ไม่มี POLLEN ในหุ่น' : 'ไม่มี NECTAR ในหุ่น'); return; }
+  const f = fwdOf(r); let best = null;
+  F.flowers.forEach((fl, fi) => { const dx = fl.x - r.x, dz = fl.z - r.z, d = Math.hypot(dx, dz) - ROBOT.size / 2, br = Math.acos(Math.max(-1, Math.min(1, (f[0] * dx + f[1] * dz) / Math.hypot(dx, dz)))) * 180 / Math.PI; if (d < ROBOT.placeRange && br < ROBOT.placeBearingDeg) best = fi; });
+  if (best === null) { say('ต้องอยู่ชิด FLOWER และหันหน้าเข้าหา'); return; }
+  if (kind === 'nectar' && !S.free && S.t > MATCH.flowerUnlock) { say(`G410: ใส่ NECTAR ใน FLOWER ได้เมื่อเหลือ 1:00 (MAJOR FOUL +${POINTS.major} ให้คู่แข่ง)`); S.fouls[r.alliance] += POINTS.major; return; }
+  const stack = flowerStack(best); const top = stackTop(stack); if (top > F.flowerPlaceLimit) { say('FLOWER เต็ม'); return; }
+  r.carried.splice(idx, 1);
+  const color = kind === 'pollen' ? 'yellow' : r.alliance; const b = S.balls.find(b => b.where === 'carried' && b.kind === kind && b.color === color);
+  Object.assign(b, { where: 'flower', flower: best, order: (stack.at(-1)?.order ?? -1) + 1 });
+}
+const stackTop = stack => stack.reduce((y, b) => y + 2 * (b.kind === 'pollen' ? F.pollenR : F.nectarR), 0.01);
+function eject(r) { const k = r.carried.pop(); if (!k) return; const f = fwdOf(r); const b = S.balls.find(b => b.where === 'carried' && b.kind === k && (k === 'pollen' || b.color === r.alliance)); if (b) Object.assign(b, { where: 'floor', cool: 1.0, x: r.x + f[0] * (ROBOT.size / 2 + 0.3), y: b.kind === 'pollen' ? F.pollenR : F.nectarR, z: r.z + f[1] * (ROBOT.size / 2 + 0.3) }); }
+function startTip(c) {
+  const h = S.hives[c]; if (h.tipping) return; h.tipping = { from: h.angle, to: -h.angle, t: 0 }; h.tips++; S.stats.tips++;
+  S.score[c] += POINTS.tip; say(`HIVE ${c.toUpperCase()} TIP! +${POINTS.tip}`, 2.5);
+  // ปล่อย NECTAR จาก Human Player 1 ลูก (G426)
+  const st = S.balls.find(b => b.where === 'staged' && b.color === c); if (st) { const L = F.loading[c]; Object.assign(st, { where: 'floor', x: (L[0] + L[1]) / 2, y: F.nectarR, z: (L[2] + L[3]) / 2 + (Math.random() - 0.5) * 0.3 }); S.released[c]++; }
+}
+function dumpCell(c) { const h = S.hives[c]; S.balls.filter(b => b.where === 'cell' && b.hive === c).forEach(b => { const r = b.kind === 'pollen' ? F.pollenR : F.nectarR; Object.assign(b, { where: 'floor', x: H.pivotX[c] + (Math.random() - 0.5) * 0.9, y: r, z: -h.up * (0.75 + Math.random() * 0.6), vx: 0, vz: 0 }); }); }
+function assessFinal() {
+  const sc = { red: 0, blue: 0 }, det = [];
+  for (const c of ['red', 'blue']) { const n = S.balls.filter(b => b.where === 'cell' && b.hive === c).length; sc[c] += n * POINTS.cell; det.push([`ลูกค้างใน CELL ${c}`, n * POINTS.cell]); }
+  F.flowers.forEach((fl, fi) => { const st = flowerStack(fi); let y = 0.01; const scoring = []; for (const b of st) { const r = b.kind === 'pollen' ? F.pollenR : F.nectarR; if (y + r > F.flowerScoreBottom) scoring.push(b); y += 2 * r; } const nect = scoring.filter(b => b.kind === 'nectar'); if (nect.length) { const owner = nect.at(-1).color, bottom = nect[0].color; sc[owner] += scoring.length * POINTS.flower; sc[bottom] += POINTS.bottomNectar; det.push([`FLOWER ${fl.id}: เจ้าของ ${owner} ${scoring.length}×2 + โบนัสล่าง ${bottom} 5`, scoring.length * POINTS.flower + POINTS.bottomNectar]); } });
+  for (const c of ['red', 'blue']) { const n = S.balls.filter(b => b.where === 'floor' && inBox(b.x, b.z, F.garden[c])).length; sc[c] += n * POINTS.garden; det.push([`GARDEN ${c}`, n * POINTS.garden]); }
+  for (const r of S.robots) { const L = F.loading[r.alliance], hs = ROBOT.size / 2; const inZ = r.x + hs >= L[0] && r.x - hs <= L[1] && r.z + hs >= L[2] && r.z - hs <= L[3]; if (inZ) { sc[r.alliance] += POINTS.park; det.push([`PARK ${r.id}`, POINTS.park]); } }
+  S.score.red += sc.red; S.score.blue += sc.blue; return det;
+}
+
+// ---------- AI บอท (เดินสุ่ม) ----------
+function botThink(r, dt) {
+  if (!document.getElementById('optBots').checked) { r.vx = r.vz = r.w = 0; return; }
+  if (!r.wp || Math.hypot(r.wp[0] - r.x, r.wp[1] - r.z) < 0.25) { let x, z; do { x = (Math.random() * 2 - 1) * 1.45; z = (Math.random() * 2 - 1) * 1.45; } while (Math.abs(x) < 0.85 && Math.abs(z) < 0.7); r.wp = [x, z]; }
+  const dx = r.wp[0] - r.x, dz = r.wp[1] - r.z, want = Math.atan2(-dx, -dz); let dth = want - r.th; dth = Math.atan2(Math.sin(dth), Math.cos(dth));
+  r.w = Math.max(-2, Math.min(2, dth * 3)); const f = fwdOf(r), sp = Math.abs(dth) < 0.5 ? 0.8 : 0.2; r.vx = f[0] * sp; r.vz = f[1] * sp;
+}
+
+// ---------- ฟิสิกส์แบบง่าย ----------
+const contactCool = {};
+function stepRobots(dt, inp) {
+  for (const r of S.robots) {
+    if (r.human) {
+      const drive = S.running || S.free;
+      const f = fwdOf(r), rt = [Math.cos(r.th), -Math.sin(r.th)];
+      const tx = drive ? (f[0] * inp.fwd + rt[0] * inp.strafe) * ROBOT.vmax : 0, tz = drive ? (f[1] * inp.fwd + rt[1] * inp.strafe) * ROBOT.vmax : 0;
+      const ax = tx - r.vx, az = tz - r.vz, am = Math.hypot(ax, az), lim = ROBOT.acc * dt; if (am > lim) { r.vx += ax / am * lim; r.vz += az / am * lim; } else { r.vx = tx; r.vz = tz; }
+      const tw = drive ? -inp.turn * ROBOT.wmax : 0; r.w += Math.max(-12 * dt, Math.min(12 * dt, tw - r.w)); r.lastFwd = drive ? inp.fwd : 0;
+    } else botThink(r, dt);
+    r.th += r.w * dt; r.x += r.vx * dt; r.z += r.vz * dt;
+    // กำแพง
+    const hs = ROBOT.size / 2 * 1.08; r.x = Math.max(-F.half + hs, Math.min(F.half - hs, r.x)); r.z = Math.max(-F.half + hs, Math.min(F.half - hs, r.z));
+    // foot bar ของโครง HIVE (กล่อง) และ FLOWER (วงกลม)
+    for (const sx of [-1, 1]) { const bx = [sx * H.footX - 0.04, sx * H.footX + 0.04, -H.footHalfZ, H.footHalfZ]; if (r.x + hs > bx[0] && r.x - hs < bx[1] && r.z + hs > bx[2] && r.z - hs < bx[3]) { const px = r.x < sx * H.footX ? bx[0] - hs - r.x : bx[1] + hs - r.x, pz = r.z < 0 ? bx[2] - hs - r.z : bx[3] + hs - r.z; if (Math.abs(px) < Math.abs(pz)) { r.x += px; r.vx = 0; } else { r.z += pz; r.vz = 0; } } }
+    for (const fl of F.flowers) { const dx = r.x - fl.x, dz = r.z - fl.z, d = Math.hypot(dx, dz), min = hs + 0.085; if (d < min && d > 0) { r.x += dx / d * (min - d); r.z += dz / d * (min - d); } }
+    // ดันลูกบนพื้น (bulldoze)
+    for (const b of S.balls) if (b.where === 'floor') { const dx = b.x - r.x, dz = b.z - r.z, d = Math.hypot(dx, dz), min = hs + (b.kind === 'pollen' ? F.pollenR : F.nectarR); if (d < min && d > 0.001) { b.x += dx / d * (min - d); b.z += dz / d * (min - d); b.x = Math.max(-F.half + 0.05, Math.min(F.half - 0.05, b.x)); b.z = Math.max(-F.half + 0.05, Math.min(F.half - 0.05, b.z)); } }
+  }
+  // หุ่นชนหุ่น
+  for (let i = 0; i < S.robots.length; i++) for (let j = i + 1; j < S.robots.length; j++) {
+    const a = S.robots[i], b = S.robots[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), min = ROBOT.size * 1.05;
+    const key = i + '-' + j; contactCool[key] = Math.max(0, (contactCool[key] ?? 0) - dt);
+    if (d < min && d > 0.001) {
+      const push = (min - d) / 2; a.x -= dx / d * push; a.z -= dz / d * push; b.x += dx / d * push; b.z += dz / d * push;
+      const rel = Math.hypot(a.vx - b.vx, a.vz - b.vz);
+      if (contactCool[key] <= 0 && rel > 0.25) { contactCool[key] = 0.6; S.stats.collisions++; if (document.getElementById('optHealth').checked) { a.hp = Math.max(0, a.hp - 2); b.hp = Math.max(0, b.hp - 2); if (a.human || b.human) say(`ชน ${a.human ? b.id : a.id}! เลือด −2%`, 1.2); } }
+    }
+  }
+}
+function stepBalls(dt) {
+  for (const b of S.balls) {
+    if (b.cool > 0) b.cool -= dt;
+    if (b.where !== 'air') continue;
+    b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    const r = b.kind === 'pollen' ? F.pollenR : F.nectarR;
+    if (b.vy < 0) { const c = upCellCenter(b.target); if (Math.abs(b.x - c.x) < H.cellW / 2 && Math.abs(b.z - c.z) < H.cellD / 2 + 0.05 && b.y < c.y + 0.1 && b.y > c.y - 0.15) { b.where = 'cell'; b.hive = b.target; S.stats.hits++; const rule = tipRule(); if (cellLoad(b.target) >= rule.threshold) startTip(b.target); continue; } }
+    if (b.y <= r) { b.y = r; b.where = 'floor'; b.vx = b.vz = b.vy = 0; b.x = Math.max(-F.half + r, Math.min(F.half - r, b.x)); b.z = Math.max(-F.half + r, Math.min(F.half - r, b.z)); say('ยิงพลาด', 1); }
+  }
+  for (const c of ['red', 'blue']) { const h = S.hives[c]; if (h.tipping) { h.tipping.t += dt / 0.9; const k = Math.min(1, h.tipping.t), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2; h.angle = h.tipping.from + (h.tipping.to - h.tipping.from) * e; if (k >= 0.55 && !h.tipping.dumped) { h.tipping.dumped = true; dumpCell(c); } if (k >= 1) { h.tipping = null; h.up = -h.up; } } }
+}
+
+// ---------- Checkpoint ----------
+function saveCheckpoint() { saved = JSON.parse(JSON.stringify(S)); say('จำจุดนี้แล้ว (กด L เพื่อซ้อมซ้ำ)'); }
+function loadCheckpoint() { if (!saved) { say('ยังไม่ได้จำจุด'); return; } S = JSON.parse(JSON.stringify(saved)); S.msg = 'ซ้อมจากจุดที่จำ'; S.msgT = 2; }
+
+// ---------- Sync เมช ----------
+const tmpV = new THREE.Vector3();
+function sync() {
+  S.robots.forEach((r, i) => { const g = robotMeshes[i]; g.position.set(r.x, 0, r.z); g.rotation.y = r.th; g.userData.carried.forEach((m, k) => { const kind = r.carried[k]; m.visible = !!kind; if (kind) m.material = kind === 'pollen' ? M.yellow : (r.alliance === 'red' ? M.red : M.blue); }); g.userData.intake.material.color.set(r.intake ? 0x4ad66d : 0x555555); });
+  for (const c of ['red', 'blue']) hiveG[c].rotation.x = S.hives[c].angle;
+  const cellSlot = { red: 0, blue: 0 }, flowerY = [0.01, 0.01, 0.01, 0.01];
+  S.balls.forEach((b, i) => {
+    const m = ballMeshes[i]; const r = b.kind === 'pollen' ? F.pollenR : F.nectarR;
+    if (b.where === 'carried') { m.visible = false; return; } m.visible = true;
+    if (b.where === 'cell') { const h = S.hives[b.hive], n = cellSlot[b.hive]++; const g = hiveG[b.hive]; tmpV.set(-0.18 + (n % 5) * 0.09, 0.0 + r + Math.floor(n / 5) * 0.09, h.up * (H.cellDist - 0.1 + (n % 2) * 0.07)); g.localToWorld(tmpV); m.position.copy(tmpV); }
+    else if (b.where === 'flower') { const fl = F.flowers[b.flower]; const st = flowerStack(b.flower); let y = 0.01; for (const o of st) { const rr = o.kind === 'pollen' ? F.pollenR : F.nectarR; if (o === b) { y += rr; break; } y += 2 * rr; } m.position.set(fl.x, y, fl.z); }
+    else m.position.set(b.x, b.y, b.z);
+  });
+  gateRing.position.x = upCellCenter('red').x; gateRing.position.z = upCellCenter('red').z; gateRing.visible = document.getElementById('optGate').checked;
+}
+
+// ---------- กล้อง ----------
+let orbit = { yaw: 0.6, pitch: 0.9, dist: 5.5 }, drag = null;
+renderer.domElement.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; });
+addEventListener('pointerup', () => drag = null);
+addEventListener('pointermove', e => { if (!drag) return; orbit.yaw -= (e.clientX - drag[0]) * 0.005; orbit.pitch = Math.max(0.15, Math.min(1.45, orbit.pitch + (e.clientY - drag[1]) * 0.005)); drag = [e.clientX, e.clientY]; });
+addEventListener('wheel', e => { orbit.dist = Math.max(2, Math.min(10, orbit.dist + e.deltaY * 0.004)); });
+const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
+function updateCamera(dt) {
+  const r = S.robots[0]; let p, l;
+  if (S.cam === 0) { const f = fwdOf(r); p = new THREE.Vector3(r.x - f[0] * 1.6, 1.25, r.z - f[1] * 1.6); l = new THREE.Vector3(r.x + f[0] * 1.2, 0.3, r.z + f[1] * 1.2); }
+  else if (S.cam === 1) { p = new THREE.Vector3(Math.sin(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist, Math.sin(orbit.pitch) * orbit.dist + 0.3, Math.cos(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist); l = new THREE.Vector3(0, 0.3, 0); }
+  else { p = new THREE.Vector3(-3.2, 1.6, 0.0); l = new THREE.Vector3(0.3, 0.4, 0); } // มุมมอง Driver Station ฝั่งแดง
+  const k = 1 - Math.exp(-dt * (S.cam === 1 ? 20 : 6)); camPos.lerp(p, k); camLook.lerp(l, k); camera.position.copy(camPos); camera.lookAt(camLook);
+}
+
+// ---------- HUD ----------
+const $ = id => document.getElementById(id);
+function hud(inp) {
+  const r = S.robots[0];
+  $('clock').textContent = S.free ? '∞' : `${Math.floor(S.t / 60)}:${String(Math.ceil(S.t % 60) % 60).padStart(2, '0')}`;
+  $('phase').textContent = S.free ? 'ซ้อมอิสระ' : S.over ? 'จบแมตช์' : S.running ? (S.t <= MATCH.flowerUnlock ? 'TELEOP · FLOWER ปลดล็อก' : 'TELEOP') : 'พร้อม';
+  $('sRed').textContent = S.score.red + S.fouls.blue; $('sBlue').textContent = S.score.blue + S.fouls.red;
+  $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
+  $('carryTxt').textContent = `${r.carried.length}/4`; $('slots').innerHTML = [0, 1, 2, 3].map(i => `<div class="slot ${r.carried[i] ?? ''}"></div>`).join('');
+  $('intakeTxt').textContent = r.intake ? 'เปิด' : 'ปิด'; $('spd').textContent = Math.hypot(r.vx, r.vz).toFixed(2);
+  const g = gateCheck(r); $('gate').textContent = g.ok ? 'พร้อม' : 'ยังไม่ได้'; $('gate').className = g.ok ? 'ok' : 'bad'; $('gateWhy').textContent = g.why;
+  const rule = tipRule(), load = cellLoad('red'); $('loadTxt').textContent = `${load.toFixed(2)} / ${rule.threshold}`; $('load').style.width = Math.min(100, load / rule.threshold * 100) + '%';
+  $('stash').textContent = S.balls.filter(b => b.where === 'staged' && b.color === 'red').length; $('tips').textContent = S.hives.red.tips;
+  if (inp.padName) { $('padTxt').textContent = 'เชื่อมต่อ: ' + inp.padName.slice(0, 40); $('padTxt').className = 'ok'; }
+  $('msg').textContent = S.msgT > 0 ? S.msg : ''; $('msg').style.opacity = S.msgT > 0 ? 1 : 0;
+}
+
+// ---------- ควบคุมแมตช์ ----------
+function startMatch(free) { const keepOpts = true; S = newState(); S.free = free; S.running = !free; $('overlay').classList.add('hidden'); say(free ? 'ซ้อมอิสระ: ขับได้เลย' : 'TELEOP เริ่ม! 2:00'); }
+function endMatch() {
+  S.running = false; S.over = true; const det = assessFinal();
+  const acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0;
+  $('result').innerHTML = `<h3 style="margin:10px 0 4px">ผลแมตช์: <span style="color:var(--red)">RED ${S.score.red + S.fouls.blue}</span> – <span style="color:var(--blu)">BLUE ${S.score.blue + S.fouls.red}</span></h3>
+    <table><tr><td>HIVE TIP</td><td>${S.hives.red.tips} × 20 = ${S.hives.red.tips * 20}</td></tr>${det.map(d => `<tr><td>${d[0]}</td><td>${d[1]}</td></tr>`).join('')}
+    <tr><td>ยิงทั้งหมด / เข้า</td><td>${S.stats.shots} / ${S.stats.hits} (${acc}%)</td></tr><tr><td>ชนหุ่น</td><td>${S.stats.collisions} ครั้ง · เลือดเหลือ ${S.robots[0].hp}%</td></tr><tr><td>FOUL ของเรา</td><td>+${S.fouls.red} ให้ BLUE</td></tr></table>`;
+  $('overlay').classList.remove('hidden');
+}
+$('btnGo').onclick = () => startMatch(false); $('btnFree').onclick = () => startMatch(true);
+$('btnStart').onclick = () => { if (S.running) { S.running = false; say('หยุดชั่วคราว'); } else if (S.over || S.free) startMatch(false); else { S.running = true; say('ไปต่อ'); } };
+$('btnCam').onclick = () => S.cam = (S.cam + 1) % 3; $('btnSave').onclick = saveCheckpoint; $('btnLoad').onclick = loadCheckpoint;
+window.BIOBUZZ = { get state() { return S; }, startMatch, step: n => { for (let i = 0; i < n; i++) tick(1 / 120, readInput()); }, act: o => tick(1 / 120, Object.assign(emptyInput(), o)), launch: k => launch(S.robots[0], k), gateCheck: () => gateCheck(S.robots[0]) };
+
+// ---------- ลูป ----------
+let last = performance.now(), acc = 0;
+function tick(dt, inp) {
+  const r = S.robots[0];
+  if (inp.start) $('btnStart').onclick(); if (inp.cam) S.cam = (S.cam + 1) % 3;
+  if (inp.trainT) { const o = $('optGate'); o.checked = !o.checked; say('โหมดฝึก: ' + (o.checked ? 'เปิด' : 'ปิด')); }
+  if (S.running || S.free) {
+    if (inp.intakeT) { r.intake = !r.intake; } if (inp.eject) eject(r);
+    if (inp.shootP) launch(r, 'pollen'); if (inp.shootN) launch(r, 'nectar'); if (inp.placeP) place(r, 'pollen'); if (inp.placeN) place(r, 'nectar');
+    stepRobots(dt, inp); stepBalls(dt); for (const b of S.robots) pickup(b);
+    if (S.running) { const before = S.t; S.t -= dt; if (before > MATCH.flowerUnlock && S.t <= MATCH.flowerUnlock) { say('เหลือ 1:00 · ใส่ NECTAR ใน FLOWER ได้ · Human Player ปล่อย NECTAR ที่เหลือทั้งหมด', 3); for (const c of ['red', 'blue']) S.balls.filter(b => b.where === 'staged' && b.color === c).forEach((b, i) => { const L = F.loading[c]; Object.assign(b, { where: 'floor', x: (L[0] + L[1]) / 2, y: F.nectarR, z: L[2] + 0.1 + i * 0.1 }); }); } if (S.t <= 0) { S.t = 0; endMatch(); } }
+  }
+  S.msgT -= dt;
+}
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt;
+  if (acc < 1 / 120) { sync(); updateCamera(dt); renderer.render(scene, camera); requestAnimationFrame(frame); return; } // อย่าอ่าน input ทิ้งถ้าเฟรมนี้ไม่ได้ step
+  const inp = readInput(); let first = true;
+  while (acc >= 1 / 120) { tick(1 / 120, first ? inp : { ...inp, shootP: false, shootN: false, placeP: false, placeN: false, intakeT: false, eject: false, trainT: false, start: false, cam: false }); first = false; acc -= 1 / 120; }
+  sync(); updateCamera(dt); hud(inp); renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('gamepadconnected', e => say('พบจอย: ' + e.gamepad.id.slice(0, 40), 3));
+camPos.set(-3.2, 1.6, 0); camLook.set(0.3, 0.4, 0); S.cam = 2; sync(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
