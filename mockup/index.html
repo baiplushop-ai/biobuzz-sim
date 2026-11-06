@@ -125,11 +125,12 @@ const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { p
 const AUTO_LEN = 30, TRANS_LEN = 8, MATCH_LEN = 158;
 const LZ_Z = { red: -0.8954, blue: 0.8954 };
 const START = { R1: [-F.half + HSW + 0.001, 0.15, -Math.PI / 2], R2: [-F.half + HSW + 0.001, -1.45, -Math.PI / 2], B1: [F.half - HSW - 0.001, -0.15, Math.PI / 2], B2: [F.half - HSW - 0.001, 1.45, Math.PI / 2] };
-const DEFAULT_OPT = { gate: true, health: true, simple: false, bots: true, fieldCentric: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
+const DEFAULT_OPT = { traj: false, gate: true, health: true, simple: false, bots: true, fieldCentric: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
 const DEFAULT_AUTO = { R1: [{ goto: 'spot' }, { shoot: 4 }], R2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }], B1: [{ goto: 'spot' }, { shoot: 4 }], B2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }] };
 const STOP = { vx: 0, vz: 0, w: 0 };
 // ค่าการขับของหุ่นเรา (ตั้งใน Free Control ให้ตรงกับหุ่นจริง และใช้กับทุกสถานการณ์)
-const DEFAULT_DRIVE = { vmax: 1.6, acc: 4.5, wmax: 3.2, strafe: 0.8, curve: 'square', dead: 0.1 };
+const DEFAULT_DRIVE = { vmax: 1.6, acc: 4.5, wmax: 3.2, strafe: 0.8, curve: 'square', dead: 0.1,
+  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6 }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
 let DRV = { ...DEFAULT_DRIVE }; try { Object.assign(DRV, JSON.parse(localStorage.getItem('dca-drive-cfg') || '{}')); } catch {}
 const saveDrv = () => { try { localStorage.setItem('dca-drive-cfg', JSON.stringify(DRV)); } catch {} };
 const curveFn = v => { const a = Math.abs(v), n = DRV.curve === 'linear' ? 1 : DRV.curve === 'cubic' ? 3 : 2; return Math.sign(v) * a ** n; };
@@ -205,18 +206,48 @@ function bestSpot(r, ref) {
   }
   return best;
 }
+// ----- ปืนยิงของหุ่นเรา: ลูกพุ่งตามทิศหน้าหุ่น ด้วยมุมยิงและความเร็วตามค่าปืน (ไม่เล็งให้เอง) -----
+const CELL_Y = H.pivotY + Math.sin(H.tilt) * H.cellDist + 0.12; // ความสูงเป้า (กลางปาก CELL ที่หงาย) ตอน HIVE นิ่ง
+function vNeed(d, h, al) { const den = 2 * Math.cos(al) ** 2 * (d * Math.tan(al) - h); return den > 0 ? Math.sqrt(G * d * d / den) : Infinity; }
+function launcherSpeed(dist) { const al = DRV.elev * Math.PI / 180; return DRV.vmode === 'fixed' ? DRV.vfix : clamp(vNeed(dist, CELL_Y - DRV.lh, al), DRV.vmin, DRV.vmax2); }
+let rangeKey = '', rangeVal = null;
+function effRange() { // ระยะที่ปืนส่งลูกถึงกลางปาก CELL ได้ (คำนวณจากค่าปืน)
+  const key = [DRV.elev, DRV.vmode, DRV.vmin, DRV.vmax2, DRV.vfix, DRV.lh].join(); if (key === rangeKey) return rangeVal;
+  const al = DRV.elev * Math.PI / 180, h = CELL_Y - DRV.lh; let lo = null, hi = null;
+  for (let d = 0.3; d <= 3.5; d += 0.005) { const v = vNeed(d, h, al), ok = DRV.vmode === 'fixed' ? Math.abs(v - DRV.vfix) <= DRV.vfix * 0.025 : v >= DRV.vmin && v <= DRV.vmax2; if (ok) { if (lo == null) lo = d; hi = d; } }
+  rangeKey = key; rangeVal = lo == null ? null : { min: +lo.toFixed(2), max: +hi.toFixed(2) }; return rangeVal;
+}
+const gateLim = r => r.human ? { min: DRV.gateMin, max: DRV.gateMax } : { min: ROBOT.gateMin, max: ROBOT.gateMax };
 function gateCheck(r, o = {}) {
-  if (r.human && !S.opt.gate) return { ok: true, why: 'ปิดกฎจุดยิง ยิงได้ทุกที่' };
-  const h = S.hives[r.alliance];
-  if (h.tipping && !(S.opt.disrupt && r.human) && !o.ignoreTip) return { ok: false, why: 'HIVE กำลังพลิก รอให้นิ่งก่อน' };
+  const h = S.hives[r.alliance], lim = gateLim(r), strict = !r.human || S.opt.gate, issues = [];
   const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, d = Math.hypot(dx, dz), f = fwdOf(r);
   const bearing = Math.acos(clamp((f[0] * dx + f[1] * dz) / d, -1, 1)) * 180 / Math.PI;
-  if (d < ROBOT.gateMin) return { ok: false, why: `ใกล้ HIVE เกินไป (${d.toFixed(2)} ม. ต้อง ≥ ${ROBOT.gateMin})` };
-  if (d > ROBOT.gateMax) return { ok: false, why: `ไกล HIVE เกินไป (${d.toFixed(2)} ม. ต้อง ≤ ${ROBOT.gateMax})` };
-  if (bearing > ROBOT.gateBearingDeg) return { ok: false, why: `หันไม่ตรง CELL ที่หงาย (${bearing.toFixed(0)}° ต้อง ≤ ${ROBOT.gateBearingDeg}°)` };
-  if (speed(r) > 0.1) return { ok: false, why: `ต้องหยุดนิ่งก่อนยิง (${speed(r).toFixed(2)} m/s)` };
-  if (Math.abs(r.w) > 0.17) return { ok: false, why: 'ต้องหยุดหมุนก่อนยิง' };
-  return { ok: true, why: `พร้อมยิง ระยะ ${d.toFixed(2)} ม.` };
+  if (h.tipping && !(S.opt.disrupt && r.human) && !o.ignoreTip) issues.push('HIVE กำลังพลิก รอให้นิ่งก่อน');
+  if (d < lim.min) issues.push(`ใกล้ HIVE เกินไป (${d.toFixed(2)} ม. เกณฑ์ ≥ ${lim.min})`);
+  if (d > lim.max) issues.push(`ไกล HIVE เกินไป (${d.toFixed(2)} ม. เกณฑ์ ≤ ${lim.max})`);
+  if (bearing > ROBOT.gateBearingDeg) issues.push(`หันไม่ตรง CELL ที่หงาย (${bearing.toFixed(0)}° เกณฑ์ ≤ ${ROBOT.gateBearingDeg}°)`);
+  if (speed(r) > 0.1) issues.push(`ยังไม่หยุดนิ่ง (${speed(r).toFixed(2)} m/s)`);
+  if (Math.abs(r.w) > 0.17) issues.push('ยังหมุนอยู่');
+  if (!issues.length) return { ok: true, warn: false, why: `พร้อมยิง ระยะ ${d.toFixed(2)} ม.` };
+  if (strict) return { ok: false, warn: false, why: issues[0] };
+  return { ok: true, warn: true, why: '⚠ ' + issues.join(' · ') + ' · ยิงได้ แต่อาจไม่เข้า' };
+}
+function shotStart(r) { // จุดปล่อยและความเร็วเริ่มต้น (ไม่มีความคลาดเคลื่อน) ของปืนหุ่นเรา
+  const f = fwdOf(r), sx = r.x + f[0] * 0.05, sz = r.z + f[1] * 0.05, c = upCellCenter(r.alliance), al = DRV.elev * Math.PI / 180;
+  const v = launcherSpeed(Math.hypot(c.x - sx, c.z - sz)); return { x: sx, y: DRV.lh, z: sz, v, al, yaw: Math.atan2(f[0], f[1]) };
+}
+// ตรวจว่าลูกชนใต้ CELL ที่หงายหรือไม่ (ลูกขาขึ้นใต้พื้น CELL)
+function underCell(b, py) { for (const c of ['red', 'blue']) { const u = upCellCenter(c), fy = u.y - 0.16; if (b.vy > 0 && py < fy && b.y >= fy && Math.abs(b.x - u.x) < H.cellW / 2 && Math.abs(b.z - u.z) < H.cellD / 2) return c; } return null; }
+function inCell(b, c) { const u = upCellCenter(c); return b.vy < 0 && Math.abs(b.x - u.x) < H.cellW / 2 && Math.abs(b.z - u.z) < H.cellD / 2 + 0.05 && b.y < u.y + 0.1 && b.y > u.y - 0.15; }
+function predictShot(r) { // จำลองวิถีลูกล่วงหน้า สำหรับเส้นจุดปะ
+  const s0 = shotStart(r), b = { x: s0.x, y: s0.y, z: s0.z, vx: Math.sin(s0.yaw) * s0.v * Math.cos(s0.al), vz: Math.cos(s0.yaw) * s0.v * Math.cos(s0.al), vy: s0.v * Math.sin(s0.al) }, pts = [[b.x, b.y, b.z]], dt = 0.01;
+  for (let t = 0; t < 3; t += dt) {
+    const py = b.y; b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; pts.push([b.x, b.y, b.z]);
+    if (underCell(b, py)) return { pts, res: 'under', x: b.x, y: b.y, z: b.z, v: s0.v };
+    if (inCell(b, r.alliance)) return { pts, res: 'cell', x: b.x, y: b.y, z: b.z, v: s0.v };
+    if (b.y <= F.pollenR || Math.abs(b.x) > F.half + 0.3 || Math.abs(b.z) > F.half + 0.3) { const u = upCellCenter(r.alliance); return { pts, res: 'floor', x: b.x, y: Math.max(b.y, 0), z: b.z, v: s0.v, miss: Math.hypot(b.x - u.x, b.z - u.z) }; }
+  }
+  return { pts, res: 'floor', x: b.x, y: 0, z: b.z, v: s0.v, miss: 9 };
 }
 
 // =================== การกระทำของหุ่น ===================
@@ -224,11 +255,15 @@ function launch(r, kind, o = {}) {
   const li = r.load.findIndex(i => S.balls[i].kind === kind);
   if (li < 0) { if (r.human) say(kind === 'pollen' ? 'ไม่มี POLLEN ในหุ่น' : 'ไม่มี NECTAR ในหุ่น'); return false; }
   const g = gateCheck(r, o); if (!g.ok) { if (r.human) { S.stats.blocked++; say('ยิงไม่ได้: ' + g.why); } return false; }
+  if (r.human && g.warn) S.stats.warnShots = (S.stats.warnShots || 0) + 1;
   const b = S.balls[r.load.splice(li, 1)[0]];
-  const c = upCellCenter(r.alliance), f = fwdOf(r), sx = r.x + f[0] * 0.05, sz = r.z + f[1] * 0.05, sy = ROBOT.launchH;
-  const dx = c.x - sx, dz = c.z - sz, d = Math.hypot(dx, dz), h = c.y - sy, al = ROBOT.elevDeg * Math.PI / 180;
-  const v = Math.sqrt(Math.max(G * d * d / (2 * Math.cos(al) ** 2 * (d * Math.tan(al) - h)), 1)) * (1 + gauss() * 0.02);
-  const yaw = Math.atan2(dx, dz) + gauss() * 1.2 * Math.PI / 180;
+  let sx, sy, sz, v, al, yaw;
+  if (r.human) { const s0 = shotStart(r); ({ x: sx, y: sy, z: sz, al } = s0); v = s0.v * (1 + gauss() * 0.015); yaw = s0.yaw + gauss() * 0.8 * Math.PI / 180; }
+  else {
+    const c = upCellCenter(r.alliance), f = fwdOf(r); sx = r.x + f[0] * 0.05; sz = r.z + f[1] * 0.05; sy = ROBOT.launchH;
+    const dx = c.x - sx, dz = c.z - sz, d = Math.hypot(dx, dz); al = ROBOT.elevDeg * Math.PI / 180;
+    v = Math.min(vNeed(d, c.y - sy, al), 9) * (1 + gauss() * 0.02); yaw = Math.atan2(dx, dz) + gauss() * 1.2 * Math.PI / 180;
+  }
   Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al), vz: Math.cos(yaw) * v * Math.cos(al), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false });
   if (r.id === 'R1' && S.predict) { b.pred = true; S.predict = false; }
   if (r.id === 'R1') { S.stats.shots++; S.events.push({ type: 'shot', el: S.el, rem: remaining() }); }
@@ -381,8 +416,9 @@ function stepBalls(dt) {
   for (const b of S.balls) {
     if (b.cool > 0) b.cool -= dt;
     if (b.where !== 'air') continue;
-    b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    const py = b.y; b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
     const r = rad(b);
+    if (b.target && underCell(b, py)) { b.vy = -Math.abs(b.vy) * 0.3; b.vx *= 0.4; b.vz *= 0.4; b.target = null; if (b.pred) { S.stats.predBad++; b.pred = false; } if (b.shooter === 'R1') say('ลูกชนใต้ CELL (อยู่ใกล้ HIVE เกินไป)', 1.6); continue; }
     if (b.spill && b.y < 0.34 && b.y > 0.15) for (const rb of active()) {
       if (Math.abs(b.x - rb.x) < HS && Math.abs(b.z - rb.z) < HS) {
         if (rb.human && speed(rb) < 0.15 && !rb.dead) { S.stats.g409[rb.alliance]++; foul(rb.alliance, 'G409', 'WARN', 'ห้ามรับลูกที่ร่วงจาก HIVE ก่อนแตะพื้น', rb.id); }
@@ -675,7 +711,26 @@ const robotMeshes = S.robots.map(r => {
   const label = makeLabel(r.id, r.alliance === 'red' ? '#e4453c' : '#3a7bd5'), deadLabel = makeLabel('ดับ', '#bbbbbb'); label.position.y = deadLabel.position.y = 0.5; deadLabel.visible = false; g.add(label); g.add(deadLabel);
   g.userData = { carried, intake, body, label, deadLabel }; return g;
 });
-const gateRing = new THREE.Mesh(new THREE.RingGeometry(ROBOT.gateMin, ROBOT.gateMax, 48), M.zone); gateRing.rotation.x = -Math.PI / 2; gateRing.position.y = 0.003; scene.add(gateRing);
+const gateRing = new THREE.Mesh(new THREE.RingGeometry(DRV.gateMin, DRV.gateMax, 48), M.zone); gateRing.rotation.x = -Math.PI / 2; gateRing.position.y = 0.003; scene.add(gateRing);
+let gateKey = DRV.gateMin + ',' + DRV.gateMax;
+const TRAJ_N = 400, trajGeo = new THREE.BufferGeometry(); trajGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAJ_N * 3), 3));
+const trajMat = new THREE.PointsMaterial({ color: 0x3ec97a, size: 0.035, sizeAttenuation: true, transparent: true, opacity: 0.95, depthTest: false });
+const trajLine = new THREE.Points(trajGeo, trajMat); trajLine.renderOrder = 5; trajLine.frustumCulled = false; scene.add(trajLine); // เส้นวิถีแบบจุดปะ
+const landRing = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.09, 32), new THREE.MeshBasicMaterial({ color: 0x3ec97a, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthTest: false }));
+landRing.renderOrder = 6; scene.add(landRing);
+const landDot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), new THREE.MeshBasicMaterial({ color: 0x3ec97a, depthTest: false })); landDot.renderOrder = 6; scene.add(landDot);
+let traj = null;
+function syncTraj() {
+  const r = R1(), show = S.opt.traj && r.human && !r.off && !S.over && r.load.length > 0;
+  trajLine.visible = landRing.visible = landDot.visible = show; traj = show ? predictShot(r) : null; if (!show) return;
+  const pos = trajGeo.attributes.position; let n = 0;
+  for (let i = 0; i < traj.pts.length && n < TRAJ_N; i += 3) pos.setXYZ(n++, traj.pts[i][0], traj.pts[i][1], traj.pts[i][2]);
+  pos.needsUpdate = true; trajGeo.setDrawRange(0, n);
+  const col = traj.res === 'cell' ? 0x3ec97a : traj.res === 'under' ? 0xff9f1a : 0xff5a4e;
+  trajMat.color.set(col); landRing.material.color.set(col); landDot.material.color.set(col);
+  landDot.position.set(traj.x, traj.y, traj.z);
+  landRing.visible = traj.res === 'floor'; landRing.rotation.x = -Math.PI / 2; landRing.position.set(traj.x, 0.008, traj.z);
+}
 const hlRing = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.012, 8, 32), new THREE.MeshBasicMaterial({ color: 0x3ef07a })); hlRing.rotation.x = Math.PI / 2; scene.add(hlRing);
 const markGroup = new THREE.Group(); scene.add(markGroup); // วงแหวนเป้าหมายของสถานการณ์ (เช่น จุดผ่านของ Driver)
 let markKey = '';
@@ -701,7 +756,9 @@ function sync() {
     else if (b.where === 'staged') { const n = staged[b.color]++; m.position.set(b.color === 'red' ? -2.15 : 2.15, F.nectarR, (b.color === 'red' ? -0.3 : 0.3) + (b.color === 'red' ? 1 : -1) * n * 0.12); }
     else m.position.set(b.x, b.y, b.z);
   });
-  const u = upCellCenter('red'); gateRing.position.set(u.x, 0.003, u.z); gateRing.visible = S.opt.gate && !R1().off && R1().human;
+  const u = upCellCenter('red'); gateRing.position.set(u.x, 0.003, u.z); gateRing.visible = (S.opt.gate || S.opt.traj) && !R1().off && R1().human;
+  const gk = DRV.gateMin + ',' + DRV.gateMax; if (gk !== gateKey) { gateKey = gk; gateRing.geometry.dispose(); gateRing.geometry = new THREE.RingGeometry(Math.min(DRV.gateMin, DRV.gateMax - 0.05), DRV.gateMax, 48); }
+  syncTraj();
   const hb = S.hl != null ? S.balls[S.hl] : null; hlRing.visible = !!hb && hb.where === 'floor'; if (hlRing.visible) hlRing.position.set(hb.x, 0.01, hb.z);
   syncMarks();
 }
@@ -792,7 +849,7 @@ function startMatch(kind, plan) {
   S = newState(); applyOpts({}); S.mode = kind === 'free' ? 'free' : 'match';
   S.el = kind === 'full' ? 0 : MATCH_LEN - 120;
   if (kind === 'full' && plan) for (const id of ['R1', 'R2']) api.robot(id).ai.autoTasks = clone(SCN_ALL['3.5']?.plans?.[id]?.[plan[id] ?? 0]?.tasks || DEFAULT_AUTO[id]);
-  if (kind === 'free') { S.opt.bots = false; S.robots.slice(1).forEach(rb => api.bench(rb.id)); }  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
+  if (kind === 'free') { S.opt.bots = false; S.opt.gate = false; S.opt.traj = true; S.robots.slice(1).forEach(rb => api.bench(rb.id)); }  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
   S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: บังคับหุ่นได้ทุกฟังก์ชันเหมือนหุ่นจริง ไม่จับเวลา' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
 }
 function togglePause() { if (S.over) { SCN ? showIntro() : showMenu(); return; } if (!$('overlay').classList.contains('hidden')) return; S.running = !S.running; say(S.running ? 'เล่นต่อ' : 'หยุดชั่วคราว (กด Options/Enter เพื่อเล่นต่อ)', 1.5); }
@@ -851,6 +908,7 @@ function showResult(ok, allOk) {
 function saveCk() { saved = clone(S); say('จำจุดนี้แล้ว (L = โหลด)'); }
 function loadCk() { if (!saved) return say('ยังไม่ได้จำจุด'); S = clone(saved); say('ซ้อมจากจุดที่จำ'); renderPanels(); }
 function resetFree() { const o = { ...S.opt }; startMatch('free'); S.opt = o; if (o.bots) S.robots.slice(1).forEach(rb => { rb.off = false; api.carry(rb.id, ['pollen', 'pollen']); }); renderPanels(); }
+let drvOpen = false;
 function renderPanels() {
   const sb = $('scnBox'), cb = $('coachBox'), fb = $('freeBox');
   sb.innerHTML = SCN ? `<h4>สถานการณ์ ${esc(SCN_ID)}</h4><b>${esc(SCN.title)}</b><div id="objLive" style="margin-top:4px"></div>` : `<h4>${S.mode === 'free' ? 'Free Control' : 'แมตช์'}</h4>`;
@@ -859,11 +917,19 @@ function renderPanels() {
   cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
   cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
   const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
-  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${opt('fieldCentric', 'Field-centric (ดันขึ้น = ออกจากฝั่งแดง)')}${opt('gate', 'ต้องหยุดนิ่ง + อยู่ในจุดยิง')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${opt('fieldCentric', 'Field-centric (ดันขึ้น = ออกจากฝั่งแดง)')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'บังคับกฎจุดยิง (ไม่ผ่านเกณฑ์ = ยิงไม่ได้)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+    <details id="drvBox" ${drvOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าหุ่น ปืน และเกณฑ์จุดยิง</summary>
     <h4>ตั้งค่าหุ่นให้เหมือนหุ่นจริงของทีม</h4><div class="mut" style="font-size:12px">วัดจากหุ่นจริงแล้วใส่ ค่าจะถูกจำไว้และใช้กับทุกสถานการณ์</div>
     ${[['vmax', 'ความเร็วสูงสุด', 0.8, 2.4, 0.05, 'm/s'], ['acc', 'อัตราเร่ง', 1.5, 9, 0.5, 'm/s²'], ['wmax', 'ความเร็วหมุน', 1.5, 6, 0.1, 'rad/s'], ['strafe', 'การสไลด์ข้าง (mecanum)', 0.4, 1, 0.05, '×'], ['dead', 'Deadzone แกนจอย', 0.02, 0.25, 0.01, '']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
     <div style="margin-top:4px">เส้นโค้งจอย <select id="drvCurve" style="font:inherit">${[['linear', 'เส้นตรง'], ['square', 'ยกกำลังสอง (นุ่มตอนเริ่ม)'], ['cubic', 'ยกกำลังสาม (ละเอียดมาก)']].map(([v, t]) => `<option value="${v}" ${DRV.curve === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-    <div style="display:flex;gap:6px;margin-top:4px"><button class="sec" id="drvReset">ค่าเริ่มต้น</button></div>
+    <h4>ปืนยิง (วัดจากหุ่นจริง)</h4>
+    ${[['elev', 'มุมยิง', 40, 85, 1, '°'], ['lh', 'ความสูงจุดปล่อยลูก', 0.15, 0.6, 0.01, 'ม.']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
+    <div style="margin-top:4px">ความเร็วลูก <select id="drvVmode" style="font:inherit"><option value="auto" ${DRV.vmode === 'auto' ? 'selected' : ''}>ปรับตามระยะ (วัดระยะด้วย AprilTag)</option><option value="fixed" ${DRV.vmode === 'fixed' ? 'selected' : ''}>คงที่</option></select></div>
+    ${(DRV.vmode === 'auto' ? [['vmin', 'ความเร็วต่ำสุดของปืน', 2, 9, 0.05, 'm/s'], ['vmax2', 'ความเร็วสูงสุดของปืน', 2, 9, 0.05, 'm/s']] : [['vfix', 'ความเร็วลูกคงที่', 2, 9, 0.05, 'm/s']]).map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
+    <div style="margin-top:6px">ระยะที่ยิงเข้า CELL ได้จริง (คำนวณ): <b id="effR">—</b></div>
+    <h4>เกณฑ์จุดยิงของทีม</h4><div class="mut" style="font-size:12px">ใช้กับวงแหวนสีเหลือง และใช้ตรวจในทุกสถานการณ์</div>
+    ${[['gateMin', 'ระยะใกล้สุด', 0.3, 2.5, 0.05, 'ม.'], ['gateMax', 'ระยะไกลสุด', 0.5, 3.0, 0.05, 'ม.']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="sec" id="gateFromCalc">ใช้ระยะที่คำนวณเป็นเกณฑ์</button><button class="sec" id="drvReset">ค่าเริ่มต้นทั้งหมด</button></div></details>
     <div style="margin-top:6px">ความเร็วชั่วคราว <span id="spdV">${Math.round(S.opt.speed * 100)}%</span></div><input type="range" id="spdR" min="40" max="120" value="${Math.round(S.opt.speed * 100)}">
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="sec" id="fRefill">เติม POLLEN 4 ลูก</button><button class="sec" id="fScatter">โปรยลูก 10 ลูก</button><button class="sec" id="fReset">รีเซ็ตสนาม (R)</button><button class="sec" id="fSave">จำจุด (K)</button><button class="sec" id="fLoad">โหลดจุด (L)</button><button class="sec" id="fMenu">เมนู</button></div>`
     : !SCN ? `<div style="display:flex;gap:6px;margin-top:6px"><button class="sec" id="fMenu">เมนู</button></div>` : '';
@@ -871,6 +937,9 @@ function renderPanels() {
   const q = id => fb.querySelector('#' + id);
   fb.querySelectorAll('input[data-drv]').forEach(i => i.oninput = () => { DRV[i.dataset.drv] = +i.value; q('dv_' + i.dataset.drv).textContent = i.value; saveDrv(); });
   if (q('drvCurve')) q('drvCurve').onchange = e => { DRV.curve = e.target.value; saveDrv(); };
+  if (q('drvBox')) q('drvBox').ontoggle = e => { drvOpen = e.target.open; };
+  if (q('drvVmode')) q('drvVmode').onchange = e => { DRV.vmode = e.target.value; saveDrv(); renderPanels(); };
+  if (q('gateFromCalc')) q('gateFromCalc').onclick = () => { const er = effRange(); if (!er) return say('ค่าปืนตอนนี้ยิงเข้า CELL ไม่ได้ทุกระยะ ปรับมุมหรือความเร็วก่อน', 2.5); DRV.gateMin = er.min; DRV.gateMax = er.max; saveDrv(); renderPanels(); say(`ตั้งเกณฑ์จุดยิง ${er.min}–${er.max} ม.`, 2); };
   if (q('drvReset')) q('drvReset').onclick = () => { DRV = { ...DEFAULT_DRIVE }; saveDrv(); renderPanels(); };
   if (q('spdR')) q('spdR').oninput = e => { S.opt.speed = e.target.value / 100; q('spdV').textContent = e.target.value + '%'; };
   if (q('fRefill')) q('fRefill').onclick = () => api.carry('R1', ['pollen', 'pollen', 'pollen', 'pollen']);
@@ -895,7 +964,9 @@ function hud(inp) {
   $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
   $('carryTxt').textContent = `${r.load.length}/4`; $('slots').innerHTML = [0, 1, 2, 3].map(i => { const b = r.load[i] != null ? S.balls[r.load[i]] : null; return `<div class="slot ${b ? (b.kind === 'pollen' ? 'pollen' : b.color) : ''}"></div>`; }).join('');
   $('intakeTxt').textContent = r.intake ? 'เปิด' : 'ปิด'; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (S.opt.fieldCentric ? 'field-centric' : 'robot-centric') : 'AI ขับ';
-  const g = gateCheck(r); $('gate').textContent = g.ok ? 'พร้อม' : 'ยังไม่ได้'; $('gate').className = g.ok ? 'ok' : 'bad'; $('gateWhy').textContent = g.why;
+  const g = gateCheck(r); $('gate').textContent = !g.ok ? 'ยังไม่ได้' : g.warn ? 'ยิงได้ (นอกเกณฑ์)' : 'พร้อม'; $('gate').className = !g.ok ? 'bad' : g.warn ? '' : 'ok'; $('gate').style.color = g.ok && g.warn ? 'var(--yel)' : '';
+  $('gateWhy').textContent = g.why + (traj ? ` · วิถี: ${traj.res === 'cell' ? 'เข้า CELL ✓' : traj.res === 'under' ? 'ชนใต้ CELL ✗' : `ตกพื้น ห่าง CELL ${traj.miss.toFixed(2)} ม. ✗`} · ลูก ${traj.v.toFixed(2)} m/s` : '');
+  const er = $('effR'); if (er) { const e = effRange(); er.textContent = e ? `${e.min}–${e.max} ม.` : 'ยิงไม่ถึงทุกระยะ'; }
   let pin = ''; for (const [k, v] of Object.entries(S.pins)) if (v.t > 0.4 && v.sep === 0) { const [a, b] = k.split('>'); if (a === 'R1') pin = `⚠ เรากำลัง PIN ${b} ${v.t.toFixed(1)} วิ ถอย!`; else if (b === 'R1' && !pin) pin = `${a} กำลัง PIN เรา ${v.t.toFixed(1)} วิ`; }
   $('pinTxt').textContent = pin;
   $('loadBox').classList.toggle('hidden', !!S.opt.hideLoad); const rule = tipRule(), load = cellLoad('red'); $('loadTxt').textContent = `${load.toFixed(2)} / ${rule.threshold}`; $('load').style.width = Math.min(100, load / rule.threshold * 100) + '%';
