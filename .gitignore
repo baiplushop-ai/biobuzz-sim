@@ -10,3 +10,4 @@ node_modules/
 *.webp
 .DS_Store
 .claude/
+*.code-workspace
