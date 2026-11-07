@@ -125,7 +125,7 @@ const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { p
 const AUTO_LEN = 30, TRANS_LEN = 8, MATCH_LEN = 158;
 const LZ_Z = { red: -0.8954, blue: 0.8954 };
 const START = { R1: [-F.half + HSW + 0.001, 0.15, -Math.PI / 2], R2: [-F.half + HSW + 0.001, -1.45, -Math.PI / 2], B1: [F.half - HSW - 0.001, -0.15, Math.PI / 2], B2: [F.half - HSW - 0.001, 1.45, Math.PI / 2] };
-const DEFAULT_OPT = { traj: false, gate: true, health: true, simple: false, bots: true, fieldCentric: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
+const DEFAULT_OPT = { autoStop: true, traj: false, gate: true, health: true, simple: false, bots: true, fieldCentric: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
 const DEFAULT_AUTO = { R1: [{ goto: 'spot' }, { shoot: 4 }], R2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }], B1: [{ goto: 'spot' }, { shoot: 4 }], B2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }] };
 const STOP = { vx: 0, vz: 0, w: 0 };
 // ค่าการขับของหุ่นเรา (ตั้งใน Free Control ให้ตรงกับหุ่นจริง และใช้กับทุกสถานการณ์)
@@ -272,14 +272,24 @@ function launch(r, kind, o = {}) {
   return true;
 }
 function takeIntoRobot(r, i) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); r.hadBall = true; if (!r.human) r.mem.busy = S.el + AI.pickPause; }
+// หุ่นที่มีระบบหยุดดูดเมื่อครบ 4 ลูก (แบบที่ G407 แนะนำ) · ถ้าปิด autoStop หุ่นเราดูดลูกที่ 5 ได้ แต่โดน G407
+const capOf = r => r.human && !S.opt.autoStop ? ROBOT.capacity + 1 : ROBOT.capacity;
 function pickup(r) {
-  if (!r.intake || r.load.length >= ROBOT.capacity || r.dead) return;
+  if (!r.intake || r.dead) return;
   const f = fwdOf(r), px = r.x + f[0] * (HS + 0.06), pz = r.z + f[1] * (HS + 0.06);
+  if (r.load.length >= capOf(r)) {
+    if (r.human && S.el > (r.mem.fullMsg || 0) && S.balls.some(b => b.where === 'floor' && !(b.cool > 0) && Math.hypot(b.x - px, b.z - pz) < ROBOT.intakeReach)) {
+      r.mem.fullMsg = S.el + 3;
+      say(r.load.length > ROBOT.capacity ? 'ถือ 5 ลูกอยู่ (G407) กด ○ คายออก 1 ลูกทันที' : 'หุ่นเต็ม 4/4 ระบบหยุดดูดเอง (G407) ยิงหรือคายออกก่อนถึงจะเก็บเพิ่มได้', 2);
+    }
+    return;
+  }
   for (let i = 0; i < S.balls.length; i++) {
     const b = S.balls[i];
     if (b.where !== 'floor' || b.cool > 0 || Math.hypot(b.x - px, b.z - pz) >= ROBOT.intakeReach) continue;
     if (!r.human && b.kind === 'nectar' && b.color !== r.alliance) continue;
     takeIntoRobot(r, i);
+    if (r.load.length > ROBOT.capacity) { r.mem.over = S.el; foul(r.alliance, 'G407', 'WARN', 'ถือเกิน 4 ลูก คายออกทันที (ถ้าทำซ้ำ/ถือนาน = MAJOR + ใบเหลือง)', r.id); }
     if (b.kind === 'nectar' && b.color !== r.alliance) { S.stats.g408[r.alliance]++; foul(r.alliance, 'G408', 'WARN', 'ห้ามควบคุม NECTAR ของคู่แข่ง คายออกทันที', r.id); }
     SCN?.onPickup?.(api, r, i);
     return;
@@ -707,7 +717,7 @@ const robotMeshes = S.robots.map(r => {
   const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.16, 16), M.pipe); sh.rotation.x = Math.PI / 2 - ROBOT.elevDeg * Math.PI / 180; sh.position.set(0, 0.34, -0.1); g.add(sh);
   const intake = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, ROBOT.size - 0.08, 12), new THREE.MeshStandardMaterial({ color: 0x4ad66d })); intake.rotation.z = Math.PI / 2; intake.position.set(0, 0.05, -HS - 0.02); g.add(intake);
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 16), M.frame); w.rotation.z = Math.PI / 2; w.position.set(sx * 0.19, 0.052, sz * 0.168); g.add(w); }
-  const carried = []; for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), M.yellow); m.position.set(-0.06 + i * 0.04, 0.3, 0.02); g.add(m); carried.push(m); }
+  const carried = []; for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), M.yellow); m.position.set(-0.08 + i * 0.04, 0.3, 0.02); g.add(m); carried.push(m); }
   const label = makeLabel(r.id, r.alliance === 'red' ? '#e4453c' : '#3a7bd5'), deadLabel = makeLabel('ดับ', '#bbbbbb'); label.position.y = deadLabel.position.y = 0.5; deadLabel.visible = false; g.add(label); g.add(deadLabel);
   g.userData = { carried, intake, body, label, deadLabel }; return g;
 });
@@ -818,7 +828,7 @@ function tick(dt, inp) {
     if (inp.shootP) launch(r, 'pollen'); if (inp.shootN) launch(r, 'nectar'); if (inp.placeP) place(r, 'pollen'); if (inp.placeN) place(r, 'nectar');
   }
   const prevEl = S.el, prevRem = remaining();
-  if (S.mode !== 'free') S.el += dt;
+  S.el += dt;  // Free Control ก็เดินเวลา (ใช้กับ cooldown) แต่นาฬิกาแสดง ∞
   if (S.mode !== 'free' && prevEl < AUTO_LEN && S.el >= AUTO_LEN) endAuto();
   if (S.mode !== 'free' && prevEl < AUTO_LEN + TRANS_LEN && S.el >= AUTO_LEN + TRANS_LEN) say('TELEOP เริ่ม! คนขับควบคุมได้แล้ว', 2);
   if (S.mode !== 'free' && prevRem > 60 && remaining() <= 60) {
@@ -828,6 +838,8 @@ function tick(dt, inp) {
   for (const rb of active()) { if (rb.human) { if (phase() === 'auto' && S.mode !== 'free') runTasks(rb); else humanCmd(rb, inp); } else aiStep(rb); applyCmd(rb, dt); }
   stepContacts(dt); stepBalls(dt); stepHives(dt);
   for (const rb of active()) pickup(rb);
+  for (const rb of active()) if (rb.load.length > ROBOT.capacity && rb.mem.over != null && S.el - rb.mem.over > 2 && !rb.mem.overMajor) { rb.mem.overMajor = true; foul(rb.alliance, 'G407', 'MAJOR', 'ถือ 5 ลูกนานเกิน (ไม่ใช่ชั่วขณะ) = STRATEGIC + ใบเหลือง', rb.id); }
+  for (const rb of active()) if (rb.load.length <= ROBOT.capacity) { rb.mem.over = null; rb.mem.overMajor = false; }
   SCN?.tick?.(api, dt);
   if (S.mode !== 'free' && remaining() <= 0) endMatch();
   else if (SCN?.end?.(api)) endMatch();
@@ -850,7 +862,7 @@ function startMatch(kind, plan) {
   S.el = kind === 'full' ? 0 : MATCH_LEN - 120;
   if (kind === 'full' && plan) for (const id of ['R1', 'R2']) api.robot(id).ai.autoTasks = clone(SCN_ALL['3.5']?.plans?.[id]?.[plan[id] ?? 0]?.tasks || DEFAULT_AUTO[id]);
   if (kind === 'free') { S.opt.bots = false; S.opt.gate = false; S.opt.traj = true; S.robots.slice(1).forEach(rb => api.bench(rb.id)); }  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
-  S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: บังคับหุ่นได้ทุกฟังก์ชันเหมือนหุ่นจริง ไม่จับเวลา' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
+  S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: หุ่นมี pre-load 4 ลูก (เต็ม) ยิงออกก่อน แล้ววิ่งใส่ลูกบนพื้น intake จะดูดเอง' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
 }
 function togglePause() { if (S.over) { SCN ? showIntro() : showMenu(); return; } if (!$('overlay').classList.contains('hidden')) return; S.running = !S.running; say(S.running ? 'เล่นต่อ' : 'หยุดชั่วคราว (กด Options/Enter เพื่อเล่นต่อ)', 1.5); }
 function evalObj() { return (SCN?.obj || []).map(o => { try { return !!o.ok(S, api); } catch { return false; } }); }
@@ -917,7 +929,7 @@ function renderPanels() {
   cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
   cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
   const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
-  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${opt('fieldCentric', 'Field-centric (ดันขึ้น = ออกจากฝั่งแดง)')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'บังคับกฎจุดยิง (ไม่ผ่านเกณฑ์ = ยิงไม่ได้)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${opt('fieldCentric', 'Field-centric (ดันขึ้น = ออกจากฝั่งแดง)')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'บังคับกฎจุดยิง (ไม่ผ่านเกณฑ์ = ยิงไม่ได้)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
     <details id="drvBox" ${drvOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าหุ่น ปืน และเกณฑ์จุดยิง</summary>
     <h4>ตั้งค่าหุ่นให้เหมือนหุ่นจริงของทีม</h4><div class="mut" style="font-size:12px">วัดจากหุ่นจริงแล้วใส่ ค่าจะถูกจำไว้และใช้กับทุกสถานการณ์</div>
     ${[['vmax', 'ความเร็วสูงสุด', 0.8, 2.4, 0.05, 'm/s'], ['acc', 'อัตราเร่ง', 1.5, 9, 0.5, 'm/s²'], ['wmax', 'ความเร็วหมุน', 1.5, 6, 0.1, 'rad/s'], ['strafe', 'การสไลด์ข้าง (mecanum)', 0.4, 1, 0.05, '×'], ['dead', 'Deadzone แกนจอย', 0.02, 0.25, 0.01, '']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
@@ -962,8 +974,8 @@ function hud(inp) {
   $('sRed').textContent = total('red'); $('sBlue').textContent = total('blue');
   const p = projected(); $('projTxt').textContent = S.mode === 'free' ? '' : `ถ้าจบตอนนี้: แดง ${p.red} – น้ำเงิน ${p.blue}`;
   $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
-  $('carryTxt').textContent = `${r.load.length}/4`; $('slots').innerHTML = [0, 1, 2, 3].map(i => { const b = r.load[i] != null ? S.balls[r.load[i]] : null; return `<div class="slot ${b ? (b.kind === 'pollen' ? 'pollen' : b.color) : ''}"></div>`; }).join('');
-  $('intakeTxt').textContent = r.intake ? 'เปิด' : 'ปิด'; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (S.opt.fieldCentric ? 'field-centric' : 'robot-centric') : 'AI ขับ';
+  $('carryTxt').textContent = `${r.load.length}/4`; $('carryTxt').style.color = r.load.length > 4 ? 'var(--red)' : ''; $('slots').innerHTML = [...Array(Math.max(4, r.load.length)).keys()].map(i => { const b = r.load[i] != null ? S.balls[r.load[i]] : null; return `<div class="slot ${b ? (b.kind === 'pollen' ? 'pollen' : b.color) : ''}"></div>`; }).join('');
+  $('intakeTxt').textContent = !r.intake ? 'ปิด' : r.load.length > ROBOT.capacity ? 'เปิด · เกิน 4 ลูก! คายออก' : r.load.length >= capOf(r) ? 'เปิด · เต็มแล้ว หยุดดูด' : r.load.length >= ROBOT.capacity ? 'เปิด · ครบ 4 (ไม่มีระบบหยุดดูด)' : 'เปิด · ดูดอัตโนมัติ'; $('intakeTxt').style.color = !r.intake ? 'var(--red)' : r.load.length >= ROBOT.capacity ? 'var(--yel)' : ''; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (S.opt.fieldCentric ? 'field-centric' : 'robot-centric') : 'AI ขับ';
   const g = gateCheck(r); $('gate').textContent = !g.ok ? 'ยังไม่ได้' : g.warn ? 'ยิงได้ (นอกเกณฑ์)' : 'พร้อม'; $('gate').className = !g.ok ? 'bad' : g.warn ? '' : 'ok'; $('gate').style.color = g.ok && g.warn ? 'var(--yel)' : '';
   $('gateWhy').textContent = g.why + (traj ? ` · วิถี: ${traj.res === 'cell' ? 'เข้า CELL ✓' : traj.res === 'under' ? 'ชนใต้ CELL ✗' : `ตกพื้น ห่าง CELL ${traj.miss.toFixed(2)} ม. ✗`} · ลูก ${traj.v.toFixed(2)} m/s` : '');
   const er = $('effR'); if (er) { const e = effRange(); er.textContent = e ? `${e.min}–${e.max} ม.` : 'ยิงไม่ถึงทุกระยะ'; }
