@@ -36,6 +36,8 @@
   button:disabled { opacity:.4; cursor:not-allowed }
   .cbtn { display:block; width:100%; margin:4px 0; text-align:left }
   .obj { display:flex; gap:6px; margin:3px 0; font-size:13px } .obj b { width:16px; flex:0 0 16px }
+  .mcfg { border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:8px 12px; margin:6px 0 10px } .mcfg h4 { margin:0 0 6px }
+  .mcfg .mrow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:4px 0; font-size:14px } .mcfg select { font:inherit }
   .foul { font-size:12px; color:#ffb4a8 }
   #overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); overflow:auto; padding:16px }
   #overlay .box { background:#151a22; border:1px solid var(--line); border-radius:14px; padding:20px 24px; max-width:640px; width:100%; max-height:100%; overflow:auto }
@@ -83,6 +85,7 @@
       <div><span class="k">R2</span>วาง NECTAR <span class="k">L2</span>วาง POLLEN ใน FLOWER</div>
       <div><span class="k">✕</span>intake <span class="k">○</span>คายลูก <span class="k">Share</span>กล้อง <span class="k">Options</span>เริ่ม/หยุด</div>
       <div class="mut" style="margin-top:4px">คีย์บอร์ด: WASD เดิน · Q/E หมุน · Shift ช้า · Space ยิง POLLEN · N ยิง NECTAR · 1/2 วาง POLLEN/NECTAR · F intake · G คาย · C กล้อง · Enter เริ่ม/หยุด</div>
+      <div class="mut">Human Player ปล่อย NECTAR: H หรือ △ / Y บนจอยตัวไหนก็ได้ (เมื่อตั้งให้กดเอง)</div>
       <div class="mut">ปุ่มโค้ช: B ประกาศเวลา · P ทาย TIP · Y ยืนยัน · H Human Player ปล่อย NECTAR</div>
       <div id="driveHelp"></div>
       <div class="mut">Logitech F310 / F710 / Xbox: A = ✕ · B = ○ · X = □ · Y = △ · LB / RB = L1 / R1 · LT / RT = L2 / R2 · Back = Share · Start = Options</div>
@@ -145,6 +148,19 @@ const fieldOn = () => DRV.driveMode !== 'robot' && !chaseCam();
 const curveFn = v => { const a = Math.abs(v), n = DRV.curve === 'linear' ? 1 : DRV.curve === 'cubic' ? 3 : 2; return Math.sign(v) * a ** n; };
 // จังหวะของหุ่น AI ให้ใกล้หุ่นจริง (cycle 4 ลูก ≈ 18–25 วิ)
 const AI = { collectV: 0.55, travelV: 0.8, pickPause: 1.5, aimPause: 1.0, shotGap: 0.8 };
+// ระดับบอท: ความเร็ววิ่ง, เวลาหยุดเก็บ/เล็ง/ระหว่างนัด, ความคลาดเคลื่อนการยิง (องศา, สัดส่วนความเร็ว), เวลาเริ่ม PARK
+const BOT_LV = {
+  easy: { th: 'ง่าย', d: 'วิ่งช้า หยุดเล็งนาน ยิงพลาดบ่อย', collectV: 0.38, travelV: 0.55, pickPause: 2.2, aimPause: 1.7, shotGap: 1.3, yawSd: 3.2, vSd: 0.045, parkAt: 10 },
+  normal: { th: 'ปานกลาง', d: 'ค่าเดิมของ simulator', ...AI, yawSd: 1.2, vSd: 0.02, parkAt: 8 },
+  hard: { th: 'ยาก', d: 'วิ่งเร็ว เล็งเร็ว ยิงแม่น', collectV: 0.8, travelV: 1.1, pickPause: 0.9, aimPause: 0.6, shotGap: 0.55, yawSd: 0.8, vSd: 0.012, parkAt: 7 },
+  pro: { th: 'โปร', d: 'เร็วเกือบเท่าหุ่นเร็วสุด รอบสั้นมาก แทบไม่พลาด PARK ช่วงท้ายสุด', collectV: 1.05, travelV: 1.4, pickPause: 0.5, aimPause: 0.35, shotGap: 0.4, yawSd: 0.5, vSd: 0.008, parkAt: 6 },
+};
+// ตั้งค่าแมตช์ (จำไว้): ระดับบอทคู่แข่ง / พันธมิตร และวิธีปล่อย NECTAR ของ Human Player ฝั่งเรา
+const DEFAULT_MCFG = { opp: 'normal', ally: 'normal', hp: 'manual' };
+let MCFG = { ...DEFAULT_MCFG }; try { Object.assign(MCFG, JSON.parse(localStorage.getItem('dca-match-cfg') || '{}')); } catch {}
+const saveMcfg = () => { try { localStorage.setItem('dca-match-cfg', JSON.stringify(MCFG)); } catch {} };
+// สถานการณ์ฝึกใช้ระดับปานกลางเสมอ (เป้าหมายถูกออกแบบไว้กับค่านี้)
+const aiP = r => BOT_LV[(S.bot || {})[r.alliance === 'red' ? 'ally' : 'opp']] || BOT_LV.normal;
 const clone = o => JSON.parse(JSON.stringify(o));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -271,7 +287,7 @@ function launch(r, kind, o = {}) {
   else {
     const c = upCellCenter(r.alliance), f = fwdOf(r); sx = r.x + f[0] * 0.05; sz = r.z + f[1] * 0.05; sy = ROBOT.launchH;
     const dx = c.x - sx, dz = c.z - sz, d = Math.hypot(dx, dz); al = ROBOT.elevDeg * Math.PI / 180;
-    v = Math.min(vNeed(d, c.y - sy, al), 9) * (1 + gauss() * 0.02); yaw = Math.atan2(dx, dz) + gauss() * 1.2 * Math.PI / 180;
+    const lv = aiP(r); v = Math.min(vNeed(d, c.y - sy, al), 9) * (1 + gauss() * lv.vSd); yaw = Math.atan2(dx, dz) + gauss() * lv.yawSd * Math.PI / 180;
   }
   Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al), vz: Math.cos(yaw) * v * Math.cos(al), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false });
   if (r.id === 'R1' && S.predict) { b.pred = true; S.predict = false; }
@@ -280,7 +296,7 @@ function launch(r, kind, o = {}) {
   if (r.load.length === 0) { if (r.hadBall) r.cycles.push(+(S.el - r.cycleStart).toFixed(1)); r.cycleStart = S.el; r.hadBall = false; }
   return true;
 }
-function takeIntoRobot(r, i) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); r.hadBall = true; if (!r.human) r.mem.busy = S.el + AI.pickPause; }
+function takeIntoRobot(r, i) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); r.hadBall = true; if (!r.human) r.mem.busy = S.el + aiP(r).pickPause; }
 // หุ่นที่มีระบบหยุดดูดเมื่อครบ 4 ลูก (แบบที่ G407 แนะนำ) · ถ้าปิด autoStop หุ่นเราดูดลูกที่ 5 ได้ แต่โดน G407
 const capOf = r => r.human && !S.opt.autoStop ? ROBOT.capacity + 1 : ROBOT.capacity;
 function pickup(r) {
@@ -503,16 +519,16 @@ function aiShoot(r) {
   const m = r.mem, up = S.hives[r.alliance].up;
   if (!m.spot || S.el > (m.spotT || 0) + 5 || m.spotUp !== up) { m.spot = bestSpot(r); m.spotT = S.el; m.spotUp = up; }
   if (!m.spot) { r.cmd = { ...STOP }; return; }
-  const arrived = driveTo(r, m.spot.x, m.spot.z, m.spot.face, AI.travelV);
+  const arrived = driveTo(r, m.spot.x, m.spot.z, m.spot.face, aiP(r).travelV);
   if (arrived && speed(r) < 0.1 && Math.abs(r.w) < 0.15) {
-    r.cmd = { ...STOP }; if (m.aimT == null) m.aimT = S.el + AI.aimPause;
-    if (S.el >= m.aimT && S.el >= r.nextShot) { const k = r.load.some(i => S.balls[i].kind === 'pollen') ? 'pollen' : 'nectar'; r.nextShot = S.el + (launch(r, k) ? AI.shotGap : 0.3); }
+    r.cmd = { ...STOP }; if (m.aimT == null) m.aimT = S.el + aiP(r).aimPause;
+    if (S.el >= m.aimT && S.el >= r.nextShot) { const k = r.load.some(i => S.balls[i].kind === 'pollen') ? 'pollen' : 'nectar'; r.nextShot = S.el + (launch(r, k) ? aiP(r).shotGap : 0.3); }
   } else m.aimT = null;
   if (!r.load.length) { m.shooting = false; m.spot = null; m.aimT = null; }
 }
 function aiOffense(r) {
   const m = r.mem, rem = remaining();
-  if (S.mode !== 'free' && rem <= (r.ai.parkAt ?? 8)) return goPark(r);
+  if (S.mode !== 'free' && rem <= (r.ai.parkAt ?? aiP(r).parkAt)) return goPark(r);
   if (stuck(r)) return;
   if (r.load.length && (r.load.length >= ROBOT.capacity || m.noBall || rem < 15 || m.shooting)) { m.shooting = true; return aiShoot(r); }
   const ok = i => { const b = S.balls[i]; return b && b.where === 'floor' && !(b.cool > 0) && !((m.black || {})[i] > S.el) && (b.kind === 'pollen' || b.color === r.alliance) && !barBlock(b.x, b.z, 0.04); };
@@ -526,12 +542,12 @@ function aiOffense(r) {
   if (S.el - m.ballT > 6) { (m.black ??= {})[m.ball] = S.el + 8; m.ball = null; return; }
   const b = S.balls[m.ball], dx = b.x - r.x, dz = b.z - r.z, d = Math.hypot(dx, dz) || 1, face = faceTo(r.x, r.z, b.x, b.z);
   if (Math.abs(wrap(face - r.th)) > 0.6 && d < 0.6) { r.cmd = { vx: 0, vz: 0, w: clamp(wrap(face - r.th) * 4, -3, 3) }; return; }
-  driveTo(r, b.x - dx / d * HS * 0.6, b.z - dz / d * HS * 0.6, face, AI.collectV);
+  driveTo(r, b.x - dx / d * HS * 0.6, b.z - dz / d * HS * 0.6, face, aiP(r).collectV);
 }
 function targetOf(r) { return S.robots.find(o => o.id === (r.ai.target || 'R1') && !o.off); }
 function aiDefend(r) {
   const m = r.mem, t = targetOf(r); if (!t) return aiOffense(r);
-  if (remaining() <= (r.ai.parkAt ?? 8)) return goPark(r);
+  if (remaining() <= (r.ai.parkAt ?? aiP(r).parkAt)) return goPark(r);
   const d = Math.hypot(t.x - r.x, t.z - r.z) || 1;
   m.ct = d < ROBOT.size * 1.12 ? (m.ct || 0) + DT : 0;
   if (m.ct > 2) { m.back = S.el + 1.4; m.ct = 0; }
@@ -541,7 +557,7 @@ function aiDefend(r) {
 }
 function aiBump(r) { // ไล่ประกบหุ่นเป้าหมาย แล้วพุ่งชนเป็นระยะ (ฝึกหลบการปะทะ)
   const m = r.mem, t = targetOf(r); if (!t) return aiOffense(r);
-  if (remaining() <= (r.ai.parkAt ?? 8)) return goPark(r);
+  if (remaining() <= (r.ai.parkAt ?? aiP(r).parkAt)) return goPark(r);
   if (m.next == null) m.next = S.el + 4 + Math.random() * 3;
   const dx = t.x - r.x, dz = t.z - r.z, d = Math.hypot(dx, dz) || 1;
   if (m.ph === 'charge') { m.ct = d < ROBOT.size * 1.12 ? (m.ct || 0) + DT : 0; if (S.el - m.ps > 2.5 || m.ct > 1.2) { m.ph = 'back'; m.ps = S.el; } else { driveTo(r, t.x, t.z, faceTo(r.x, r.z, t.x, t.z), 1.5); return; } }
@@ -830,7 +846,7 @@ function readPad(pad) {
   else if (k in padHold) { start = !padHold[k]; delete padHold[k]; }  // Options = เริ่ม/หยุด ตอนปล่อยปุ่ม (ถ้าไม่ได้กดคู่)
   const held = bv.map((x, i) => x > 0.5 ? i : -1).filter(i => i >= 0);
   return { index: k, id: pad.id, kind: padKind(pad.id), std: pad.mapping === 'standard', assign, start, cam: e[8], ax: [...pad.axes], held, slow: b(2),
-    shootP: e[5], shootN: e[4], placeN: e[7], placeP: e[6], intakeT: e[0] && !opt, eject: e[1] && !opt };
+    shootP: e[5], shootN: e[4], placeN: e[7], placeP: e[6], intakeT: e[0] && !opt, eject: e[1] && !opt, hp: e[3] };
 }
 function readInput() {
   const o = emptyInput(), kd = c => keys.has(c), kp = c => once.has(c);
@@ -852,7 +868,7 @@ function readInput() {
   const use = (p, ks) => { if (p) for (const n of ks) o[n] = o[n] || p[n]; };
   const split = !!(p1 && p2) && DRV.padMode !== 'both';
   if (split) { use(p1, DRIVE_K); use(p2, MECH_K); } else for (const p of [p1, p2]) { use(p, DRIVE_K); use(p, MECH_K); }
-  for (const p of [p1, p2]) use(p, ['start', 'cam']);
+  for (const p of [p1, p2]) use(p, ['start', 'cam', 'hp']);
   padNow = { p1, p2, split }; o.pads = { p1: p1?.id ?? null, p2: p2?.id ?? null, split }; o.padName = p1?.id || p2?.id || null;
   once.clear(); return o;
 }
@@ -905,6 +921,7 @@ function startScenario(plan) {
 }
 function startMatch(kind, plan) {
   S = newState(); applyOpts({}); S.mode = kind === 'free' ? 'free' : 'match';
+  S.bot = { opp: MCFG.opp, ally: MCFG.ally }; if (kind !== 'free') S.opt.hpManual = MCFG.hp === 'manual';
   S.el = kind === 'full' ? 0 : MATCH_LEN - 120;
   if (kind === 'full' && plan) for (const id of ['R1', 'R2']) api.robot(id).ai.autoTasks = clone(SCN_ALL['3.5']?.plans?.[id]?.[plan[id] ?? 0]?.tasks || DEFAULT_AUTO[id]);
   if (kind === 'free') { S.opt.bots = false; S.opt.gate = false; S.opt.traj = true; S.robots.slice(1).forEach(rb => api.bench(rb.id)); }  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
@@ -944,9 +961,17 @@ function showMenu() {
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
   ov(true, `<h2>BIOBUZZ Trainer · 3D</h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วย DualShock 4 หรือคีย์บอร์ด</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><a href="gamepad-test.html"><button class="sec">🎮 ทดสอบจอย</button></a></div>
+    <div id="mcfg" class="mcfg"></div>
     ${Object.entries(groups).filter(([, l]) => l.length).map(([k, l]) => `<h4>สถานการณ์ฝึก · ${ROLE_TH[k]}</h4><div class="grid">${l.join('')}</div>`).join('')}
     <p><a href="../coach-training/index.html" style="color:var(--yel)">← ไปหน้าบทเรียน (เลือกบทบาท Coach / Driver / Human Player)</a></p>`);
   $('mFree').onclick = () => startMatch('free'); $('mTele').onclick = () => startMatch('tele'); $('mFull').onclick = () => startMatch('full', { R1: 0, R2: 0 });
+  const mc = $('mcfg'), lvOpt = v => Object.entries(BOT_LV).map(([k, l]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l.th}</option>`).join('');
+  mc.innerHTML = `<h4>ตั้งค่าแมตช์ (ใช้กับแมตช์ TELEOP, แมตช์เต็ม และหุ่น AI ใน Free Control)</h4>
+    <div class="mrow"><label>บอทคู่แข่ง (BLUE 1, BLUE 2) <select id="cfgOpp">${lvOpt(MCFG.opp)}</select></label><span class="mut" id="cfgOppD"></span></div>
+    <div class="mrow"><label>บอทพันธมิตร (RED 2) <select id="cfgAlly">${lvOpt(MCFG.ally)}</select></label><span class="mut" id="cfgAllyD"></span></div>
+    <div class="mrow"><label>Human Player ฝั่งเรา <select id="cfgHp"><option value="manual" ${MCFG.hp === 'manual' ? 'selected' : ''}>กดปล่อย NECTAR เอง</option><option value="auto" ${MCFG.hp !== 'manual' ? 'selected' : ''}>ปล่อยอัตโนมัติ</option></select></label><span class="mut" id="cfgHpD"></span></div>`;
+  const desc = () => { $('cfgOppD').textContent = BOT_LV[MCFG.opp].d; $('cfgAllyD').textContent = BOT_LV[MCFG.ally].d; $('cfgHpD').textContent = MCFG.hp === 'manual' ? 'กด H หรือ △ / Y บนจอย หรือปุ่มบนจอ · ปล่อยได้ 1 ลูกต่อ TIP · เหลือ 1:00 ปล่อยได้ทั้งหมด · ปล่อยก่อนได้สิทธิ์ = G426' : 'ปล่อยเองหลังทุก TIP และทั้งหมดตอนเหลือ 1:00'; };
+  $('cfgOpp').onchange = e => { MCFG.opp = e.target.value; saveMcfg(); desc(); }; $('cfgAlly').onchange = e => { MCFG.ally = e.target.value; saveMcfg(); desc(); }; $('cfgHp').onchange = e => { MCFG.hp = e.target.value; saveMcfg(); desc(); }; desc();
 }
 function showResult(ok, allOk) {
   const sc = S.end.score, acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0;
@@ -956,6 +981,7 @@ function showResult(ok, allOk) {
     <h3 style="margin:6px 0"><span style="color:var(--red)">RED ${sc.red}</span> – <span style="color:var(--blu)">BLUE ${sc.blue}</span></h3>${objHtml}
     <table><tr><td>TIP แดง</td><td>${S.stats.tips.red} (AUTO ${S.stats.autoTips.red})</td></tr>${S.end.det.filter(d => d[2] === 'red').map(d => `<tr><td>${esc(d[0])}</td><td>${d[1]}</td></tr>`).join('')}
     <tr><td>LEAVE + PARK แดง</td><td>${S.stats.leavePark.red}</td></tr><tr><td>R1 ยิง / เข้า</td><td>${S.stats.shots} / ${S.stats.hits} (${acc}%)</td></tr>
+    ${S.bot && S.mode !== 'free' && !SCN ? `<tr><td>ระดับบอท</td><td>คู่แข่ง ${BOT_LV[S.bot.opp].th} · พันธมิตร ${BOT_LV[S.bot.ally].th} · Human Player ${S.opt.hpManual ? 'กดเอง' : 'อัตโนมัติ'}</td></tr>` : ''}
     <tr><td>ชนหุ่น</td><td>${S.stats.collisions} ครั้ง · เลือด R1 ${R1().hp}%</td></tr><tr><td>FOUL ของแดง</td><td>${S.fouls.filter(f => f.all === 'red').map(f => f.rule).join(', ') || 'ไม่มี'}</td></tr>
     ${R1().cycles.length ? `<tr><td>เวลา cycle (วิ)</td><td>${R1().cycles.join(' · ')}</td></tr>` : ''}</table>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="again">ลองใหม่</button><a href="../coach-training/index.html"><button class="sec">กลับหน้าบทเรียน</button></a>${SCN ? '<a href="index.html"><button class="sec">เมนู simulator</button></a>' : ''}</div>`);
