@@ -84,9 +84,11 @@
       <div><span class="k">✕</span>intake <span class="k">○</span>คายลูก <span class="k">Share</span>กล้อง <span class="k">Options</span>เริ่ม/หยุด</div>
       <div class="mut" style="margin-top:4px">คีย์บอร์ด: WASD เดิน · Q/E หมุน · Shift ช้า · Space ยิง POLLEN · N ยิง NECTAR · 1/2 วาง POLLEN/NECTAR · F intake · G คาย · C กล้อง · Enter เริ่ม/หยุด</div>
       <div class="mut">ปุ่มโค้ช: B ประกาศเวลา · P ทาย TIP · Y ยืนยัน · H Human Player ปล่อย NECTAR</div>
-      <div style="margin-top:6px"><b>จอย 2 ตัว (คุมหุ่นตัวเดียวกัน)</b> <select id="padMode" style="font:inherit"><option value="split">แยกกัน: จอย 1 ขับ · จอย 2 ยิง</option><option value="both">ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
-      <div class="mut">แบ่งหน้าที่: จอย 1 ใช้ L / R / □ ขับ · จอย 2 (คนยิง) ใช้ R1 L1 R2 L2 ✕ ○ ยิง วาง intake คาย · Share / Options ใช้ได้ทั้งคู่</div>
-      <div class="mut">สลับจอย: กด Options ค้าง + ✕ = ตั้งเป็นจอย 1 · Options ค้าง + ○ = จอย 2 (เหมือน Start+A / Start+B ใน Driver Station)</div>
+      <div id="driveHelp"></div>
+      <div class="mut">Logitech F310 / F710 / Xbox: A = ✕ · B = ○ · X = □ · Y = △ · LB / RB = L1 / R1 · LT / RT = L2 / R2 · Back = Share · Start = Options</div>
+      <div style="margin-top:6px"><b>จอย 2 ตัว (คุมหุ่นตัวเดียวกัน)</b> <select id="padMode" style="font:inherit"><option value="split">แยกกัน: Joy 1 ขับ · Joy 2 ยิง</option><option value="both">ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
+      <div class="mut">แบ่งหน้าที่: Joy 1 ใช้ L / R / □ ขับ · Joy 2 (คนยิง) ใช้ R1 L1 R2 L2 ✕ ○ ยิง วาง intake คาย · Share / Options ใช้ได้ทั้งคู่</div>
+      <div class="mut">สลับจอย: กด Options ค้าง + ✕ = ตั้งเป็น Joy 1 · Options ค้าง + ○ = Joy 2 (เหมือน Start+A / Start+B ใน Driver Station)</div>
       <div id="padTxt" class="bad" style="margin-top:4px">ไม่พบจอย กดปุ่มใดก็ได้บน DualShock 4</div><div><a href="gamepad-test.html" target="_blank" style="color:var(--yel)">เปิดหน้าทดสอบจอย ↗</a></div>
     </details>
   </div>
@@ -128,15 +130,18 @@ const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { p
 const AUTO_LEN = 30, TRANS_LEN = 8, MATCH_LEN = 158;
 const LZ_Z = { red: -0.8954, blue: 0.8954 };
 const START = { R1: [-F.half + HSW + 0.001, 0.15, -Math.PI / 2], R2: [-F.half + HSW + 0.001, -1.45, -Math.PI / 2], B1: [F.half - HSW - 0.001, -0.15, Math.PI / 2], B2: [F.half - HSW - 0.001, 1.45, Math.PI / 2] };
-const DEFAULT_OPT = { autoStop: true, traj: false, gate: true, health: true, simple: false, bots: true, fieldCentric: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
+const DEFAULT_OPT = { autoStop: true, traj: false, gate: true, health: true, simple: false, bots: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
 const DEFAULT_AUTO = { R1: [{ goto: 'spot' }, { shoot: 4 }], R2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }], B1: [{ goto: 'spot' }, { shoot: 4 }], B2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }] };
 const STOP = { vx: 0, vz: 0, w: 0 };
 // ค่าการขับของหุ่นเรา (ตั้งใน Free Control ให้ตรงกับหุ่นจริง และใช้กับทุกสถานการณ์)
 const DEFAULT_DRIVE = { vmax: 1.6, acc: 4.5, wmax: 3.2, strafe: 0.8, curve: 'square', dead: 0.1,
-  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6, padMode: 'split', dead1: 0.1, dead2: 0.1, invY1: false, invY2: false }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
+  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6, padMode: 'split', driveMode: 'field', dead1: 0.1, dead2: 0.1, invY1: false, invY2: false }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
 let DRV = { ...DEFAULT_DRIVE }; try { Object.assign(DRV, JSON.parse(localStorage.getItem('dca-drive-cfg') || '{}')); } catch {}
 if (DRV.dead1 == null) DRV.dead1 = DRV.dead; if (DRV.dead2 == null) DRV.dead2 = DRV.dead;
 const saveDrv = () => { try { localStorage.setItem('dca-drive-cfg', JSON.stringify(DRV)); } catch {} };
+// Field-centric: ดันขึ้น = ออกจากฝั่งเรา (ตามทิศสนาม) · กล้องตามหลังหุ่นใช้ robot-centric เสมอ
+const chaseCam = () => (S.opt.lockCam ?? S.cam) === 0;
+const fieldOn = () => DRV.driveMode !== 'robot' && !chaseCam();
 const curveFn = v => { const a = Math.abs(v), n = DRV.curve === 'linear' ? 1 : DRV.curve === 'cubic' ? 3 : 2; return Math.sign(v) * a ** n; };
 // จังหวะของหุ่น AI ให้ใกล้หุ่นจริง (cycle 4 ลูก ≈ 18–25 วิ)
 const AI = { collectV: 0.55, travelV: 0.8, pickPause: 1.5, aimPause: 1.0, shotGap: 0.8 };
@@ -372,7 +377,7 @@ function humanCmd(r, inp) {
   const spd = DRV.vmax * (S.opt.speed || 1) * (inp.slow ? 0.4 : 1), f = fwdOf(r), rt = [Math.cos(r.th), -Math.sin(r.th)];
   let fx = curveFn(inp.fwd), sx = curveFn(inp.strafe); const mag = Math.hypot(fx, sx); if (mag > 1) { fx /= mag; sx /= mag; }
   // ทิศที่ต้องการในพิกัดสนาม → แยกเป็นแกนหน้า/ข้างของหุ่น แล้วลดแกนข้างตามประสิทธิภาพการสไลด์ของ mecanum
-  const dx = S.opt.fieldCentric ? fx : f[0] * fx + rt[0] * sx, dz = S.opt.fieldCentric ? sx : f[1] * fx + rt[1] * sx;
+  const fc = fieldOn(), dx = fc ? fx : f[0] * fx + rt[0] * sx, dz = fc ? sx : f[1] * fx + rt[1] * sx;
   const vf = dx * f[0] + dz * f[1], vr = (dx * rt[0] + dz * rt[1]) * DRV.strafe;
   const vx = (f[0] * vf + rt[0] * vr) * spd, vz = (f[1] * vf + rt[1] * vr) * spd;
   r.cmd = { vx, vz, w: -curveFn(inp.turn) * DRV.wmax * (inp.slow ? 0.5 : 1) };
@@ -798,21 +803,33 @@ const keys = new Set(), once = new Set();
 addEventListener('keydown', e => { if (e.target.closest?.('input,select,textarea')) return; if (e.repeat) return; keys.add(e.code); once.add(e.code); if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); });
 addEventListener('keyup', e => keys.delete(e.code));
 // จอย 2 ตัวคุมหุ่นตัวเดียวกัน (แบบ gamepad1 / gamepad2 ของ FTC)
-// split: จอย 1 ขับ (L/R/□) · จอย 2 คนยิง (ยิง วาง intake คาย) · both: ทั้ง 2 จอยทำได้ทุกอย่าง
-// กำหนดจอยเอง: กด Options ค้าง + ✕ = จอย 1, Options ค้าง + ○ = จอย 2 (เหมือน Start+A / Start+B ใน Driver Station)
-const padWas = {}, padHold = {}, padRole = { p1: null, p2: null }; let padNow = { p1: null, p2: null, split: false };
+// split: Joy 1 ขับ (L/R/□) · Joy 2 คนยิง (ยิง วาง intake คาย) · both: ทั้ง 2 จอยทำได้ทุกอย่าง
+// กำหนดจอยเอง: กด Options ค้าง + ✕ = Joy 1, Options ค้าง + ○ = Joy 2 (เหมือน Start+A / Start+B ใน Driver Station)
+const padWas = {}, padHold = {}, padRole = { p1: null, p2: null }; try { Object.assign(padRole, JSON.parse(localStorage.getItem('dca-pad-role') || '{}')); } catch {}
+const savePadRole = () => { try { localStorage.setItem('dca-pad-role', JSON.stringify(padRole)); } catch {} }; let padNow = { p1: null, p2: null, split: false };
 const EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'start', 'cam', 'call', 'predict', 'confirm', 'hp'];
 const emptyInput = () => ({ fwd: 0, strafe: 0, turn: 0, slow: false, ...Object.fromEntries(EDGE.map(k => [k, false])), padName: null });
 const DRIVE_K = ['fwd', 'strafe', 'turn', 'slow'], MECH_K = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject'];
+// รุ่นจอย: PlayStation (DS4) ใช้สัญลักษณ์ ✕○□△ · Logitech F310/F710 และ Xbox ใช้ A B X Y
+const padKind = id => /054c|dualshock|dualsense|wireless controller|playstation|sony/i.test(id || '') ? 'ps' : /046d|logitech|f310|f710|dual action|xbox|xinput|045e/i.test(id || '') ? 'xb' : 'gen';
+const BTN_NAMES = { ps: ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'Share', 'Options', 'L3', 'R3', '↑', '↓', '←', '→', 'PS'], xb: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'L3', 'R3', '↑', '↓', '←', '→', 'Home'] };
+BTN_NAMES.gen = BTN_NAMES.xb;
+const KIND_TH = { ps: 'DualShock 4', xb: 'Logitech / Xbox', gen: 'จอยทั่วไป' };
+// Logitech โหมด D (DirectInput) บางเบราว์เซอร์ไม่แปลงเป็น standard: ปุ่ม 0 = X, 1 = A, 2 = B → เรียงใหม่ให้เหมือน standard
+function padButtons(pad) {
+  const v = pad.buttons.map(b => b?.value ?? (b?.pressed ? 1 : 0));
+  if (pad.mapping !== 'standard' && /046d|logitech|dual action/i.test(pad.id)) { const o = [...v]; o[0] = v[1]; o[1] = v[2]; o[2] = v[0]; o[3] = v[3]; return o; }
+  return v;
+}
 function readPad(pad) {
-  const k = pad.index;
-  const b = i => (pad.buttons[i]?.value ?? 0) > 0.5, e = [];
-  for (let i = 0; i < pad.buttons.length; i++) { const v = b(i), id = k + ':' + i; e[i] = v && !padWas[id]; padWas[id] = v; }
+  const k = pad.index, bv = padButtons(pad);
+  const b = i => (bv[i] ?? 0) > 0.5, e = [];
+  for (let i = 0; i < bv.length; i++) { const v = b(i), id = k + ':' + i; e[i] = v && !padWas[id]; padWas[id] = v; }
   let start = false, assign = 0; const opt = b(9);
   if (opt) { padHold[k] ??= false; if (e[0]) assign = 1; if (e[1]) assign = 2; if (assign) padHold[k] = true; }
   else if (k in padHold) { start = !padHold[k]; delete padHold[k]; }  // Options = เริ่ม/หยุด ตอนปล่อยปุ่ม (ถ้าไม่ได้กดคู่)
-  const held = pad.buttons.map((x, i) => (x?.value ?? 0) > 0.5 ? i : -1).filter(i => i >= 0);
-  return { index: k, id: pad.id, assign, start, cam: e[8], ax: [...pad.axes], held, slow: b(2),
+  const held = bv.map((x, i) => x > 0.5 ? i : -1).filter(i => i >= 0);
+  return { index: k, id: pad.id, kind: padKind(pad.id), std: pad.mapping === 'standard', assign, start, cam: e[8], ax: [...pad.axes], held, slow: b(2),
     shootP: e[5], shootN: e[4], placeN: e[7], placeP: e[6], intakeT: e[0] && !opt, eject: e[1] && !opt };
 }
 function readInput() {
@@ -823,8 +840,8 @@ function readInput() {
   const rs = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).map(readPad);
   for (const p of rs) if (p.assign) {
     const me = 'p' + p.assign, other = p.assign === 1 ? 'p2' : 'p1';
-    if (padRole[other] === p.index) padRole[other] = null; padRole[me] = p.index;
-    say(`🎮 ตั้งเป็นจอย ${p.assign} (${p.assign === 1 ? 'คนขับ' : 'คนยิง'}): ${p.id.slice(0, 30)}`, 2);
+    if (padRole[other] === p.index) padRole[other] = null; padRole[me] = p.index; savePadRole();
+    say(`🎮 ตั้งเป็น Joy ${p.assign} (${p.assign === 1 ? 'คนขับ' : 'คนยิง'}): ${p.id.slice(0, 30)}`, 2);
   }
   let p1 = rs.find(p => p.index === padRole.p1), p2 = rs.find(p => p.index === padRole.p2);
   const rest = rs.filter(p => p !== p1 && p !== p2);  // ยังไม่กำหนด = เรียงตามลำดับที่ต่อ · จอยที่ 3 ขึ้นไปไม่ใช้
@@ -958,7 +975,7 @@ function renderPanels() {
   cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
   cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
   const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
-  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${opt('fieldCentric', 'Field-centric (ดันขึ้น = ออกจากฝั่งแดง)')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'บังคับกฎจุดยิง (ไม่ผ่านเกณฑ์ = ยิงไม่ได้)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${driveSel('driveMode2')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'บังคับกฎจุดยิง (ไม่ผ่านเกณฑ์ = ยิงไม่ได้)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
     ${padPanel()}
     <details id="drvBox" ${drvOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าหุ่น ปืน และเกณฑ์จุดยิง</summary>
     <h4>ตั้งค่าหุ่นให้เหมือนหุ่นจริงของทีม</h4><div class="mut" style="font-size:12px">วัดจากหุ่นจริงแล้วใส่ ค่าจะถูกจำไว้และใช้กับทุกสถานการณ์</div>
@@ -978,7 +995,7 @@ function renderPanels() {
   fb.querySelectorAll('input[data-opt]').forEach(i => i.onchange = () => { S.opt[i.dataset.opt] = i.checked; if (i.dataset.opt === 'bots') S.robots.slice(1).forEach(rb => { rb.off = !i.checked; if (i.checked && rb.load.length === 0) api.carry(rb.id, ['pollen', 'pollen']); }); });
   const q = id => fb.querySelector('#' + id);
   fb.querySelectorAll('input[data-drv]').forEach(i => i.oninput = () => { DRV[i.dataset.drv] = +i.value; q('dv_' + i.dataset.drv).textContent = i.value; saveDrv(); });
-  padPanelWire(q);
+  padPanelWire(q); if (q('driveMode2')) q('driveMode2').onchange = e => setDriveMode(e.target.value);
   if (q('drvCurve')) q('drvCurve').onchange = e => { DRV.curve = e.target.value; saveDrv(); };
   if (q('drvBox')) q('drvBox').ontoggle = e => { drvOpen = e.target.open; };
   if (q('drvVmode')) q('drvVmode').onchange = e => { DRV.vmode = e.target.value; saveDrv(); renderPanels(); };
@@ -1006,7 +1023,7 @@ function hud(inp) {
   const p = projected(); $('projTxt').textContent = S.mode === 'free' ? '' : `ถ้าจบตอนนี้: แดง ${p.red} – น้ำเงิน ${p.blue}`;
   $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
   $('carryTxt').textContent = `${r.load.length}/4`; $('carryTxt').style.color = r.load.length > 4 ? 'var(--red)' : ''; $('slots').innerHTML = [...Array(Math.max(4, r.load.length)).keys()].map(i => { const b = r.load[i] != null ? S.balls[r.load[i]] : null; return `<div class="slot ${b ? (b.kind === 'pollen' ? 'pollen' : b.color) : ''}"></div>`; }).join('');
-  $('intakeTxt').textContent = !r.intake ? 'ปิด' : r.load.length > ROBOT.capacity ? 'เปิด · เกิน 4 ลูก! คายออก' : r.load.length >= capOf(r) ? 'เปิด · เต็มแล้ว หยุดดูด' : r.load.length >= ROBOT.capacity ? 'เปิด · ครบ 4 (ไม่มีระบบหยุดดูด)' : 'เปิด · ดูดอัตโนมัติ'; $('intakeTxt').style.color = !r.intake ? 'var(--red)' : r.load.length >= ROBOT.capacity ? 'var(--yel)' : ''; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (S.opt.fieldCentric ? 'field-centric' : 'robot-centric') : 'AI ขับ';
+  $('intakeTxt').textContent = !r.intake ? 'ปิด' : r.load.length > ROBOT.capacity ? 'เปิด · เกิน 4 ลูก! คายออก' : r.load.length >= capOf(r) ? 'เปิด · เต็มแล้ว หยุดดูด' : r.load.length >= ROBOT.capacity ? 'เปิด · ครบ 4 (ไม่มีระบบหยุดดูด)' : 'เปิด · ดูดอัตโนมัติ'; $('intakeTxt').style.color = !r.intake ? 'var(--red)' : r.load.length >= ROBOT.capacity ? 'var(--yel)' : ''; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (fieldOn() ? 'field-centric' : DRV.driveMode !== 'robot' ? 'robot-centric (กล้องตามหลัง)' : 'robot-centric') : 'AI ขับ';
   const g = gateCheck(r); $('gate').textContent = !g.ok ? 'ยังไม่ได้' : g.warn ? 'ยิงได้ (นอกเกณฑ์)' : 'พร้อม'; $('gate').className = !g.ok ? 'bad' : g.warn ? '' : 'ok'; $('gate').style.color = g.ok && g.warn ? 'var(--yel)' : '';
   $('gateWhy').textContent = g.why + (traj ? ` · วิถี: ${traj.res === 'cell' ? 'เข้า CELL ✓' : traj.res === 'under' ? 'ชนใต้ CELL ✗' : `ตกพื้น ห่าง CELL ${traj.miss.toFixed(2)} ม. ✗`} · ลูก ${traj.v.toFixed(2)} m/s` : '');
   const er = $('effR'); if (er) { const e = effRange(); er.textContent = e ? `${e.min}–${e.max} ม.` : 'ยิงไม่ถึงทุกระยะ'; }
@@ -1023,35 +1040,37 @@ function hud(inp) {
   $('msg').textContent = S.msgT > 0 ? S.msg : ''; $('msg').style.opacity = S.msgT > 0 ? 1 : 0;
 }
 
-const PAD_ROLE = { 1: 'คนขับ: L เดิน/สไลด์ · R หมุน · □ ช้า', 2: 'คนยิง: R1/L1 ยิง · R2/L2 วาง · ✕ intake · ○ คาย' };
-const BTN_TH = ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'Share', 'Options', 'L3', 'R3', '↑', '↓', '←', '→', 'PS'];
+const padRoleTxt = (n, kind) => { const B = BTN_NAMES[kind] || BTN_NAMES.ps; return n === 1 ? `คนขับ: L เดิน/สไลด์ · R หมุน · ${B[2]} ช้า` : `คนยิง: ${B[5]}/${B[4]} ยิง · ${B[7]}/${B[6]} วาง · ${B[0]} intake · ${B[1]} คาย`; };
 let padOpen = false;
 function padTested(p) { try { const m = JSON.parse(localStorage.getItem('dca-pad-tests') || '{}'); return m[p.index + '|' + p.id]?.ok; } catch { return false; } }
 function padPanel() {
   const slot = n => `<div class="padSlot" style="border:1px solid var(--line,#444);border-radius:8px;padding:6px;margin-top:6px">
-    <div><b>จอย ${n}</b> <span class="mut" id="padRoleTxt${n}"></span></div>
+    <div><b>Joy ${n}</b> <span class="mut" id="padRoleTxt${n}"></span></div>
     <div id="padLive${n}" class="mut" style="font-size:12px;min-height:30px">ยังไม่เชื่อมต่อ</div>
     <div style="margin-top:4px">Deadzone แกน <b id="dv_dead${n}">${DRV['dead' + n]}</b></div><input type="range" data-drv="dead${n}" min="0.02" max="0.25" step="0.01" value="${DRV['dead' + n]}">
     <label style="display:block"><input type="checkbox" data-inv="${n}" ${DRV['invY' + n] ? 'checked' : ''}> กลับทิศแกนเดินหน้า/ถอย</label>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><button class="sec" data-rumble="${n}">สั่นจอยนี้ (ดูว่าตัวไหน)</button><a href="gamepad-test.html?pad=${n}" target="_blank"><button class="sec">ทดสอบจอย ${n} ↗</button></a></div></div>`;
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><button class="sec" data-rumble="${n}">สั่นจอยนี้ (ดูว่าตัวไหน)</button><a href="gamepad-test.html?pad=${n}" target="_blank"><button class="sec">ทดสอบ Joy ${n} ↗</button></a></div></div>`;
   return `<details id="padBox" ${padOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าและทดสอบจอย 2 ตัว (คนขับ / คนยิง)</summary>
-    <div style="margin-top:4px">การแบ่งหน้าที่ <select id="padMode2" style="font:inherit"><option value="split" ${DRV.padMode !== 'both' ? 'selected' : ''}>แยกกัน: จอย 1 ขับ · จอย 2 ยิง</option><option value="both" ${DRV.padMode === 'both' ? 'selected' : ''}>ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
+    <div style="margin-top:4px">การแบ่งหน้าที่ <select id="padMode2" style="font:inherit"><option value="split" ${DRV.padMode !== 'both' ? 'selected' : ''}>แยกกัน: Joy 1 ขับ · Joy 2 ยิง</option><option value="both" ${DRV.padMode === 'both' ? 'selected' : ''}>ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
     ${slot(1)}${slot(2)}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="sec" id="padSwap">สลับจอย 1 ↔ 2</button></div>
-    <div class="mut" style="font-size:12px;margin-top:4px">สลับด้วยจอยเอง: Options ค้าง + ✕ = จอย 1 · Options ค้าง + ○ = จอย 2 (เหมือน Start+A / Start+B ใน Driver Station) · ถ้ายังไม่ตั้ง ตัวที่ต่อก่อนเป็นจอย 1</div></details>`;
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="sec" id="padSwap">สลับ Joy 1 ↔ 2</button></div>
+    <div class="mut" style="font-size:12px;margin-top:4px">สลับด้วยจอยเอง: Options ค้าง + ✕ = Joy 1 · Options ค้าง + ○ = Joy 2 (Logitech: Start ค้าง + A / Start ค้าง + B เหมือนใน Driver Station) · ถ้ายังไม่ตั้ง ตัวที่ต่อก่อนเป็น Joy 1</div></details>`;
 }
-function setPadMode(v) { DRV.padMode = v; saveDrv(); const a = $('padMode'), b = document.getElementById('padMode2'); if (a) a.value = v; if (b) b.value = v; say(v === 'both' ? 'จอย 2 ตัว: ใช้ได้ทุกปุ่มทั้งคู่' : 'จอย 2 ตัว: จอย 1 ขับ / จอย 2 ยิง', 2); }
+function driveSel(id) { return `<div style="margin-top:4px"><b>Drive controls</b> <select id="${id}" style="font:inherit"><option value="field" ${DRV.driveMode !== 'robot' ? 'selected' : ''}>Field-centric</option><option value="robot" ${DRV.driveMode === 'robot' ? 'selected' : ''}>Robot-centric</option></select></div>
+  <div class="mut" style="font-size:12px">Field-centric: ดันแกนขึ้น = หุ่นวิ่งออกจากฝั่งเราไปอีกฝั่งของสนาม ไม่ว่าหุ่นหันทางไหน · Robot-centric: ดันขึ้น = หุ่นเดินไปทางหน้าหุ่น · กล้องตามหลังหุ่นใช้ robot-centric เสมอ</div>`; }
+function setDriveMode(v) { DRV.driveMode = v; saveDrv(); for (const id of ['driveMode', 'driveMode2']) { const e = document.getElementById(id); if (e) e.value = v; } say('Drive controls: ' + (v === 'robot' ? 'Robot-centric' : 'Field-centric') + (v !== 'robot' && chaseCam() ? ' (ตอนนี้กล้องตามหลังหุ่น จึงยังเป็น robot-centric)' : ''), 2.5); }
+function setPadMode(v) { DRV.padMode = v; saveDrv(); const a = $('padMode'), b = document.getElementById('padMode2'); if (a) a.value = v; if (b) b.value = v; say(v === 'both' ? 'จอย 2 ตัว: ใช้ได้ทุกปุ่มทั้งคู่' : 'จอย 2 ตัว: Joy 1 ขับ / Joy 2 ยิง', 2); }
 function rumblePad(n) {
   const p = padNow['p' + n], g = p && navigator.getGamepads?.()[p.index], va = g?.vibrationActuator;
-  if (!p) return say(`ยังไม่พบจอย ${n}`, 1.5);
-  if (!va) return say(`จอย ${n}: เบราว์เซอร์นี้สั่นจอยไม่ได้ กดปุ่มบนจอยแล้วดูว่าช่องไหนขึ้นแทน`, 2.5);
-  va.playEffect(va.type || 'dual-rumble', { duration: 600, strongMagnitude: 0.9, weakMagnitude: 0.6 }).catch(() => {}); say(`สั่นจอย ${n} แล้ว`, 1.5);
+  if (!p) return say(`ยังไม่พบ Joy ${n}`, 1.5);
+  if (!va) return say(`Joy ${n}: เบราว์เซอร์นี้สั่นจอยไม่ได้ กดปุ่มบนจอยแล้วดูว่าช่องไหนขึ้นแทน`, 2.5);
+  va.playEffect(va.type || 'dual-rumble', { duration: 600, strongMagnitude: 0.9, weakMagnitude: 0.6 }).catch(() => {}); say(`สั่น Joy ${n} แล้ว`, 1.5);
 }
 function padPanelWire(q) {
   if (!q('padBox')) return;
   q('padBox').ontoggle = e => { padOpen = e.target.open; };
   q('padMode2').onchange = e => setPadMode(e.target.value);
-  q('padSwap').onclick = () => { const a = padNow.p1, b = padNow.p2; if (!a || !b) return say('ต้องต่อจอย 2 ตัวก่อนถึงจะสลับได้', 2); padRole.p1 = b.index; padRole.p2 = a.index; say('สลับจอย 1 ↔ 2 แล้ว', 1.5); };
+  q('padSwap').onclick = () => { const a = padNow.p1, b = padNow.p2; if (!a || !b) return say('ต้องต่อจอย 2 ตัวก่อนถึงจะสลับได้', 2); padRole.p1 = b.index; padRole.p2 = a.index; savePadRole(); say('สลับ Joy 1 ↔ 2 แล้ว', 1.5); };
   document.querySelectorAll('#padBox [data-rumble]').forEach(b => b.onclick = () => rumblePad(+b.dataset.rumble));
   document.querySelectorAll('#padBox [data-inv]').forEach(c => c.onchange = () => { DRV['invY' + c.dataset.inv] = c.checked; saveDrv(); });
 }
@@ -1059,10 +1078,10 @@ function padLive() {
   if (!document.getElementById('padBox')?.open) return;
   for (const n of [1, 2]) {
     const p = padNow['p' + n], el = document.getElementById('padLive' + n), rt = document.getElementById('padRoleTxt' + n); if (!el) continue;
-    rt.textContent = !p ? '' : padNow.split ? PAD_ROLE[n] : padNow.p1 && padNow.p2 ? 'ทุกปุ่ม' : 'ตัวเดียว ทุกปุ่ม';
+    rt.textContent = !p ? '' : padNow.split ? padRoleTxt(n, p.kind) : padNow.p1 && padNow.p2 ? 'ทุกปุ่ม' : 'ตัวเดียว ทุกปุ่ม';
     if (!p) { el.className = 'mut'; el.textContent = n === 2 ? 'ยังไม่เชื่อมต่อ · ต่อจอยตัวที่ 2 แล้วกดปุ่มใดก็ได้' : 'ยังไม่เชื่อมต่อ'; continue; }
     const f = v => (v >= 0 ? '+' : '') + (v || 0).toFixed(2);
-    el.className = ''; el.innerHTML = `${esc(p.id.replace(/\s*\(.*$/, '').slice(0, 30))} · ช่อง ${p.index} ${padTested(p) ? '<b class="ok">· ทดสอบผ่าน ✓</b>' : '<span class="mut">· ยังไม่ทดสอบ</span>'}<br>L ${f(p.ax[0])}, ${f(p.ax[1])} · R ${f(p.ax[2])}, ${f(p.ax[3])} · กด: <b>${p.held.length ? p.held.map(i => BTN_TH[i] || i).join(' ') : '—'}</b>`;
+    el.className = ''; el.innerHTML = `${esc(p.id.replace(/\s*\(.*$/, '').slice(0, 30))} · ${KIND_TH[p.kind]}${p.std ? '' : ' (mapping ไม่ใช่ standard)'} · ช่อง ${p.index} ${padTested(p) ? '<b class="ok">· ทดสอบผ่าน ✓</b>' : '<span class="mut">· ยังไม่ทดสอบ</span>'}<br>L ${f(p.ax[0])}, ${f(p.ax[1])} · R ${f(p.ax[2])}, ${f(p.ax[3])} · กด: <b>${p.held.length ? p.held.map(i => (BTN_NAMES[p.kind] || BTN_NAMES.ps)[i] || i).join(' ') : '—'}</b>`;
   }
 }
 function padHud(inp) {
@@ -1070,7 +1089,7 @@ function padHud(inp) {
   const pt = $('padTxt'), pd = inp.pads || {}, nm = v => esc(v.replace(/\s*\(.*$/, '').slice(0, 28));
   if (!pd.p1 && !pd.p2) { pt.className = 'bad'; pt.textContent = 'ไม่พบจอย กดปุ่มใดก็ได้บน DualShock 4'; }
   else { pt.className = 'ok'; const one = pd.p1 || pd.p2;
-    pt.innerHTML = pd.p1 && pd.p2 ? `จอย 1 ${pd.split ? '(ขับ)' : '(ทุกปุ่ม)'}: ${nm(pd.p1)}<br>จอย 2 ${pd.split ? '(ยิง)' : '(ทุกปุ่ม)'}: ${nm(pd.p2)}` : `จอย 1 ตัว (ทุกปุ่ม): ${nm(one)} · ต่อจอยตัวที่ 2 ได้`; }
+    pt.innerHTML = pd.p1 && pd.p2 ? `Joy 1 ${pd.split ? '(ขับ)' : '(ทุกปุ่ม)'}: ${nm(pd.p1)}<br>Joy 2 ${pd.split ? '(ยิง)' : '(ทุกปุ่ม)'}: ${nm(pd.p2)}` : `จอย 1 ตัว (ทุกปุ่ม): ${nm(one)} · ต่อจอยตัวที่ 2 ได้`; }
 }
 
 // =================== ลูป ===================
@@ -1081,8 +1100,9 @@ function frame(now) {
   sync(); updateCamera(dt); renderer.render(scene, camera); requestAnimationFrame(frame);
 }
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
-addEventListener('gamepadconnected', e => { const n = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).length; say(`พบจอยตัวที่ ${Math.min(n, 2)}: ${e.gamepad.id.slice(0, 32)}` + (n >= 2 ? (DRV.padMode === 'both' ? ' · ทั้ง 2 จอยคุมได้ทุกปุ่ม' : ' · จอย 1 ขับ / จอย 2 ยิง') : ''), 3); });
-addEventListener('gamepaddisconnected', e => { for (const r of ['p1', 'p2']) if (padRole[r] === e.gamepad.index) padRole[r] = null; say('จอยหลุด: ' + e.gamepad.id.slice(0, 32), 3); });
+addEventListener('gamepadconnected', e => { const n = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).length; say(`พบจอยตัวที่ ${Math.min(n, 2)}: ${e.gamepad.id.slice(0, 32)}` + (n >= 2 ? (DRV.padMode === 'both' ? ' · ทั้ง 2 จอยคุมได้ทุกปุ่ม' : ' · Joy 1 ขับ / Joy 2 ยิง') : ''), 3); });
+addEventListener('gamepaddisconnected', e => { for (const r of ['p1', 'p2']) if (padRole[r] === e.gamepad.index) padRole[r] = null; savePadRole(); say('จอยหลุด: ' + e.gamepad.id.slice(0, 32), 3); });
+$('driveHelp').innerHTML = driveSel('driveMode'); $('driveMode').onchange = e => setDriveMode(e.target.value);
 $('padMode').value = DRV.padMode || 'split'; $('padMode').onchange = e => setPadMode(e.target.value);
 window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()) };
 renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else showMenu();

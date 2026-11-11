@@ -102,11 +102,12 @@ dialog::backdrop { background:rgba(0,0,0,.45) }
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v1.5 · 11 พ.ย. 2569</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v1.6</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
-  <a class="pad" id="padChip" href="../mockup/gamepad-test.html" target="_blank" title="คลิกเพื่อเปิดหน้าทดสอบจอย"><i></i><span id="padChipTxt">จอย: ยังไม่เชื่อม</span></a>
+  <a class="pad" id="padChip1" href="../mockup/gamepad-test.html?pad=1" target="_blank" title="คลิกเพื่อทดสอบ Joy 1"><i></i><span id="padChipTxt1">Joy 1: ยังไม่เชื่อม</span></a>
+  <a class="pad" id="padChip2" href="../mockup/gamepad-test.html?pad=2" target="_blank" title="คลิกเพื่อทดสอบ Joy 2"><i></i><span id="padChipTxt2">Joy 2: ยังไม่เชื่อม</span></a>
   <button class="hbtn" id="btnSettings">ตั้งค่า</button>
 </header>
 <div id="homeView" class="home"></div>
@@ -929,21 +930,28 @@ $('homeLink').onclick = () => go(null);
 addEventListener('hashchange', () => { const h = location.hash.slice(1); if ((h || null) !== ST.role) { ST.role = ROLES[h] ? h : null; save(); render(); } });
 { const h = location.hash.slice(1); if (ROLES[h]) ST.role = h; else if (location.hash === '#home') ST.role = null; }
 // ---------------- สถานะจอย DualShock 4 (มุมขวาบน) ----------------
-let padSeen = false;
+// ป้าย Joy 1 / Joy 2 (ลำดับเดียวกับ simulator และหน้าทดสอบ: ค่าที่ตั้งไว้ใน dca-pad-role หรือตัวที่ต่อก่อน = Joy 1)
+const padSeen = [false, false];
+const padKindTh = id => /054c|dualshock|dualsense|wireless controller|playstation|sony/i.test(id) ? 'DualShock 4' : /046d|logitech|f310|f710|dual action/i.test(id) ? 'Logitech' : /xbox|xinput|045e/i.test(id) ? 'Xbox' : 'จอย';
 function padStatus() {
-  const chip = $('padChip'), txt = $('padChipTxt'); chip.href = padUrl();
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
-  const p = pads[0];
-  if (p) {
-    padSeen = true; const ds4 = /054c|wireless controller|dualshock|playstation|sony/i.test(p.id);
-    chip.className = 'pad on'; txt.textContent = `${ds4 ? 'DualShock 4' : 'จอย'}: เชื่อมต่อแล้ว${pads.length > 1 ? ` (${pads.length} ตัว)` : ''}`;
-    chip.title = `${p.id}\nmapping: ${p.mapping || 'ไม่ระบุ'}${padOk() ? '\nผ่านการทดสอบจอยแล้ว' : '\nคลิกเพื่อทดสอบปุ่มทั้งหมด'}`;
-  } else if (!navigator.getGamepads) {
-    chip.className = 'pad off'; txt.textContent = 'เบราว์เซอร์ไม่รองรับจอย'; chip.title = 'ใช้ Chrome, Edge หรือ Safari';
-  } else {
-    chip.className = 'pad' + (padSeen ? ' off' : ''); txt.textContent = padSeen ? 'DualShock 4: หลุดการเชื่อมต่อ' : 'DualShock 4: ยังไม่เชื่อม';
-    chip.title = padSeen ? 'ตรวจแบตเตอรี่และ Bluetooth แล้วกดปุ่มบนจอยอีกครั้ง' : 'จับคู่ Bluetooth (กด Share + PS ค้าง) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง ระหว่างที่หน้านี้เปิดอยู่';
-  }
+  let role = {}; try { role = JSON.parse(localStorage.getItem('dca-pad-role') || '{}'); } catch {}
+  const f = i => pads.find(g => g.index === i); let a = f(role.p1), b = f(role.p2); const rest = pads.filter(g => g !== a && g !== b); if (!a) a = rest.shift(); if (!b) b = rest.shift();
+  let tests = {}; try { tests = JSON.parse(localStorage.getItem('dca-pad-tests') || '{}'); } catch {}
+  [a, b].forEach((p, k) => {
+    const n = k + 1, chip = $('padChip' + n), txt = $('padChipTxt' + n);
+    try { const u = new URL(padUrl()); u.searchParams.set('pad', n); chip.href = u.href; } catch {}
+    if (p) {
+      padSeen[k] = true; const ok = tests[p.index + '|' + p.id]?.ok;
+      chip.className = 'pad on'; txt.textContent = `Joy ${n}: ${padKindTh(p.id)}${ok ? ' ✓' : ''}`;
+      chip.title = `Joy ${n} (${n === 1 ? 'คนขับ' : 'คนยิง'})\n${p.id}\nmapping: ${p.mapping || 'ไม่ระบุ'}\n${ok ? 'ทดสอบปุ่มผ่านแล้ว' : 'คลิกเพื่อทดสอบปุ่มทั้งหมด'}`;
+    } else if (!navigator.getGamepads) {
+      chip.className = 'pad off'; txt.textContent = `Joy ${n}: เบราว์เซอร์ไม่รองรับ`; chip.title = 'ใช้ Chrome, Edge หรือ Safari';
+    } else {
+      chip.className = 'pad' + (padSeen[k] ? ' off' : ''); txt.textContent = `Joy ${n}: ${padSeen[k] ? 'หลุด' : 'ยังไม่เชื่อม'}`;
+      chip.title = padSeen[k] ? 'ตรวจสายหรือแบตเตอรี่ แล้วกดปุ่มบนจอยอีกครั้ง' : n === 2 ? 'ต่อจอยตัวที่ 2 (คนยิง) แล้วกดปุ่มใดก็ได้ 1 ครั้ง' : 'ต่อจอย (DualShock 4 หรือ Logitech F310) แล้วกดปุ่มใดก็ได้ 1 ครั้ง';
+    }
+  });
 }
 addEventListener('gamepadconnected', padStatus); addEventListener('gamepaddisconnected', padStatus);
 setInterval(padStatus, 500);

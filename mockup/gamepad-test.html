@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ทดสอบจอย DualShock 4</title>
+<title>ทดสอบจอย Joy 1 / Joy 2</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root { --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b; --acc:#f5c518; --ok:#3ec97a; --bad:#ff7b6b; --blue:#5b93e8; --pad:#2a3140; --on:#f5c518; }
@@ -31,43 +31,65 @@ svg .body { fill:var(--surface2); stroke:var(--line); stroke-width:2 }
 details { margin-top:8px } summary { cursor:pointer; font-weight:600 }
 table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:4px 6px; border-bottom:1px solid var(--line); text-align:left }
 @media (max-width:860px) { .grid { grid-template-columns:1fr } }
+.tabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px } .tabs .btn { font-size:14px }
+.duo { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px } @media (max-width:640px) { .duo { grid-template-columns:1fr } }
+.joy { border:2px solid var(--line); border-radius:12px; padding:10px 12px; transition:border-color .08s, box-shadow .08s }
+.joy.act { border-color:var(--ok); box-shadow:0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent) }
+.tag { font-size:12px; padding:2px 8px; border-radius:10px; border:1px solid var(--line) } .tag.ok { border-color:var(--ok) } .tag.bad { border-color:var(--bad) }
+.small { font-size:13px } .ring { fill:none; stroke:var(--line); stroke-width:2 } .knob { fill:var(--blue) }
+.xb-a { stroke:#3fae3f !important } .xb-b { stroke:#d9443b !important } .xb-x { stroke:#3a6fd8 !important } .xb-y { stroke:#e3a21a !important }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="row" style="justify-content:space-between">
-    <div><h1>ทดสอบจอย <span>DualShock 4</span></h1><div class="mut">ตรวจว่าจอยเชื่อมต่อกับเบราว์เซอร์เรียบร้อย ปุ่มครบ แกนไม่ drift ก่อนใช้ซ้อมใน simulator</div></div>
+    <div><h1>ทดสอบจอย <span>Joy 1 / Joy 2</span></h1><div class="mut">ตรวจว่าจอยแต่ละตัวต่อกับเบราว์เซอร์ได้ ปุ่มครบ แกนไม่ drift และ 2 จอยทำงานแยกกันอิสระ ก่อนใช้ซ้อมใน simulator</div></div>
     <div class="row"><a class="btn sec" href="../coach-training/index.html">← หน้าบทเรียน</a><a class="btn sec" href="index.html">เมนู simulator</a></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Joy 1 และ Joy 2 (คุมหุ่นตัวเดียวกัน)</h3>
+    <div class="mut small">กดปุ่มหรือโยกแกนบนจอยตัวไหน กรอบของจอยตัวนั้นต้องเป็นสีเขียว<b>กรอบเดียว</b> ถ้าเขียวทั้ง 2 กรอบ แปลว่าเครื่องเห็นจอยตัวเดียวเป็น 2 ตัว (เช่นมีโปรแกรม DS4Windows / Steam เปิดอยู่)
+      · ตั้งเอง: กด Options ค้าง + ✕ (Logitech: Start ค้าง + A) = Joy 1 · Options ค้าง + ○ (Start ค้าง + B) = Joy 2</div>
+    <div class="duo" id="duo"></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="indepBtn">เริ่มทดสอบ 2 จอยแยกอิสระ</button><button class="btn sec" id="swapBtn">สลับ Joy 1 ↔ 2</button><span id="indepTxt" class="mut small"></span></div>
+    <ul class="steps small" id="indepRes" style="margin-top:6px"></ul>
+  </div>
+
+  <div class="card" style="margin-top:14px" id="detail">
+    <h3>ทดสอบปุ่มละเอียดทีละจอย</h3>
+    <div class="row" id="padPick"></div>
+    <div class="tabs" id="kindTabs"></div>
+    <div class="mut small" id="kindNote" style="margin-top:4px"></div>
   </div>
 
   <div class="grid">
     <div>
       <div class="card">
-        <h3>สถานะการเชื่อมต่อ</h3>
+        <h3>สถานะการเชื่อมต่อ <span id="slotName" class="mut"></span></h3>
         <div class="status" id="connStatus">ยังไม่พบจอย</div>
         <div class="mut" id="connDetail">จับคู่ Bluetooth แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</div>
-        <div id="padPick" class="row" style="margin-top:6px"></div>
         <ul class="steps" style="margin-top:10px" id="checklist"></ul>
       </div>
       <div class="card" style="margin-top:14px">
         <svg viewBox="0 0 520 300" width="100%" aria-label="ผังปุ่ม DualShock 4">
           <path class="body" d="M110 60 Q260 30 410 60 Q480 70 500 160 Q515 250 460 280 Q420 295 390 250 L360 205 Q260 195 160 205 L130 250 Q100 295 60 280 Q5 250 20 160 Q40 70 110 60 Z"/>
-          <rect class="b" id="b6" x="70" y="10" width="80" height="22" rx="8"/><text x="110" y="21">L2</text>
-          <rect class="b" id="b4" x="70" y="36" width="80" height="16" rx="6"/><text x="110" y="44">L1</text>
-          <rect class="b" id="b7" x="370" y="10" width="80" height="22" rx="8"/><text x="410" y="21">R2</text>
-          <rect class="b" id="b5" x="370" y="36" width="80" height="16" rx="6"/><text x="410" y="44">R1</text>
-          <rect class="b" id="b17" x="205" y="70" width="110" height="60" rx="8"/><text x="260" y="100">touchpad</text>
-          <rect class="b" id="b8" x="170" y="75" width="24" height="14" rx="5"/><text x="182" y="66" style="font-size:10px">Share</text>
-          <rect class="b" id="b9" x="326" y="75" width="24" height="14" rx="5"/><text x="338" y="66" style="font-size:10px">Options</text>
-          <circle class="b" id="b16" cx="260" cy="160" r="11"/><text x="260" y="160" style="font-size:10px">PS</text>
+          <rect class="b" id="b6" x="70" y="10" width="80" height="22" rx="8"/><text id="t6" x="110" y="21">L2</text>
+          <rect class="b" id="b4" x="70" y="36" width="80" height="16" rx="6"/><text id="t4" x="110" y="44">L1</text>
+          <rect class="b" id="b7" x="370" y="10" width="80" height="22" rx="8"/><text id="t7" x="410" y="21">R2</text>
+          <rect class="b" id="b5" x="370" y="36" width="80" height="16" rx="6"/><text id="t5" x="410" y="44">R1</text>
+          <rect class="b" id="b17" x="205" y="70" width="110" height="60" rx="8"/><text id="t17" x="260" y="100">touchpad</text>
+          <rect class="b" id="b8" x="170" y="75" width="24" height="14" rx="5"/><text id="t8" x="182" y="66" style="font-size:10px">Share</text>
+          <rect class="b" id="b9" x="326" y="75" width="24" height="14" rx="5"/><text id="t9" x="338" y="66" style="font-size:10px">Options</text>
+          <circle class="b" id="b16" cx="260" cy="160" r="11"/><text id="t16" x="260" y="160" style="font-size:10px">PS</text>
           <rect class="b" id="b12" x="90" y="88" width="24" height="26" rx="4"/><text x="102" y="101">▲</text>
           <rect class="b" id="b13" x="90" y="136" width="24" height="26" rx="4"/><text x="102" y="149">▼</text>
           <rect class="b" id="b14" x="64" y="113" width="26" height="24" rx="4"/><text x="77" y="125">◀</text>
           <rect class="b" id="b15" x="114" y="113" width="26" height="24" rx="4"/><text x="127" y="125">▶</text>
-          <circle class="b" id="b3" cx="418" cy="95" r="15"/><text x="418" y="95">△</text>
-          <circle class="b" id="b0" cx="418" cy="155" r="15"/><text x="418" y="155">✕</text>
-          <circle class="b" id="b2" cx="388" cy="125" r="15"/><text x="388" y="125">□</text>
-          <circle class="b" id="b1" cx="448" cy="125" r="15"/><text x="448" y="125">○</text>
+          <circle class="b" id="b3" cx="418" cy="95" r="15"/><text id="t3" x="418" y="95">△</text>
+          <circle class="b" id="b0" cx="418" cy="155" r="15"/><text id="t0" x="418" y="155">✕</text>
+          <circle class="b" id="b2" cx="388" cy="125" r="15"/><text id="t2" x="388" y="125">□</text>
+          <circle class="b" id="b1" cx="448" cy="125" r="15"/><text id="t1" x="448" y="125">○</text>
           <circle class="b" id="b10" cx="185" cy="195" r="30"/><circle id="ls" cx="185" cy="195" r="10" fill="var(--blue)"/><text x="185" y="240">L3</text>
           <circle class="b" id="b11" cx="335" cy="195" r="30"/><circle id="rs" cx="335" cy="195" r="10" fill="var(--blue)"/><text x="335" y="240">R3</text>
         </svg>
@@ -102,7 +124,26 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
   </div>
 
   <div class="card" style="margin-top:14px">
-    <h3>วิธีต่อจอยและแก้ปัญหา</h3>
+    <h3>วิธีต่อจอยและแก้ปัญหา <span class="mut" id="tipsKind"></span></h3>
+    <div id="tipsXB" hidden>
+    <table>
+      <tr><th style="width:28%">ขั้นตอน</th><th>ทำอย่างไร</th></tr>
+      <tr><td>1. เสียบสาย</td><td><b>Logitech F310</b> เป็นจอยมีสาย เสียบ USB เข้าคอมได้เลย ไม่ต้องจับคู่ (วันแข่งเสียบเข้า Driver Station แบบเดียวกัน)</td></tr>
+      <tr><td>2. สวิตช์ด้านหลัง X / D</td><td>แนะนำ <b>X</b> (XInput) ปุ่มจะตรงแบบ standard · บน Mac ถ้าตั้ง X แล้วเบราว์เซอร์ไม่เห็นจอย ให้ใช้ <b>D</b> หน้านี้และ simulator เรียงปุ่ม A / B / X ให้ถูกเอง</td></tr>
+      <tr><td>3. ปุ่ม MODE</td><td>ให้ไฟข้างปุ่ม MODE <b>ดับ</b> ถ้าไฟติด แกนซ้ายกับ D-pad จะสลับกัน หุ่นจะไม่เดินตามแกน</td></tr>
+      <tr><td>4. ให้เบราว์เซอร์เห็นจอย</td><td>เปิดหน้านี้ใน Chrome หรือ Edge เต็มแท็บ แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</td></tr>
+      <tr><td>Joy 1 / Joy 2 ใน Driver Station</td><td>กด <b>Start + A</b> = gamepad1 (คนขับ) · <b>Start + B</b> = gamepad2 (คนยิง) ทำทุกครั้งหลังเสียบจอยใหม่</td></tr>
+    </table>
+    <details><summary>ปัญหาที่พบบ่อย</summary>
+      <ul>
+        <li><b>F710 (ไร้สาย)</b>: ใช้ตัวรับสัญญาณ USB ไร้สาย ซ้อมกับ simulator ได้ แต่<b>วันแข่งห้ามใช้</b> เพราะ R904 ห้ามจอยไร้สาย ใช้ F310 แบบสายแทน</li>
+        <li><b>ปุ่มสลับกัน (กด A แต่ขึ้น X)</b>: จอยอยู่โหมด D และเบราว์เซอร์ไม่แปลงปุ่ม ตรวจว่าชื่อจอยมีคำว่า Logitech ระบบจะเรียงให้เอง ถ้ายังผิด เปลี่ยนสวิตช์เป็น X</li>
+        <li><b>LT / RT ค่าไม่ถึง 1</b>: โหมด D ไกเป็นปุ่มกด (0 หรือ 1) โหมด X เป็นค่าต่อเนื่อง ทั้งสองแบบใช้ใน simulator ได้</li>
+        <li><b>แกน drift</b>: simulator ตัดค่าต่ำกว่า deadzone ของแต่ละจอยอยู่แล้ว ปรับได้ใน Free Control › ตั้งค่าและทดสอบจอย 2 ตัว</li>
+      </ul>
+    </details>
+    </div>
+    <div id="tipsPS">
     <table>
       <tr><th style="width:28%">ขั้นตอน</th><th>ทำอย่างไร</th></tr>
       <tr><td>1. เข้าโหมดจับคู่</td><td>กดปุ่ม <b>Share</b> ค้างไว้ แล้วกด <b>PS</b> ค้างพร้อมกันประมาณ 3–5 วิ จนไฟแถบด้านหลังกะพริบถี่ ๆ สีขาว</td></tr>
@@ -119,13 +160,39 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
         <li><b>หลุดบ่อย</b>: ชาร์จแบตให้เต็ม ไฟแถบกะพริบช้าเป็นสัญญาณแบตต่ำ และอยู่ห่างเครื่องไม่เกิน 3–5 เมตร</li>
         <li><b>แกน drift</b> (หุ่นขยับเองตอนไม่จับ): simulator ตัดค่าต่ำกว่า 0.10 อยู่แล้ว ถ้าวัดได้เกินนี้ให้ทำความสะอาดแกนหรือเปลี่ยนจอย</li>
         <li><b>ปุ่ม PS เปิดเมนูของระบบ</b>: ไม่ได้ใช้ปุ่มนี้ใน simulator ข้ามได้</li>
-        <li><b>ในสนามจริง</b> จอยต่อกับ Driver Station ไม่ใช่คอมพิวเตอร์ ตรวจรุ่นจอยที่อนุญาตในหมวด OPERATOR CONSOLE ของคู่มือก่อนแข่ง</li>
+        <li><b>ในสนามจริง</b> จอยต้องเสียบสาย USB กับ Driver Station ห้ามใช้ Bluetooth (R904) ซ้อมแบบเสียบสายให้คุ้นก่อนวันแข่ง</li>
       </ul>
     </details>
+    </div>
   </div>
 </div>
 <script>
-const NAMES = { 0:'✕', 1:'○', 2:'□', 3:'△', 4:'L1', 5:'R1', 6:'L2', 7:'R2', 8:'Share', 9:'Options', 10:'L3 (กดแกนซ้าย)', 11:'R3 (กดแกนขวา)', 12:'D-pad ▲', 13:'D-pad ▼', 14:'D-pad ◀', 15:'D-pad ▶', 16:'PS', 17:'Touchpad (กด)' };
+const NAMES_PS = { 0:'✕', 1:'○', 2:'□', 3:'△', 4:'L1', 5:'R1', 6:'L2', 7:'R2', 8:'Share', 9:'Options', 10:'L3 (กดแกนซ้าย)', 11:'R3 (กดแกนขวา)', 12:'D-pad ▲', 13:'D-pad ▼', 14:'D-pad ◀', 15:'D-pad ▶', 16:'PS', 17:'Touchpad (กด)' };
+const NAMES_XB = { 0:'A', 1:'B', 2:'X', 3:'Y', 4:'LB', 5:'RB', 6:'LT', 7:'RT', 8:'Back', 9:'Start', 10:'L3 (กดแกนซ้าย)', 11:'R3 (กดแกนขวา)', 12:'D-pad ▲', 13:'D-pad ▼', 14:'D-pad ◀', 15:'D-pad ▶', 16:'ปุ่ม Logitech / Home', 17:'(ไม่มี touchpad)' };
+let NAMES = NAMES_PS;
+const padKind = id => /054c|dualshock|dualsense|wireless controller|playstation|sony/i.test(id || '') ? 'ps' : /046d|logitech|f310|f710|dual action|xbox|xinput|045e/i.test(id || '') ? 'xb' : null;
+// Logitech โหมด D ที่เบราว์เซอร์ไม่แปลงเป็น standard: ปุ่ม 0 = X, 1 = A, 2 = B → เรียงใหม่
+const padButtons = g => { const v = g.buttons.map(b => b?.value ?? (b?.pressed ? 1 : 0)); if (g.mapping !== 'standard' && /046d|logitech|dual action/i.test(g.id)) { const o = [...v]; o[0] = v[1]; o[1] = v[2]; o[2] = v[0]; o[3] = v[3]; return o; } return v; };
+const loadRole = () => { try { return JSON.parse(localStorage.getItem('dca-pad-role') || '{}'); } catch { return {}; } };
+const saveRole = r => { try { localStorage.setItem('dca-pad-role', JSON.stringify(r)); } catch {} };
+// Joy 1 / Joy 2: ใช้ค่าที่ตั้งไว้ (ร่วมกับ simulator) ถ้าไม่มี ตัวที่ต่อก่อน = Joy 1
+const joysOf = pads => { const r = loadRole(), f = i => pads.find(g => g.index === i); let a = f(r.p1), b = f(r.p2); const rest = pads.filter(g => g !== a && g !== b); if (!a) a = rest.shift(); if (!b) b = rest.shift(); return [a, b]; };
+let kindSel = 'auto', kindNow = 'ps';
+function applyKind(k) {
+  if (k === kindNow && document.body.dataset.kind === k) return; kindNow = k; document.body.dataset.kind = k; NAMES = k === 'xb' ? NAMES_XB : NAMES_PS;
+  for (const [i, t] of Object.entries(NAMES)) { const el = $('t' + i); if (el) el.textContent = k === 'xb' ? ({ 10: 'L3', 11: 'R3', 16: 'Logitech', 17: '' }[i] ?? t) : ({ 10: 'L3', 11: 'R3', 17: 'touchpad' }[i] ?? t); }
+  const tp = $('b17'); if (tp) tp.style.display = k === 'xb' ? 'none' : '';
+  for (const [i, c] of [[0, 'xb-a'], [1, 'xb-b'], [2, 'xb-x'], [3, 'xb-y']]) $('b' + i)?.classList.toggle(c, k === 'xb');
+  $('tipsXB').hidden = k !== 'xb'; $('tipsPS').hidden = k === 'xb'; $('tipsKind').textContent = k === 'xb' ? '· Logitech F310 / F710' : '· DualShock 4';
+  if (k === 'xb') skipped[17] = true; else delete skipped[17];
+  chips(); promptTxt(); kindTabs();
+}
+function kindTabs() {
+  const t = [['auto', 'ตรวจรุ่นอัตโนมัติ'], ['ps', '🎮 DualShock 4'], ['xb', '🎮 Logitech F310 / F710']];
+  $('kindTabs').innerHTML = t.map(([v, l]) => `<button class="btn ${kindSel === v ? '' : 'sec'}" data-kind="${v}">${l}${v === 'auto' && kindSel === 'auto' ? ' · ' + (kindNow === 'xb' ? 'Logitech' : 'DualShock 4') : ''}</button>`).join('');
+  $('kindTabs').querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { kindSel = b.dataset.kind; if (kindSel !== 'auto') applyKind(kindSel); kindTabs(); });
+  $('kindNote').textContent = kindNow === 'xb' ? 'ผังปุ่ม Logitech: A เขียว (ล่าง) · B แดง (ขวา) · X น้ำเงิน (ซ้าย) · Y เหลือง (บน) · ตำแหน่งเดียวกับ ✕ ○ □ △ ของ DualShock 4 ใน simulator' : 'ผังปุ่ม DualShock 4: ✕ ○ □ △ · L1 R1 L2 R2 · Share Options';
+}
 const USE = { 0:'intake', 1:'คายลูก', 2:'โหมดช้า', 4:'ยิง NECTAR', 5:'ยิง POLLEN', 6:'วาง POLLEN', 7:'วาง NECTAR', 8:'กล้อง', 9:'เริ่ม/หยุด' };
 const ORDER = [5, 4, 7, 6, 0, 1, 2, 3, 8, 9, 12, 13, 14, 15, 10, 11, 16, 17];
 const OPTIONAL = new Set([16, 17]);
@@ -137,14 +204,14 @@ $('skip').onclick = () => { if (seq < ORDER.length) { skipped[ORDER[seq]] = true
 const restart = () => { seq = 0; done = {}; skipped = {}; lsDir.clear(); rsDir.clear(); trMax = [0, 0]; drift = null; $('driftTxt').textContent = 'ยังไม่ได้วัด'; promptTxt(); chips(); };
 $('restart').onclick = restart;
 $('driftBtn').onclick = () => { if (!padId) return; drift = { t0: performance.now(), max: 0 }; $('driftTxt').textContent = 'ปล่อยมือจากแกน… กำลังวัด'; };
-$('rumble').onclick = async () => { const p = [...navigator.getGamepads()].filter(g => g && g.connected)[pick]; const va = p && p.vibrationActuator; if (!va) { $('rumbleTxt').textContent = 'เบราว์เซอร์นี้ไม่รองรับการสั่น (ไม่เป็นไร)'; return; } try { await va.playEffect(va.type || 'dual-rumble', { duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5 }); $('rumbleTxt').textContent = 'ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่นแปลว่าใช้ได้'; } catch { $('rumbleTxt').textContent = 'สั่งสั่นไม่ได้ (ไม่บังคับ)'; } };
+$('rumble').onclick = async () => { const p = joysOf([...navigator.getGamepads()].filter(g => g && g.connected))[pick]; const va = p && p.vibrationActuator; if (!va) { $('rumbleTxt').textContent = 'เบราว์เซอร์นี้ไม่รองรับการสั่น (ไม่เป็นไร)'; return; } try { await va.playEffect(va.type || 'dual-rumble', { duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5 }); $('rumbleTxt').textContent = 'ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่นแปลว่าใช้ได้'; } catch { $('rumbleTxt').textContent = 'สั่งสั่นไม่ได้ (ไม่บังคับ)'; } };
 const dirOf = (x, y) => { const s = new Set(); if (x > 0.9) s.add('R'); if (x < -0.9) s.add('L'); if (y > 0.9) s.add('D'); if (y < -0.9) s.add('U'); return s; };
 function check() {
   const steps = [
     ['เบราว์เซอร์รองรับ Gamepad API', !!navigator.getGamepads],
     ['พบจอยที่เชื่อมต่ออยู่', !!padId],
-    ['รู้จักเป็น DualShock 4 / Wireless Controller', !!padId && /054c|wireless controller|dualshock|playstation|sony/i.test(padId)],
-    ['Mapping แบบ standard (ปุ่มตรงตำแหน่ง)', mapping === 'standard'],
+    ['รู้จักรุ่นจอย (DualShock 4 / Logitech F310 / F710 / Xbox)', !!padId && !!padKind(padId)],
+    ['Mapping แบบ standard (ปุ่มตรงตำแหน่ง)', mapping === 'standard' || /046d|logitech|dual action/i.test(padId || '')],
     ['ปุ่มที่ใช้ในเกมกดได้ครบ', ORDER.filter(i => !OPTIONAL.has(i)).every(i => done[i])],
     ['แกนซ้ายและขวาไปได้สุดทุกทิศ', lsDir.size === 4 && rsDir.size === 4],
     ['L2 / R2 กดได้สุด', trMax[0] > 0.9 && trMax[1] > 0.9],
@@ -158,39 +225,91 @@ function check() {
   try { const prevSave = JSON.parse(localStorage.getItem('dca-pad-test') || 'null'); if (all && (!prevSave || !prevSave.ok || prevSave.id !== padId)) localStorage.setItem('dca-pad-test', JSON.stringify({ ok: true, id: padId, mapping, ts: Date.now() })); } catch {}
 }
 const tested = g => { try { return !!JSON.parse(localStorage.getItem('dca-pad-tests') || '{}')[g.index + '|' + g.id]?.ok; } catch { return false; } };
+const duoPrev = {}; let indep = null, duoBuilt = false;
+const KIND_TH = { ps: 'DualShock 4', xb: 'Logitech / Xbox' };
+function duoBuild() {
+  $('duo').innerHTML = [1, 2].map(n => `<div class="joy" id="joy${n}">
+    <div class="row" style="justify-content:space-between"><b>Joy ${n} · ${n === 1 ? 'คนขับ' : 'คนยิง'}</b><span class="tag bad" id="j${n}st">ยังไม่เชื่อม</span></div>
+    <div class="mut small" id="j${n}name">ต่อจอยแล้วกดปุ่มใดก็ได้ 1 ครั้ง</div>
+    <div class="row" style="margin-top:6px"><svg viewBox="0 0 120 50" width="120" height="50" aria-label="แกน Joy ${n}"><circle class="ring" cx="25" cy="25" r="20"/><circle class="knob" id="j${n}l" cx="25" cy="25" r="6"/><circle class="ring" cx="95" cy="25" r="20"/><circle class="knob" id="j${n}r" cx="95" cy="25" r="6"/></svg>
+      <div class="small">กดอยู่: <b id="j${n}btn">—</b></div></div>
+    <div class="small" id="j${n}test"></div>
+    <button class="btn sec" data-go="${n - 1}" style="margin-top:6px">ทดสอบปุ่มละเอียด Joy ${n} ↓</button></div>`).join('');
+  $('duo').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { pick = +b.dataset.go; prev = []; restart(); pickKey = ''; $('detail').scrollIntoView({ behavior: 'smooth' }); });
+  duoBuilt = true;
+}
+const activeOf = g => { const v = padButtons(g); return v.some(x => x > 0.5) || g.axes.slice(0, 4).some(a => Math.abs(a) > 0.4); };
+function duo(pads, joys) {
+  if (!duoBuilt) duoBuild();
+  // ตั้ง Joy ด้วย Options/Start ค้าง + ✕/A หรือ ○/B
+  for (const g of pads) { const v = padButtons(g), pv = duoPrev[g.index] || []; if (v[9] > 0.5) for (const [bi, slot] of [[0, 'p1'], [1, 'p2']]) if (v[bi] > 0.5 && !(pv[bi] > 0.5)) { const r = loadRole(), o = slot === 'p1' ? 'p2' : 'p1'; if (r[o] === g.index) r[o] = null; r[slot] = g.index; saveRole(r); pickKey = ''; } duoPrev[g.index] = v; }
+  joys = joysOf(pads);
+  [1, 2].forEach(n => {
+    const g = joys[n - 1], st = $('j' + n + 'st'), card = $('joy' + n);
+    if (!g) { st.textContent = 'ยังไม่เชื่อม'; st.className = 'tag bad'; $('j' + n + 'name').textContent = n === 2 ? 'ต่อจอยตัวที่ 2 แล้วกดปุ่มใดก็ได้ 1 ครั้ง' : 'ต่อจอยแล้วกดปุ่มใดก็ได้ 1 ครั้ง'; $('j' + n + 'btn').textContent = '—'; $('j' + n + 'test').textContent = ''; card.classList.remove('act'); return; }
+    const k = padKind(g.id), v = padButtons(g), nm = k === 'xb' ? NAMES_XB : NAMES_PS;
+    st.textContent = 'เชื่อมแล้ว'; st.className = 'tag ok';
+    $('j' + n + 'name').textContent = `${KIND_TH[k] || 'จอยทั่วไป'} · ${g.id.replace(/\s*\(.*$/, '').slice(0, 34)} · ช่อง ${g.index}${g.mapping === 'standard' ? '' : ' · mapping ไม่ standard'}`;
+    const ax = i => (g.axes[i] || 0) * 14; $('j' + n + 'l').setAttribute('cx', 25 + ax(0)); $('j' + n + 'l').setAttribute('cy', 25 + ax(1)); $('j' + n + 'r').setAttribute('cx', 95 + ax(2)); $('j' + n + 'r').setAttribute('cy', 25 + ax(3));
+    const held = v.map((x, i) => x > 0.5 ? (nm[i] || i).replace(/ \(.*\)/, '') : null).filter(Boolean); $('j' + n + 'btn').textContent = held.length ? held.join(' ') : '—';
+    $('j' + n + 'test').innerHTML = tested(g) ? '<span class="ok">✓ ทดสอบปุ่มละเอียดผ่านแล้ว</span>' : '<span class="mut">ยังไม่ทดสอบปุ่มละเอียด</span>';
+    card.classList.toggle('act', activeOf(g));
+  });
+  // ทดสอบแยกอิสระ: แต่ละขั้น 4 วิ ใช้เฉพาะจอยที่กำหนด อีกตัวต้องไม่ขยับ
+  if (indep && indep.step <= 2) {
+    const me = joys[indep.step - 1], other = joys[2 - indep.step], el = (performance.now() - indep.t0) / 1000;
+    if (!me || !other) { indep = null; $('indepTxt').textContent = 'จอยหลุดระหว่างทดสอบ เริ่มใหม่อีกครั้ง'; }
+    else {
+      const PREP = 1.2, RUN = 4;  // ช่วงเตรียม: ให้ปล่อยมือจากจอยก่อนหน้า ยังไม่นับ
+      if (el >= PREP) { if (activeOf(me)) indep.self = true; if (activeOf(other)) indep.other = true; }
+      $('indepTxt').innerHTML = el < PREP ? `<b>เตรียม ขั้น ${indep.step}/2: ปล่อยมือจากทุกจอย แล้วจับ Joy ${indep.step}</b>` : `<b>ขั้น ${indep.step}/2: กดปุ่มและโยกแกนบน Joy ${indep.step} เท่านั้น ห้ามแตะ Joy ${3 - indep.step}</b> · ${Math.max(0, PREP + RUN - el).toFixed(1)} วิ`;
+      if (el >= PREP + RUN) {
+        const ok = indep.self && !indep.other;
+        indep.res.push([`Joy ${indep.step}: ${ok ? 'ทำงานแยกอิสระ ✓' : !indep.self ? 'ไม่เห็นการกดบนจอยนี้ ✗' : `Joy ${3 - indep.step} ขยับตามด้วย ✗ (อาจเป็นจอยตัวเดียวถูกเห็นเป็น 2 ตัว หรือมีคนแตะอีกตัว)`}`, ok]);
+        if (indep.step === 1) indep = { ...indep, step: 2, t0: performance.now(), self: false, other: false };
+        else { const all = indep.res.every(r => r[1]); $('indepTxt').innerHTML = all ? '<b class="ok">Joy 1 และ Joy 2 ทำงานแยกกันอิสระ พร้อมซ้อม 2 คน ✓</b>' : '<b class="bad">ยังไม่ผ่าน ลองใหม่อีกครั้ง</b>';
+          if (all) try { localStorage.setItem('dca-pad-indep', JSON.stringify({ ok: true, ids: joys.map(g => g.id), ts: Date.now() })); } catch {}
+          indep.step = 3; }
+      }
+      $('indepRes').innerHTML = indep ? indep.res.map(([t, ok]) => `<li><b class="${ok ? 'ok' : 'bad'}">${ok ? '✓' : '✗'}</b><span>${t}</span></li>`).join('') : '';
+    }
+  }
+}
+$('indepBtn').onclick = () => { const j = joysOf([...(navigator.getGamepads?.() || [])].filter(g => g && g.connected)); if (!j[0] || !j[1]) { $('indepTxt').textContent = 'ต้องต่อจอยให้ครบ 2 ตัวก่อน'; return; } indep = { step: 1, t0: performance.now(), self: false, other: false, res: [] }; $('indepRes').innerHTML = ''; };
+$('swapBtn').onclick = () => { const j = joysOf([...(navigator.getGamepads?.() || [])].filter(g => g && g.connected)); if (!j[0] || !j[1]) { $('indepTxt').textContent = 'ต้องต่อจอยให้ครบ 2 ตัวก่อนถึงจะสลับได้'; return; } saveRole({ p1: j[1].index, p2: j[0].index }); pickKey = ''; $('indepTxt').textContent = 'สลับ Joy 1 ↔ 2 แล้ว (simulator ใช้ค่าเดียวกัน)'; };
 function loop() {
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
-  if (pads.length && pick >= pads.length) pick = 0;
-  const key = pads.map(g => g.index + (tested(g) ? 'y' : 'n')).join() + '|' + pick;
-  if (key !== pickKey) { pickKey = key; $('padPick').innerHTML = pads.length > 1 ? pads.map((g, i) => `<button class="btn ${i === pick ? '' : 'sec'}" data-pick="${i}">ทดสอบจอย ${i + 1} ${i === 0 ? '(คนขับ)' : i === 1 ? '(คนยิง)' : ''}${tested(g) ? ' ✓' : ''}</button>`).join('') + '<span class="mut">ทดสอบให้ผ่านทีละตัว · ✓ = ผ่านแล้ว · กด "เริ่มทดสอบใหม่" ได้ทุกเมื่อ</span>' : '';
+  const joys = joysOf(pads); duo(pads, joys);
+  const key = joys.map(g => g ? g.index + (tested(g) ? 'y' : 'n') : '-').join() + '|' + pick;
+  if (key !== pickKey) { pickKey = key; $('padPick').innerHTML = [0, 1].map(i => `<button class="btn ${i === pick ? '' : 'sec'}" data-pick="${i}">ทดสอบ Joy ${i + 1} ${i === 0 ? '(คนขับ)' : '(คนยิง)'}${joys[i] && tested(joys[i]) ? ' ✓' : joys[i] ? '' : ' · ยังไม่เชื่อม'}</button>`).join('') + '<span class="mut small">ทดสอบให้ผ่านทีละตัว · ✓ = ผ่านแล้ว</span>';
     $('padPick').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { pick = +b.dataset.pick; prev = []; restart(); }); }
-  const p = pads[pick];
+  const p = joys[pick]; $('slotName').textContent = `· Joy ${pick + 1}`;
   if (p) {
-    everSeen = true; padId = p.id; mapping = p.mapping; padIdx = p.index;
+    everSeen = true; padId = p.id; mapping = p.mapping; padIdx = p.index; if (kindSel === 'auto') applyKind(padKind(p.id) || 'ps'); const bv = padButtons(p);
     $('connStatus').textContent = 'เชื่อมต่อแล้ว ✓'; $('connStatus').className = 'status ok';
-    $('connDetail').textContent = `${p.id} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${p.buttons.length} · แกน ${p.axes.length}${pads.length > 1 ? ` · พบจอย ${pads.length} ตัว กำลังทดสอบจอย ${pick + 1}` : ''}`;
-    p.buttons.forEach((b, i) => {
-      const v = b.value > 0.5 || b.pressed, el = $('b' + i); if (el) el.classList.toggle('on', v);
+    $('connDetail').textContent = `${p.id} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${p.buttons.length} · แกน ${p.axes.length} · กำลังทดสอบ Joy ${pick + 1}`;
+    bv.forEach((bval, i) => {
+      const v = bval > 0.5, el = $('b' + i); if (el) el.classList.toggle('on', v);
       if (v && !prev[i]) { if (seq < ORDER.length && ORDER[seq] === i) { done[i] = true; seq++; promptTxt(); chips(); } else if (ORDER.includes(i) && !done[i] && seq < ORDER.length) { /* ปุ่มอื่นยังไม่ถึงคิว */ } }
       prev[i] = v;
     });
     const [lx, ly, rx, ry] = [p.axes[0] || 0, p.axes[1] || 0, p.axes[2] || 0, p.axes[3] || 0];
     $('ls').setAttribute('cx', 185 + lx * 18); $('ls').setAttribute('cy', 195 + ly * 18); $('rs').setAttribute('cx', 335 + rx * 18); $('rs').setAttribute('cy', 195 + ry * 18);
     dirOf(lx, ly).forEach(d => lsDir.add(d)); dirOf(rx, ry).forEach(d => rsDir.add(d));
-    const l2 = p.buttons[6]?.value ?? 0, r2 = p.buttons[7]?.value ?? 0; trMax = [Math.max(trMax[0], l2), Math.max(trMax[1], r2)];
+    const l2 = bv[6] ?? 0, r2 = bv[7] ?? 0; trMax = [Math.max(trMax[0], l2), Math.max(trMax[1], r2)];
     $('axesTxt').textContent = `แกนซ้าย ${lx.toFixed(2)}, ${ly.toFixed(2)} · แกนขวา ${rx.toFixed(2)}, ${ry.toFixed(2)}`; $('trigTxt').textContent = `L2 ${l2.toFixed(2)} · R2 ${r2.toFixed(2)}`;
     $('lsTxt').textContent = `${lsDir.size}/4`; $('lsBar').style.width = lsDir.size * 25 + '%'; $('rsTxt').textContent = `${rsDir.size}/4`; $('rsBar').style.width = rsDir.size * 25 + '%';
     $('trTxt').textContent = `L2 สูงสุด ${trMax[0].toFixed(2)} · R2 สูงสุด ${trMax[1].toFixed(2)}`; $('trBar').style.width = Math.min(trMax[0], trMax[1]) * 100 + '%';
     if (drift && drift.res == null) { drift.max = Math.max(drift.max, Math.abs(lx), Math.abs(ly), Math.abs(rx), Math.abs(ry)); const el = (performance.now() - drift.t0) / 1000; if (el >= 3) { drift.res = drift.max; $('driftTxt').textContent = `ค่าสูงสุดตอนปล่อยมือ ${drift.max.toFixed(3)} ${drift.max < 0.1 ? '· ผ่าน ✓' : '· สูงเกิน 0.10 แกนมีอาการ drift'}`; $('driftTxt').className = drift.max < 0.1 ? 'ok' : 'bad'; } else $('driftTxt').textContent = `ปล่อยมือจากแกน… ${(3 - el).toFixed(1)} วิ`; }
   } else {
     padId = null; mapping = null;
-    $('connStatus').textContent = everSeen ? 'จอยหลุดการเชื่อมต่อ ✗' : 'ยังไม่พบจอย'; $('connStatus').className = 'status bad';
+    $('connStatus').textContent = pads.length ? `Joy ${pick + 1} ยังไม่เชื่อม` : everSeen ? 'จอยหลุดการเชื่อมต่อ ✗' : 'ยังไม่พบจอย'; $('connStatus').className = 'status bad';
     $('connDetail').textContent = everSeen ? 'ตรวจแบตเตอรี่และ Bluetooth แล้วกดปุ่มบนจอยอีกครั้ง' : 'จับคู่ Bluetooth (Share + PS ค้าง) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง';
   }
   promptTxt(); check(); requestAnimationFrame(loop);
 }
 addEventListener('gamepadconnected', () => { everSeen = true; });
-chips(); promptTxt(); loop();
+applyKind('ps'); chips(); promptTxt(); loop();
 </script>
 </body>
 </html>
