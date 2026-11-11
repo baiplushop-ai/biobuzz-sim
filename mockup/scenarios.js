@@ -330,15 +330,15 @@ window.SCENARIOS = {
   ],
 },
 'D1.5': {
-  role: 'driver', title: 'ยิงตามกฎ: หยุดก่อนยิง',
-  brief: 'ยิงได้เฉพาะเมื่ออยู่ในวงแหวนจุดยิง (ห่าง CELL ที่หงาย 0.9–1.6 ม.) หันตรง CELL ไม่เกิน 10° และหยุดนิ่งสนิท ถ้ากดยิงตอนยังไม่พร้อมจะนับเป็นความผิดพลาด ยิงเข้า 8 ลูก จากอย่างน้อย 2 จุด',
+  role: 'driver', title: 'หยุดก่อนยิง (ไม่มีล็อกยิง)',
+  brief: 'กดยิงได้ทุกที่ ไม่มีการล็อก ลูกจะเข้าหรือไม่เข้าตามวิถีจริง ฝึกนิสัยยิงให้ถูก: อยู่ในวงแหวนจุดยิง (ห่าง CELL ที่หงาย 0.9–1.6 ม.) หันตรง CELL ไม่เกิน 10° และหยุดนิ่งสนิทก่อนกด ถ้ากดยิงตอนยังไม่พร้อมจะนับเป็นความผิดพลาด ยิงเข้า 8 ลูก จากอย่างน้อย 2 จุด',
   start: 120, opt: { bots: false },
   setup(api) { ['B1', 'B2'].forEach(api.bench); api.ai('R2', { mode: 'idle' }); api.parkNow('R2'); api.scatter(16, RED_HALF); },
-  status: api => `ยิงเข้า ${api.S.stats.hits}/8 · กดยิงตอนไม่พร้อม ${api.S.stats.blocked} ครั้ง`,
+  status: api => `ยิงเข้า ${api.S.stats.hits}/8 · กดยิงตอนไม่พร้อม ${api.S.stats.blocked + (api.S.stats.warnShots || 0)} ครั้ง`,
   end: api => api.S.stats.hits >= 8,
   obj: [
     { t: 'ยิงเข้า CELL 8 ลูก', ok: S => S.stats.hits >= 8 },
-    { t: 'กดยิงตอนยังไม่พร้อมไม่เกิน 3 ครั้ง', ok: S => S.stats.blocked <= 3, live: true },
+    { t: 'กดยิงตอนยังไม่พร้อมไม่เกิน 3 ครั้ง', ok: S => S.stats.blocked + (S.stats.warnShots || 0) <= 3, live: true },
     { t: 'ยิงจากจุดยิงอย่างน้อย 2 จุด', ok: S => S.robots[0].shotSpots.length >= 2 },
   ],
 },
@@ -389,6 +389,80 @@ window.SCENARIOS = {
     { t: 'R1 ไม่โดน FOUL หรือคำเตือนเลย', ok: S => !S.fouls.some(f => f.by === 'R1'), live: true },
     { t: 'SWARM: LEAVE + PARK ≥ 16 แต้ม', ok: S => S.end && S.stats.leavePark.red >= 16 },
     { t: 'เลือด R1 เหลืออย่างน้อย 80%', ok: S => S.robots[0].hp >= 80, live: true },
+  ],
+},
+// ---------------- Operator ----------------
+// คนคุม intake / launcher (Joy 2) ฝึกกับเหตุการณ์แบบสนามจริง: ดูดลูกมีดีเลย์ · โดนชนแล้วหุ่นไถล · คู่แข่งเข้ามาเบียดแย่งลูก
+'O1.1': {
+  role: 'operator', title: 'ดูดลูกให้ติด (intake มีดีเลย์)',
+  brief: 'intake ของหุ่นจริงไม่ได้ดูดลูกติดทันที ต้องประคองลูกให้อยู่หน้า intake ประมาณครึ่งวินาที (ดูแถบ "กำลังดูดลูก" ที่แผงซ้าย) ถ้าวิ่งผ่านเร็วเกินไปลูกจะหลุด เก็บ POLLEN ให้ได้ 10 ลูกใน 60 วิ ลูกที่เก็บจะถูกนับแล้วหายไปจากหุ่น',
+  start: 60, opt: { bots: false, intakeDelay: true, noClockRules: true },
+  setup(api) { api.resetBalls(); BENCH_ALL(api); api.carry('R1', []); api.scatter(14, RED_HALF); api.randomPoints(2, RED_HALF, 0.4).forEach(p => api.floor('nectar', 'blue', p[0], p[1])); api.S.sc.n = 0; },
+  onPickup(api, r, bi) { if (r.id === 'R1' && api.S.balls[bi].kind === 'pollen') { api.S.sc.n++; api.vanish(bi); } },
+  status: api => `เก็บแล้ว ${api.S.sc.n}/10 · ชนกำแพงแรง ${api.S.stats.wallHits} ครั้ง`,
+  end: api => api.S.sc.n >= 10,
+  obj: [
+    { t: 'เก็บ POLLEN 10 ลูกภายใน 60 วิ (ดูดจนติดจริง)', ok: S => S.sc.n >= 10 },
+    { t: 'ไม่เก็บ NECTAR คู่แข่ง (G408)', ok: S => S.stats.g408.red === 0, live: true },
+    { t: 'ชนกำแพงแรงไม่เกิน 3 ครั้ง', ok: S => S.stats.wallHits <= 3, live: true },
+  ],
+},
+'O1.2': {
+  role: 'operator', title: 'ยิงอิสระ: เข้าไม่เข้าตามจริง',
+  brief: 'ไม่มีการล็อกยิง กดยิงได้ทุกที่ทุกจังหวะ ลูกจะเข้า CELL หรือไม่ขึ้นกับระยะ มุม และความเร็วของหุ่นตอนกด (ยิงตอนหุ่นยังไถล ลูกจะเบี้ยวตาม) ยิงเข้าให้ได้ 8 ลูก โดยความแม่นไม่ต่ำกว่า 60% ใช้เส้นวิถีช่วยเล็ง แล้วหยุดให้นิ่งก่อนกด',
+  start: 120, opt: { bots: false, intakeDelay: true, traj: true },
+  setup(api) { ['B1', 'B2'].forEach(api.bench); api.parkNow('R2'); api.carry('R1', ['pollen', 'pollen']); api.scatter(18, RED_HALF); },
+  status: api => { const s = api.S.stats; return `ยิงเข้า ${s.hits}/8 · ยิงไป ${s.shots} ลูก · แม่น ${s.shots ? Math.round(s.hits / s.shots * 100) : 0}%`; },
+  end: api => api.S.stats.hits >= 8,
+  obj: [
+    { t: 'ยิงเข้า CELL 8 ลูกภายใน 2:00', ok: S => S.stats.hits >= 8 },
+    { t: 'ความแม่นอย่างน้อย 60%', ok: S => S.stats.shots >= 8 && S.stats.hits / S.stats.shots >= 0.6 },
+    { t: 'ยิงจากจุดยิงอย่างน้อย 2 จุด', ok: S => S.robots[0].shotSpots.length >= 2 },
+  ],
+},
+'O2.1': {
+  role: 'operator', title: 'โดนเบียดแล้วยังคุมหุ่นได้',
+  brief: 'หุ่นน้ำเงิน B1 จะเข้ามาชนและเบียดเป็นระยะ โดนชนแล้วหุ่นเราจะไถล หมุน และสั่น เหมือนของจริง หน้าที่ของ Operator คือรอให้หุ่นนิ่งก่อนค่อยยิง อย่ากดตอนกำลังโดนเบียด ยิงเข้าให้ได้ 6 ลูก รักษาเลือดไว้ ≥ 60% และอย่าเบียดคู่แข่งติดกำแพงเกิน 3 วิ (PIN G421)',
+  start: 120, opt: { bots: false, intakeDelay: true, shove: true, health: true },
+  setup(api) { api.bench('B2'); api.parkNow('R2'); api.carry('R1', ['pollen', 'pollen']); api.scatter(16, RED_HALF); api.pos('B1', -0.2, 0.2, -Math.PI / 2); api.carry('B1', []); api.ai('B1', { mode: 'contest', target: 'R1' }); },
+  status: api => { const S = api.S; return `ยิงเข้า ${S.stats.hits}/6 · โดนชน ${S.stats.collisions} ครั้ง · เลือด ${S.robots[0].hp}%`; },
+  end: api => api.S.stats.hits >= 6,
+  obj: [
+    { t: 'ยิงเข้า CELL 6 ลูก ขณะโดนเบียด', ok: S => S.stats.hits >= 6 },
+    { t: 'เลือด R1 เหลืออย่างน้อย 60%', ok: S => S.robots[0].hp >= 60, live: true },
+    { t: 'ไม่โดน PIN (G421)', ok: (S, api) => api.foulCount('red', 'G421') === 0, live: true },
+  ],
+},
+'O2.2': {
+  role: 'operator', title: 'แย่งลูกกับคู่แข่ง',
+  brief: 'POLLEN 16 ลูกกองอยู่กลางสนามฝั่งแดง หุ่นน้ำเงิน B1 จะวิ่งเข้ามาแย่งลูกที่เรากำลังจะเก็บ และเบียดเราออกจากกอง เก็บให้ได้อย่างน้อย 8 ลูก และมากกว่า B1 ภายใน 75 วิ ลูกที่เก็บจะถูกนับแล้วหายไป เทคนิค: เอาตัวหุ่นบังลูก แล้วประคองให้ intake ดูดจนติด',
+  start: 75, opt: { bots: false, intakeDelay: true, shove: true, noClockRules: true },
+  setup(api) {
+    api.resetBalls(); api.bench('R2'); api.bench('B2'); api.carry('R1', []);
+    api.scatter(16, { xMin: -1.25, xMax: -0.45, zMin: -0.8, zMax: 0.8 });
+    api.pos('R1', -1.5, 0, -Math.PI / 2); api.pos('B1', -0.1, 0.9, Math.PI / 2); api.ai('B1', { mode: 'contest', target: 'R1', v: 0.75, pause: 8 });
+    api.S.sc.n = 0; api.S.sc.opp = 0;
+  },
+  onPickup(api, r, bi) { if (api.S.balls[bi].kind !== 'pollen') return; if (r.id === 'R1') api.S.sc.n++; else api.S.sc.opp++; api.vanish(bi); },
+  status: api => `เราเก็บได้ ${api.S.sc.n} · B1 เก็บได้ ${api.S.sc.opp} · เหลือบนพื้น ${api.S.balls.filter(b => b.where === 'floor' && b.kind === 'pollen').length}`,
+  end: api => api.S.sc.n + api.S.sc.opp >= 16,
+  obj: [
+    { t: 'เก็บ POLLEN อย่างน้อย 8 ลูก', ok: S => S.sc.n >= 8 },
+    { t: 'เก็บได้มากกว่า B1', ok: S => S.sc.n > S.sc.opp, live: true },
+    { t: 'ไม่โดน PIN (G421)', ok: (S, api) => api.foulCount('red', 'G421') === 0, live: true },
+  ],
+},
+'O3.1': {
+  role: 'operator', title: 'สอบ Operator: TELEOP 2:00 มีคู่แข่งตามเบียด',
+  brief: 'TELEOP เต็ม 2:00 หุ่น AI ครบ 3 ตัว โดย B1 ตามเบียดและแย่งลูกเราตลอดแมตช์ intake มีดีเลย์ ยิงไม่มีล็อก โดนชนแล้วหุ่นไถล Operator ต้องจัดการลูกในหุ่น (ไม่เกิน 4 ลูก) เลือกจังหวะยิงตอนหุ่นนิ่ง และกลับไป PARK ให้ทัน',
+  start: 120, opt: { intakeDelay: true, shove: true, health: true },
+  setup(api) { api.ai('B1', { mode: 'contest', target: 'R1' }); },
+  status: api => { const s = api.S.stats; return `TIP แดง ${s.tips.red} · R1 ยิงเข้า ${api.S.robots[0].hits || 0}/${api.S.robots[0].shots || 0} · เลือด ${api.S.robots[0].hp}%`; },
+  obj: [
+    { t: 'HIVE แดง TIP อย่างน้อย 3 ครั้ง', ok: (S, api) => api.tips('red') >= 3 },
+    { t: 'R1 ยิงแม่นอย่างน้อย 60% (ยิงอย่างน้อย 8 ลูก)', ok: S => (S.robots[0].shots || 0) >= 8 && (S.robots[0].hits || 0) / S.robots[0].shots >= 0.6 },
+    { t: 'เลือด R1 เหลืออย่างน้อย 60%', ok: S => S.robots[0].hp >= 60, live: true },
+    { t: 'R1 ไม่โดน FOUL หรือคำเตือนเลย', ok: S => !S.fouls.some(f => f.by === 'R1'), live: true },
   ],
 },
 // ---------------- Human Player ----------------

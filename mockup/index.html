@@ -52,6 +52,12 @@
   #ds .row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px }
   .hidden { display:none !important }
   input[type=range] { width:100% }
+  #netBar { position:fixed; top:0; left:0; right:0; z-index:6; height:32px; display:flex; gap:16px; align-items:center; justify-content:center; padding:0 10px; background:#0b1626; border-bottom:1px solid var(--line); font-size:13px; white-space:nowrap; overflow:hidden }
+  #netBar button { padding:2px 9px; font-size:12px } #netBar .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px }
+  body.online .hud, body.online #overlay { top:32px }
+  body.nopanel #left, body.nopanel #right { display:none }
+  @media (max-width:1440px), (max-height:820px) { .panel { font-size:13px; padding:8px 10px } #left { width:230px } #right { width:250px } #top .t { font-size:24px } #top .s { font-size:22px } #overlay .box { padding:14px 18px } }
+  @media (max-width:1150px) { #netBar { gap:10px; font-size:12px } #netBar .opt { display:none } }
   @media (max-width:900px) { #left { width:200px; font-size:12px } #right { width:220px; font-size:12px } #top .t { font-size:22px } #top .s { font-size:18px } #bottom { display:none } }
 </style>
 </head>
@@ -63,17 +69,18 @@
     <div><div class="s blue" id="sBlue">0</div><div class="ph">BLUE</div></div>
   </div>
   <div id="left" class="panel">
-    <h4>หุ่นของเรา (RED 1)</h4>
+    <h4 id="myHdr">หุ่นของเรา (RED 1)</h4>
     <div>พลังชีวิต <span id="hpTxt">100%</span></div><div class="bar"><div id="hp" style="width:100%"></div></div>
     <div>ลูกที่ถือ <span id="carryTxt">0/4</span> <span class="mut">(G407)</span></div><div class="slots" id="slots"></div>
-    <div>Intake <b id="intakeTxt">เปิด</b> · <span id="spd">0.00</span> m/s · <span id="drvTxt"></span></div>
+    <div>Intake <b id="intakeTxt">เปิด</b><div class="bar" id="pickBar" style="display:none;height:6px"><div id="pick" style="width:0%;background:var(--grn)"></div></div> · <span id="spd">0.00</span> m/s · <span id="drvTxt"></span></div>
     <div style="margin-top:6px">การยิง: <b id="gate">—</b></div>
     <div id="gateWhy" style="font-size:12px" class="mut"></div>
     <div id="pinTxt" class="bad" style="font-size:13px;font-weight:700"></div>
-    <div id="loadBox"><h4>HIVE แดง · CELL ที่หงาย</h4><div>น้ำหนักใน CELL <span id="loadTxt">0 / 7.4</span></div><div class="bar"><div id="load" style="width:0%;background:var(--yel)"></div></div></div>
-    <div>TIP แดง <b id="tips">0</b> · Human Player มี NECTAR <b id="stash">5</b> <span id="credit" class="mut"></span></div>
+    <div id="loadBox"><h4 id="hiveHdr">HIVE แดง · CELL ที่หงาย</h4><div>น้ำหนักใน CELL <span id="loadTxt">0 / 7.4</span></div><div class="bar"><div id="load" style="width:0%;background:var(--yel)"></div></div></div>
+    <div><span id="tipLbl">TIP แดง</span> <b id="tips">0</b></div>
+    <div id="hpBox" style="margin-top:3px;padding:4px 6px;border:1px solid var(--line,#444);border-radius:6px">🧑 Human Player เหลือ NECTAR <b id="stash" style="font-size:16px;color:var(--yel)">5</b> ลูก <span id="stashDots"></span><br><span id="credit" class="mut"></span></div>
     <div id="projTxt" class="mut" style="font-size:12px;margin-top:4px"></div>
-    <h4>FOUL / คำเตือน ของแดง</h4><div id="fouls" class="foul">—</div>
+    <h4 id="foulHdr">FOUL / คำเตือน ของแดง</h4><div id="fouls" class="foul">—</div>
   </div>
   <div id="right" class="panel">
     <div id="scnBox"></div>
@@ -84,7 +91,7 @@
       <div><span class="k">R1</span>ยิง POLLEN <span class="k">L1</span>ยิง NECTAR</div>
       <div><span class="k">R2</span>วาง NECTAR <span class="k">L2</span>วาง POLLEN ใน FLOWER</div>
       <div><span class="k">✕</span>intake <span class="k">○</span>คายลูก <span class="k">Share</span>กล้อง <span class="k">Options</span>เริ่ม/หยุด</div>
-      <div class="mut" style="margin-top:4px">คีย์บอร์ด: WASD เดิน · Q/E หมุน · Shift ช้า · Space ยิง POLLEN · N ยิง NECTAR · 1/2 วาง POLLEN/NECTAR · F intake · G คาย · C กล้อง · Enter เริ่ม/หยุด</div>
+      <div class="mut" style="margin-top:4px">คีย์บอร์ด (laptop / PC เล่นได้โดยไม่ต้องมีจอย): WASD หรือ ↑ ↓ เดิน · A / D สไลด์ · Q / E หรือ ← → หมุน · Shift ช้า · Space ยิง POLLEN · N ยิง NECTAR · 1 / 2 วาง POLLEN / NECTAR · F intake · G คาย · C กล้อง · X ซ่อน/แสดงแผงข้าง · Enter เริ่ม/หยุด</div>
       <div class="mut">Human Player ปล่อย NECTAR: H หรือ △ / Y บนจอยตัวไหนก็ได้ (เมื่อตั้งให้กดเอง)</div>
       <div class="mut">ปุ่มโค้ช: B ประกาศเวลา · P ทาย TIP · Y ยืนยัน · H Human Player ปล่อย NECTAR</div>
       <div id="driveHelp"></div>
@@ -92,7 +99,7 @@
       <div style="margin-top:6px"><b>จอย 2 ตัว (คุมหุ่นตัวเดียวกัน)</b> <select id="padMode" style="font:inherit"><option value="split">แยกกัน: Joy 1 ขับ · Joy 2 ยิง</option><option value="both">ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
       <div class="mut">แบ่งหน้าที่: Joy 1 ใช้ L / R / □ ขับ · Joy 2 (คนยิง) ใช้ R1 L1 R2 L2 ✕ ○ ยิง วาง intake คาย · Share / Options ใช้ได้ทั้งคู่</div>
       <div class="mut">สลับจอย: กด Options ค้าง + ✕ = ตั้งเป็น Joy 1 · Options ค้าง + ○ = Joy 2 (เหมือน Start+A / Start+B ใน Driver Station)</div>
-      <div id="padTxt" class="bad" style="margin-top:4px">ไม่พบจอย กดปุ่มใดก็ได้บน DualShock 4</div><div><a href="gamepad-test.html" target="_blank" style="color:var(--yel)">เปิดหน้าทดสอบจอย ↗</a></div>
+      <div id="padTxt" class="mut" style="margin-top:4px">ไม่พบจอย · เล่นด้วยคีย์บอร์ดได้เลย (ต่อจอยแล้วกดปุ่มใดก็ได้เพื่อใช้จอย)</div><div><a href="gamepad-test.html" target="_blank" style="color:var(--yel)">เปิดหน้าทดสอบจอย ↗</a></div>
     </details>
   </div>
   <div id="ds" class="panel hidden">
@@ -104,11 +111,12 @@
     </div>
   </div>
   <div id="msg" class="panel"></div>
-  <div id="bottom" class="panel">ลากเมาส์ = หมุนกล้องรอบสนาม · ล้อเมาส์ = ซูม · <span class="k">C</span> เปลี่ยนกล้อง · <a href="../coach-training/index.html" style="color:var(--yel);pointer-events:auto">← กลับหน้าบทเรียน</a></div>
+  <div id="bottom" class="panel">ลากเมาส์ = หมุนกล้องรอบสนาม · ล้อเมาส์ = ซูม · <span class="k">C</span> เปลี่ยนกล้อง · <span class="k">X</span> ซ่อนแผง · <a href="#" id="fsBtn" style="color:var(--yel);pointer-events:auto">⛶ เต็มจอ</a> · <a href="../coach-training/index.html" style="color:var(--yel);pointer-events:auto">← กลับหน้าบทเรียน</a></div>
 </div>
 <div id="overlay"><div class="box" id="ovBox"></div></div>
+<div id="netBar" class="hidden"></div>
 
-<script src="scenarios.js"></script>
+<script src="scenarios.js?v=1.9"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
@@ -133,19 +141,19 @@ const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { p
 const AUTO_LEN = 30, TRANS_LEN = 8, MATCH_LEN = 158;
 const LZ_Z = { red: -0.8954, blue: 0.8954 };
 const START = { R1: [-F.half + HSW + 0.001, 0.15, -Math.PI / 2], R2: [-F.half + HSW + 0.001, -1.45, -Math.PI / 2], B1: [F.half - HSW - 0.001, -0.15, Math.PI / 2], B2: [F.half - HSW - 0.001, 1.45, Math.PI / 2] };
-const DEFAULT_OPT = { autoStop: true, traj: false, gate: true, health: true, simple: false, bots: true, hideClock: false, hideLoad: false, lockCam: null, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
+const DEFAULT_OPT = { autoStop: true, traj: false, gate: false, health: true, intakeDelay: false, rival: false, simple: false, bots: true, hideClock: false, hideLoad: false, lockCam: null, shove: true, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
 const DEFAULT_AUTO = { R1: [{ goto: 'spot' }, { shoot: 4 }], R2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }], B1: [{ goto: 'spot' }, { shoot: 4 }], B2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }] };
 const STOP = { vx: 0, vz: 0, w: 0 };
 // ค่าการขับของหุ่นเรา (ตั้งใน Free Control ให้ตรงกับหุ่นจริง และใช้กับทุกสถานการณ์)
 const DEFAULT_DRIVE = { vmax: 1.6, acc: 4.5, wmax: 3.2, strafe: 0.8, curve: 'square', dead: 0.1,
-  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6, padMode: 'split', driveMode: 'field', dead1: 0.1, dead2: 0.1, invY1: false, invY2: false }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
+  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6, intakeTime: 0.5, padMode: 'split', driveMode: 'field', dead1: 0.1, dead2: 0.1, invY1: false, invY2: false }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
 let DRV = { ...DEFAULT_DRIVE }; try { Object.assign(DRV, JSON.parse(localStorage.getItem('dca-drive-cfg') || '{}')); } catch {}
 if (DRV.dead1 == null) DRV.dead1 = DRV.dead; if (DRV.dead2 == null) DRV.dead2 = DRV.dead;
 const saveDrv = () => { try { localStorage.setItem('dca-drive-cfg', JSON.stringify(DRV)); } catch {} };
 // Field-centric: ดันขึ้น = ออกจากฝั่งเรา (ตามทิศสนาม) · กล้องตามหลังหุ่นใช้ robot-centric เสมอ
 const chaseCam = () => (S.opt.lockCam ?? S.cam) === 0;
 const fieldOn = () => DRV.driveMode !== 'robot' && !chaseCam();
-const curveFn = v => { const a = Math.abs(v), n = DRV.curve === 'linear' ? 1 : DRV.curve === 'cubic' ? 3 : 2; return Math.sign(v) * a ** n; };
+const curveFn = (v, D = DRV) => { const a = Math.abs(v), n = D.curve === 'linear' ? 1 : D.curve === 'cubic' ? 3 : 2; return Math.sign(v) * a ** n; };
 // จังหวะของหุ่น AI ให้ใกล้หุ่นจริง (cycle 4 ลูก ≈ 18–25 วิ)
 const AI = { collectV: 0.55, travelV: 0.8, pickPause: 1.5, aimPause: 1.0, shotGap: 0.8 };
 // ระดับบอท: ความเร็ววิ่ง, เวลาหยุดเก็บ/เล็ง/ระหว่างนัด, ความคลาดเคลื่อนการยิง (องศา, สัดส่วนความเร็ว), เวลาเริ่ม PARK
@@ -185,11 +193,19 @@ function newState() {
   };
 }
 let S = newState(), saved = null;
-const R1 = () => S.robots[0];
+let ME = 0, SAYTO = null;  // ME = หุ่นของเครื่องนี้ (ออนไลน์เลือกได้) · SAYTO = ผู้รับข้อความขณะประมวลผลหุ่นแต่ละตัว
+const NET = { role: null, says: [], inTick: false, inputs: {} };
+const R1 = () => S.robots[ME] || S.robots[0];
+const MY = () => R1().alliance;
+const drvOf = r => r.drv || DRV;
+const mine = to => to == null || to === R1().id || to === MY();
+const toR = id => NET.role ? id : null, netHum = id => !!NET.role && !!S.robots.find(r => r.id === id)?.human;
+const hpMan = c => S.opt.hpManual && (NET.role ? S.robots.some(r => r.human && !r.off && r.alliance === c) : c === 'red');
 const remaining = () => S.mode === 'free' ? 999 : MATCH_LEN - S.el;
 const phase = () => S.mode === 'free' ? 'teleop' : S.el < AUTO_LEN ? 'auto' : S.el < AUTO_LEN + TRANS_LEN ? 'trans' : 'teleop';
 const flowerOpen = () => S.mode === 'free' || S.opt.noClockRules || (phase() === 'teleop' && remaining() <= 60);
-const say = (m, t = 2.2) => { S.msg = m; S.msgT = t; };
+const say = (m, t = 2.2, to = SAYTO) => { if (mine(to)) { S.msg = m; S.msgT = t; } if (NET.role === 'host' && NET.inTick) NET.says.push([m, t, to]); };
+const sayMe = (m, t = 2.2) => { S.msg = m; S.msgT = t; };  // ข้อความเฉพาะเครื่องนี้ (ไม่ส่งให้เครื่องอื่นในห้องออนไลน์)
 const active = () => S.robots.filter(r => !r.off);
 const fwdOf = r => [-Math.sin(r.th), -Math.cos(r.th)];
 const faceTo = (x, z, tx, tz) => Math.atan2(-(tx - x), -(tz - z));
@@ -207,7 +223,7 @@ const stackTop = st => st.reduce((y, i) => y + 2 * rad(S.balls[i]), 0.01);
 function upCellCenter(c) { const h = S.hives[c], a = h.angle; return { x: H.pivotX[c], y: H.pivotY + Math.abs(Math.sin(a)) * H.cellDist + 0.12, z: h.up * Math.cos(a) * H.cellDist }; }
 
 // FOUL: sev = MINOR (5) / MAJOR (20) / WARN (เตือน 0 แต้ม)
-function foul(all, rule, sev, why, by = null) { const pts = sev === 'MAJOR' ? 20 : sev === 'MINOR' ? 5 : 0; S.fouls.push({ all, rule, sev, pts, why, by, rem: remaining() }); if (all === 'red') say(`${rule}: ${why}${pts ? ` (+${pts} ให้คู่แข่ง)` : ' (เตือน)'}`, 2.8); }
+function foul(all, rule, sev, why, by = null) { const pts = sev === 'MAJOR' ? 20 : sev === 'MINOR' ? 5 : 0; S.fouls.push({ all, rule, sev, pts, why, by, rem: remaining() }); if (all === 'red' || NET.role) say(`${rule}: ${why}${pts ? ` (+${pts} ให้คู่แข่ง)` : ' (เตือน)'}`, 2.8, NET.role ? all : null); }
 const foulPts = c => S.fouls.filter(f => f.all !== c).reduce((s, f) => s + f.pts, 0);
 const total = c => S.pts[c] + foulPts(c);
 
@@ -234,7 +250,7 @@ function bestSpot(r, ref) {
 // ----- ปืนยิงของหุ่นเรา: ลูกพุ่งตามทิศหน้าหุ่น ด้วยมุมยิงและความเร็วตามค่าปืน (ไม่เล็งให้เอง) -----
 const CELL_Y = H.pivotY + Math.sin(H.tilt) * H.cellDist + 0.12; // ความสูงเป้า (กลางปาก CELL ที่หงาย) ตอน HIVE นิ่ง
 function vNeed(d, h, al) { const den = 2 * Math.cos(al) ** 2 * (d * Math.tan(al) - h); return den > 0 ? Math.sqrt(G * d * d / den) : Infinity; }
-function launcherSpeed(dist) { const al = DRV.elev * Math.PI / 180; return DRV.vmode === 'fixed' ? DRV.vfix : clamp(vNeed(dist, CELL_Y - DRV.lh, al), DRV.vmin, DRV.vmax2); }
+function launcherSpeed(dist, D = DRV) { const al = D.elev * Math.PI / 180; return D.vmode === 'fixed' ? D.vfix : clamp(vNeed(dist, CELL_Y - D.lh, al), D.vmin, D.vmax2); }
 let rangeKey = '', rangeVal = null;
 function effRange() { // ระยะที่ปืนส่งลูกถึงกลางปาก CELL ได้ (คำนวณจากค่าปืน)
   const key = [DRV.elev, DRV.vmode, DRV.vmin, DRV.vmax2, DRV.vfix, DRV.lh].join(); if (key === rangeKey) return rangeVal;
@@ -242,7 +258,7 @@ function effRange() { // ระยะที่ปืนส่งลูกถึ�
   for (let d = 0.3; d <= 3.5; d += 0.005) { const v = vNeed(d, h, al), ok = DRV.vmode === 'fixed' ? Math.abs(v - DRV.vfix) <= DRV.vfix * 0.025 : v >= DRV.vmin && v <= DRV.vmax2; if (ok) { if (lo == null) lo = d; hi = d; } }
   rangeKey = key; rangeVal = lo == null ? null : { min: +lo.toFixed(2), max: +hi.toFixed(2) }; return rangeVal;
 }
-const gateLim = r => r.human ? { min: DRV.gateMin, max: DRV.gateMax } : { min: ROBOT.gateMin, max: ROBOT.gateMax };
+const gateLim = r => r.human ? { min: drvOf(r).gateMin, max: drvOf(r).gateMax } : { min: ROBOT.gateMin, max: ROBOT.gateMax };
 function gateCheck(r, o = {}) {
   const h = S.hives[r.alliance], lim = gateLim(r), strict = !r.human || S.opt.gate, issues = [];
   const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, d = Math.hypot(dx, dz), f = fwdOf(r);
@@ -258,14 +274,14 @@ function gateCheck(r, o = {}) {
   return { ok: true, warn: true, why: '⚠ ' + issues.join(' · ') + ' · ยิงได้ แต่อาจไม่เข้า' };
 }
 function shotStart(r) { // จุดปล่อยและความเร็วเริ่มต้น (ไม่มีความคลาดเคลื่อน) ของปืนหุ่นเรา
-  const f = fwdOf(r), sx = r.x + f[0] * 0.05, sz = r.z + f[1] * 0.05, c = upCellCenter(r.alliance), al = DRV.elev * Math.PI / 180;
-  const v = launcherSpeed(Math.hypot(c.x - sx, c.z - sz)); return { x: sx, y: DRV.lh, z: sz, v, al, yaw: Math.atan2(f[0], f[1]) };
+  const f = fwdOf(r), sx = r.x + f[0] * 0.05, sz = r.z + f[1] * 0.05, c = upCellCenter(r.alliance), D = drvOf(r), al = D.elev * Math.PI / 180;
+  const v = launcherSpeed(Math.hypot(c.x - sx, c.z - sz), D); return { x: sx, y: D.lh, z: sz, v, al, yaw: Math.atan2(f[0], f[1]) };
 }
 // ตรวจว่าลูกชนใต้ CELL ที่หงายหรือไม่ (ลูกขาขึ้นใต้พื้น CELL)
 function underCell(b, py) { for (const c of ['red', 'blue']) { const u = upCellCenter(c), fy = u.y - 0.16; if (b.vy > 0 && py < fy && b.y >= fy && Math.abs(b.x - u.x) < H.cellW / 2 && Math.abs(b.z - u.z) < H.cellD / 2) return c; } return null; }
 function inCell(b, c) { const u = upCellCenter(c); return b.vy < 0 && Math.abs(b.x - u.x) < H.cellW / 2 && Math.abs(b.z - u.z) < H.cellD / 2 + 0.05 && b.y < u.y + 0.1 && b.y > u.y - 0.15; }
 function predictShot(r) { // จำลองวิถีลูกล่วงหน้า สำหรับเส้นจุดปะ
-  const s0 = shotStart(r), b = { x: s0.x, y: s0.y, z: s0.z, vx: Math.sin(s0.yaw) * s0.v * Math.cos(s0.al), vz: Math.cos(s0.yaw) * s0.v * Math.cos(s0.al), vy: s0.v * Math.sin(s0.al) }, pts = [[b.x, b.y, b.z]], dt = 0.01;
+  const s0 = shotStart(r), b = { x: s0.x, y: s0.y, z: s0.z, vx: Math.sin(s0.yaw) * s0.v * Math.cos(s0.al) + r.vx, vz: Math.cos(s0.yaw) * s0.v * Math.cos(s0.al) + r.vz, vy: s0.v * Math.sin(s0.al) }, pts = [[b.x, b.y, b.z]], dt = 0.01;
   for (let t = 0; t < 3; t += dt) {
     const py = b.y; b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; pts.push([b.x, b.y, b.z]);
     if (underCell(b, py)) return { pts, res: 'under', x: b.x, y: b.y, z: b.z, v: s0.v };
@@ -283,36 +299,47 @@ function launch(r, kind, o = {}) {
   if (r.human && g.warn) S.stats.warnShots = (S.stats.warnShots || 0) + 1;
   const b = S.balls[r.load.splice(li, 1)[0]];
   let sx, sy, sz, v, al, yaw;
-  if (r.human) { const s0 = shotStart(r); ({ x: sx, y: sy, z: sz, al } = s0); v = s0.v * (1 + gauss() * 0.015); yaw = s0.yaw + gauss() * 0.8 * Math.PI / 180; }
+  if (r.human) { const s0 = shotStart(r); ({ x: sx, y: sy, z: sz, al } = s0); v = s0.v * (1 + gauss() * 0.015); yaw = s0.yaw + gauss() * 0.8 * Math.PI / 180 + r.w * 0.04; }  // หมุนอยู่ = ลูกเบี้ยวตามทิศหมุนเล็กน้อย
   else {
     const c = upCellCenter(r.alliance), f = fwdOf(r); sx = r.x + f[0] * 0.05; sz = r.z + f[1] * 0.05; sy = ROBOT.launchH;
     const dx = c.x - sx, dz = c.z - sz, d = Math.hypot(dx, dz); al = ROBOT.elevDeg * Math.PI / 180;
     const lv = aiP(r); v = Math.min(vNeed(d, c.y - sy, al), 9) * (1 + gauss() * lv.vSd); yaw = Math.atan2(dx, dz) + gauss() * lv.yawSd * Math.PI / 180;
   }
-  Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al), vz: Math.cos(yaw) * v * Math.cos(al), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false });
+  Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al) + (r.human ? r.vx : 0), vz: Math.cos(yaw) * v * Math.cos(al) + (r.human ? r.vz : 0), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false });
   if (r.id === 'R1' && S.predict) { b.pred = true; S.predict = false; }
+  r.shots = (r.shots || 0) + 1;
   if (r.id === 'R1') { S.stats.shots++; S.events.push({ type: 'shot', el: S.el, rem: remaining() }); }
   if (!r.shotSpots.some(p => Math.hypot(p[0] - r.x, p[1] - r.z) < 0.8)) r.shotSpots.push([r.x, r.z]);
   if (r.load.length === 0) { if (r.hadBall) r.cycles.push(+(S.el - r.cycleStart).toFixed(1)); r.cycleStart = S.el; r.hadBall = false; }
   return true;
 }
-function takeIntoRobot(r, i) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); r.hadBall = true; if (!r.human) r.mem.busy = S.el + aiP(r).pickPause; }
+function takeIntoRobot(r, i) { Object.assign(S.balls[i], { where: 'carried', owner: r.id, vx: 0, vy: 0, vz: 0 }); r.load.push(i); r.hadBall = true; if (!r.human) { if (r.ai.mode === 'contest') r.mem.harass = S.el + (r.ai.pause ?? 2.5); else r.mem.busy = S.el + aiP(r).pickPause; } }
 // หุ่นที่มีระบบหยุดดูดเมื่อครบ 4 ลูก (แบบที่ G407 แนะนำ) · ถ้าปิด autoStop หุ่นเราดูดลูกที่ 5 ได้ แต่โดน G407
 const capOf = r => r.human && !S.opt.autoStop ? ROBOT.capacity + 1 : ROBOT.capacity;
-function pickup(r) {
-  if (!r.intake || r.dead) return;
+function pickup(r, dt = DT) {
+  if (!r.intake || r.dead) { r.pickP = 0; r.mem.pick = null; return; }
   const f = fwdOf(r), px = r.x + f[0] * (HS + 0.06), pz = r.z + f[1] * (HS + 0.06);
   if (r.load.length >= capOf(r)) {
     if (r.human && S.el > (r.mem.fullMsg || 0) && S.balls.some(b => b.where === 'floor' && !(b.cool > 0) && Math.hypot(b.x - px, b.z - pz) < ROBOT.intakeReach)) {
       r.mem.fullMsg = S.el + 3;
       say(r.load.length > ROBOT.capacity ? 'ถือ 5 ลูกอยู่ (G407) กด ○ คายออก 1 ลูกทันที' : 'หุ่นเต็ม 4/4 ระบบหยุดดูดเอง (G407) ยิงหรือคายออกก่อนถึงจะเก็บเพิ่มได้', 2);
     }
-    return;
+    r.pickP = 0; r.mem.pick = null; return;
   }
-  for (let i = 0; i < S.balls.length; i++) {
+  const inReach = i => { const b = S.balls[i]; return b && b.where === 'floor' && !(b.cool > 0) && Math.hypot(b.x - px, b.z - pz) < ROBOT.intakeReach && (r.human || b.kind !== 'nectar' || b.color === r.alliance); };
+  // เก็บแบบมีดีเลย์: ลูกต้องอยู่ที่ปาก intake ต่อเนื่องจนครบเวลา (หลุดออกก่อน = เริ่มนับใหม่) · เก็บทีละลูก
+  let pk = r.mem.pick; if (pk && !inReach(pk.i)) pk = r.mem.pick = null;
+  if (!pk) r.pickP = 0;
+  for (let i = pk ? pk.i : 0; i < S.balls.length; i++) {
     const b = S.balls[i];
-    if (b.where !== 'floor' || b.cool > 0 || Math.hypot(b.x - px, b.z - pz) >= ROBOT.intakeReach) continue;
-    if (!r.human && b.kind === 'nectar' && b.color !== r.alliance) continue;
+    if (!inReach(i)) continue;
+    if (S.opt.intakeDelay) {
+      const need = r.human ? (drvOf(r).intakeTime ?? 0.5) : 0.4;
+      if (!pk) pk = r.mem.pick = { i, t: 0 };
+      pk.t += dt; r.pickP = need > 0 ? Math.min(1, pk.t / need) : 1;
+      if (pk.t < need) return;
+      r.mem.pick = null; r.pickP = 0;
+    }
     takeIntoRobot(r, i);
     if (r.load.length > ROBOT.capacity) { r.mem.over = S.el; foul(r.alliance, 'G407', 'WARN', 'ถือเกิน 4 ลูก คายออกทันที (ถ้าทำซ้ำ/ถือนาน = MAJOR + ใบเหลือง)', r.id); }
     if (b.kind === 'nectar' && b.color !== r.alliance) { S.stats.g408[r.alliance]++; foul(r.alliance, 'G408', 'WARN', 'ห้ามควบคุม NECTAR ของคู่แข่ง คายออกทันที', r.id); }
@@ -343,7 +370,7 @@ function place(r, kind) {
   if (r.human) say(`วาง ${kind === 'pollen' ? 'POLLEN' : 'NECTAR'} ใน FLOWER ${FL_TH[best]}`, 1.4);
   return true;
 }
-function ejectBall(r, bi) { const k = r.load.indexOf(bi); if (k < 0) return; r.load.splice(k, 1); const f = fwdOf(r), b = S.balls[bi]; Object.assign(b, { where: 'floor', owner: null, cool: 1.0, x: clamp(r.x + f[0] * (HS + 0.3), -F.half + 0.05, F.half - 0.05), y: rad(b), z: clamp(r.z + f[1] * (HS + 0.3), -F.half + 0.05, F.half - 0.05), vx: 0, vy: 0, vz: 0 }); }
+function ejectBall(r, bi) { const k = r.load.indexOf(bi); if (k < 0) return; r.load.splice(k, 1); const f = fwdOf(r), b = S.balls[bi]; Object.assign(b, { where: 'floor', owner: null, cool: 1.0, x: clamp(r.x + f[0] * (HS + 0.3), -F.half + 0.05, F.half - 0.05), y: rad(b), z: clamp(r.z + f[1] * (HS + 0.3), -F.half + 0.05, F.half - 0.05), vx: r.vx + f[0] * 0.5, vy: 0, vz: r.vz + f[1] * 0.5 }); }
 function eject(r) { if (r.load.length) ejectBall(r, r.load.at(-1)); }
 
 // =================== HIVE ===================
@@ -351,8 +378,8 @@ function startTip(c) { const h = S.hives[c]; if (h.tipping) return; h.tipping = 
 function completeTip(c) {
   S.stats.tips[c]++; S.pts[c] += POINTS.tip; if (phase() === 'auto') S.stats.autoTips[c]++;
   S.events.push({ type: 'tip', c, rem: remaining(), el: S.el, staged: S.balls.filter(b => b.where === 'staged' && b.color === c).length - (S.stats.tips[c] - 1 - S.hp[c].used) });
-  if (c === 'red') say(`HIVE แดง TIP! +20 (รวม ${S.stats.tips.red} ครั้ง)`, 2.4);
-  if (!(S.opt.hpManual && c === 'red')) release(c, 1, true);
+  if (c === 'red' || NET.role) say(`HIVE ${TH[c]} TIP! +20 (รวม ${S.stats.tips[c]} ครั้ง)`, 2.4, toR(c));
+  if (!hpMan(c)) release(c, 1, true);
   SCN?.onTip?.(api, c);
 }
 function dumpCell(c) {
@@ -370,39 +397,42 @@ function stepHives(dt) {
 }
 
 // =================== Human Player ===================
+const stagedN = c => S.balls.filter(b => b.where === 'staged' && b.color === c).length;
 function release(c, n, auto) {
   for (let k = 0; k < n; k++) {
-    const st = S.balls.find(b => b.where === 'staged' && b.color === c); if (!st) { if (!auto && c === 'red') say('Human Player ไม่มี NECTAR เหลือแล้ว'); return; }
+    const st = S.balls.find(b => b.where === 'staged' && b.color === c); if (!st) { if (!auto) say('Human Player ไม่มี NECTAR เหลือแล้ว (0 ลูก)', 2.2, NET.role ? c : null); return; }
     const L = F.loading[c], x = c === 'red' ? L[0] + 0.1 : L[1] - 0.1, z = (L[2] + L[3]) / 2 + (Math.random() - 0.5) * 0.3;
-    if (!auto && c === 'red') {
+    if (!auto) {
       const credit = S.stats.tips[c] - S.hp[c].used, endgame = S.mode === 'free' || (phase() === 'teleop' && remaining() <= 60);
       if (!endgame) { if (credit > 0) S.hp[c].used++; else foul(c, 'G426', 'MINOR', 'ปล่อย NECTAR ก่อนได้สิทธิ์ (ต้องมี TIP ใหม่ หรือเหลือ ≤ 1:00)', 'HP'); }
       if (active().some(r => Math.abs(r.x - x) < HS + 0.05 && Math.abs(r.z - z) < HS + 0.05)) foul(c, 'G427', 'MINOR', 'NECTAR ต้องแตะพื้นใน LOADING ZONE ก่อนแตะหุ่น', 'HP');
     }
-    Object.assign(st, { where: 'floor', x, y: F.nectarR, z, cool: 0.3 });
+    Object.assign(st, { where: 'floor', x, y: F.nectarR, z, cool: 0.3, vx: (c === 'red' ? 0.3 : -0.3), vy: 0, vz: (Math.random() - 0.5) * 0.2 });
     S.stats.released[c].push({ rem: remaining(), el: S.el, auto: !!auto });
-    if (c === 'red' && !auto) say('Human Player ปล่อย NECTAR 1 ลูกใน LOADING ZONE', 1.5);
+    if (!auto) say(`Human Player ปล่อย NECTAR 1 ลูกใน LOADING ZONE · เหลือ ${stagedN(c)} ลูก`, 1.8, NET.role ? c : null);
   }
 }
 
 // =================== การขับ ===================
 function humanCmd(r, inp) {
-  if (S.mode !== 'free' && phase() === 'trans' && (Math.abs(inp.fwd) + Math.abs(inp.strafe) + Math.abs(inp.turn) > 0.3) && S.el > (S.cool.g403 || 0)) { S.cool.g403 = S.el + 2.5; foul('red', 'G403', 'WARN', 'ช่วงเปลี่ยน AUTO → TELEOP ห้ามขยับหุ่น', r.id); }
+  if (S.mode !== 'free' && phase() === 'trans' && (Math.abs(inp.fwd) + Math.abs(inp.strafe) + Math.abs(inp.turn) > 0.3) && S.el > (S.cool.g403 || 0)) { S.cool.g403 = S.el + 2.5; foul(r.alliance, 'G403', 'WARN', 'ช่วงเปลี่ยน AUTO → TELEOP ห้ามขยับหุ่น', r.id); }
   const drive = S.running && phase() === 'teleop' && !(S.ds && S.ds.state !== 'ok') && !r.dead;
   if (!drive) { r.cmd = { ...STOP }; r.lastFwd = 0; return; }
-  const spd = DRV.vmax * (S.opt.speed || 1) * (inp.slow ? 0.4 : 1), f = fwdOf(r), rt = [Math.cos(r.th), -Math.sin(r.th)];
-  let fx = curveFn(inp.fwd), sx = curveFn(inp.strafe); const mag = Math.hypot(fx, sx); if (mag > 1) { fx /= mag; sx /= mag; }
+  const D = drvOf(r), spd = D.vmax * (S.opt.speed || 1) * (inp.slow ? 0.4 : 1), f = fwdOf(r), rt = [Math.cos(r.th), -Math.sin(r.th)];
+  let fx = curveFn(inp.fwd, D), sx = curveFn(inp.strafe, D); const mag = Math.hypot(fx, sx); if (mag > 1) { fx /= mag; sx /= mag; }
   // ทิศที่ต้องการในพิกัดสนาม → แยกเป็นแกนหน้า/ข้างของหุ่น แล้วลดแกนข้างตามประสิทธิภาพการสไลด์ของ mecanum
-  const fc = fieldOn(), dx = fc ? fx : f[0] * fx + rt[0] * sx, dz = fc ? sx : f[1] * fx + rt[1] * sx;
-  const vf = dx * f[0] + dz * f[1], vr = (dx * rt[0] + dz * rt[1]) * DRV.strafe;
+  const fc = inp.fc ?? fieldOn(), sg = r.alliance === 'blue' && NET.role ? -1 : 1;  // ฝั่งน้ำเงินยืนอีกด้านของสนาม ทิศ field-centric จึงกลับด้าน
+  const dx = fc ? fx * sg : f[0] * fx + rt[0] * sx, dz = fc ? sx * sg : f[1] * fx + rt[1] * sx;
+  const vf = dx * f[0] + dz * f[1], vr = (dx * rt[0] + dz * rt[1]) * D.strafe;
   const vx = (f[0] * vf + rt[0] * vr) * spd, vz = (f[1] * vf + rt[1] * vr) * spd;
-  r.cmd = { vx, vz, w: -curveFn(inp.turn) * DRV.wmax * (inp.slow ? 0.5 : 1) };
+  r.cmd = { vx, vz, w: -curveFn(inp.turn, D) * D.wmax * (inp.slow ? 0.5 : 1) };
   r.lastFwd = vf * spd / ROBOT.vmax;
 }
 function applyCmd(r, dt) {
-  const ax = r.cmd.vx - r.vx, az = r.cmd.vz - r.vz, am = Math.hypot(ax, az), lim = (r.human ? DRV.acc : ROBOT.acc) * dt;
+  const ax = r.cmd.vx - r.vx, az = r.cmd.vz - r.vz, am = Math.hypot(ax, az), lim = (r.human ? drvOf(r).acc : ROBOT.acc) * dt * (r.bumpT > 0 ? 0.3 : 1);  // เพิ่งโดนชน = ล้อลื่น คุมหุ่นได้น้อยลงชั่วครู่
   if (am > lim) { r.vx += ax / am * lim; r.vz += az / am * lim; } else { r.vx = r.cmd.vx; r.vz = r.cmd.vz; }
-  r.w += clamp(r.cmd.w - r.w, -12 * dt, 12 * dt);
+  { const wa = (r.bumpT > 0 ? 4 : 12) * dt; r.w += clamp(r.cmd.w - r.w, -wa, wa); }
+  if (r.bumpT > 0) r.bumpT -= dt; if (r.shake > 0) r.shake = Math.max(0, r.shake - dt * 2.2);
   r.th = wrap(r.th + r.w * dt); r.x += r.vx * dt; r.z += r.vz * dt; r.clamped = false;
   const sp = speed(r), lw = F.half - HSW;
   const wallHit = () => { if (r.human && sp > 0.6 && S.el > (S.cool.wall || 0)) { S.cool.wall = S.el + 0.8; S.stats.wallHits++; } };
@@ -411,13 +441,19 @@ function applyCmd(r, dt) {
   for (const sx of [-1, 1]) {
     const bx = [sx * H.footX - 0.025, sx * H.footX + 0.025, -H.footHalfZ, H.footHalfZ];
     if (r.x + HS > bx[0] && r.x - HS < bx[1] && r.z + HS > bx[2] && r.z - HS < bx[3]) {
-      if (r.human && sp > 1.0 && S.el > (S.cool.g417 || 0)) { S.cool.g417 = S.el + 2; foul('red', 'G417', 'WARN', 'ชนโครง HIVE แรงเกินไป', r.id); }
+      if (r.human && sp > 1.0 && S.el > (S.cool.g417 || 0)) { S.cool.g417 = S.el + 2; foul(r.alliance, 'G417', 'WARN', 'ชนโครง HIVE แรงเกินไป', r.id); }
       const px = r.x < sx * H.footX ? bx[0] - HS - r.x : bx[1] + HS - r.x, pz = r.z < 0 ? bx[2] - HS - r.z : bx[3] + HS - r.z;
       if (Math.abs(px) < Math.abs(pz)) { r.x += px; r.vx = 0; } else { r.z += pz; r.vz = 0; } r.clamped = true;
     }
   }
   for (const fl of F.flowers) { const dx = r.x - fl.x, dz = r.z - fl.z, d = Math.hypot(dx, dz), m = HS + 0.09; if (d < m && d > 0) { r.x += dx / d * (m - d); r.z += dz / d * (m - d); r.clamped = true; } }
-  for (const b of S.balls) if (b.where === 'floor') { const dx = b.x - r.x, dz = b.z - r.z, d = Math.hypot(dx, dz), m = HS + rad(b); if (d < m && d > 0.001) { b.x = clamp(b.x + dx / d * (m - d), -F.half + rad(b), F.half - rad(b)); b.z = clamp(b.z + dz / d * (m - d), -F.half + rad(b), F.half - rad(b)); } }
+  for (const b of S.balls) if (b.where === 'floor') { const dx = b.x - r.x, dz = b.z - r.z, d = Math.hypot(dx, dz), m = HS + rad(b); if (d < m && d > 0.001) {
+    const nx = dx / d, nz = dz / d, f = fwdOf(r), vn = ((b.vx || 0) - r.vx) * nx + ((b.vz || 0) - r.vz) * nz;
+    b.x = clamp(b.x + nx * (m - d), -F.half + rad(b), F.half - rad(b)); b.z = clamp(b.z + nz * (m - d), -F.half + rad(b), F.half - rad(b));
+    // ลูกที่ปาก intake (กำลังดูด) วิ่งไปกับหุ่น · ด้านอื่นของหุ่น = ลูกกระเด็นออกตามแรงชน
+    if (r.intake && !r.dead && nx * f[0] + nz * f[1] > 0.6) { b.vx = r.vx; b.vz = r.vz; }
+    else if (vn < 0) { b.vx = (b.vx || 0) - (1 + BALL.robot) * vn * nx; b.vz = (b.vz || 0) - (1 + BALL.robot) * vn * nz; }
+  } }
 }
 function stepContacts(dt) {
   const rs = active();
@@ -425,11 +461,19 @@ function stepContacts(dt) {
     const a = rs[i], b = rs[j], dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), m = ROBOT.size * 1.05, key = a.id + '-' + b.id;
     S.cool[key] = Math.max(0, (S.cool[key] ?? 0) - dt);
     if (d < m && d > 0.001) {
-      const p = (m - d) / 2; a.x -= dx / d * p; a.z -= dz / d * p; b.x += dx / d * p; b.z += dz / d * p;
-      if (S.cool[key] <= 0 && Math.hypot(a.vx - b.vx, a.vz - b.vz) > 0.25) {
+      const nx = dx / d, nz = dz / d, p = (m - d) / 2; a.x -= nx * p; a.z -= nz * p; b.x += nx * p; b.z += nz * p;
+      const rvx = b.vx - a.vx, rvz = b.vz - a.vz, rel = Math.hypot(rvx, rvz), vn = rvx * nx + rvz * nz, vt = -rvx * nz + rvz * nx;
+      if (S.opt.shove && vn < -0.03) {  // แรงปะทะ: แลกความเร็วตามแนวชน (มวลเท่ากัน เด้งเล็กน้อย) → หุ่นที่โดนชนถูกดันไถลออกไป
+        const j = -(1 + 0.25) * vn / 2; a.vx -= nx * j; a.vz -= nz * j; b.vx += nx * j; b.vz += nz * j;
+        const kick = clamp(vt * 1.4 + (Math.random() - 0.5) * 1.2 * Math.min(1, -vn), -2.2, 2.2) * Math.min(1, -vn * 2);  // ชนเฉียง = หุ่นถูกบิดหมุน
+        a.w += kick * 0.5; b.w += kick * 0.5;
+        a.bumpT = Math.max(a.bumpT || 0, 0.06); b.bumpT = Math.max(b.bumpT || 0, 0.06);
+      }
+      if (S.cool[key] <= 0 && rel > 0.25) {
         S.cool[key] = 0.6; S.stats.collisions++; S.events.push({ type: 'hit', a: a.id, b: b.id, rem: remaining() });
         if (S.opt.health) { a.hp = Math.max(0, a.hp - 2); b.hp = Math.max(0, b.hp - 2); }
-        if (a.human || b.human) say(`ชน ${a.human ? b.id : a.id}! ${S.opt.health ? 'เลือด −2%' : ''}`, 1.2);
+        if (S.opt.shove) { const hard = clamp(rel / 1.4, 0.25, 1); for (const q of [a, b]) { q.bumpT = Math.max(q.bumpT || 0, 0.15 + 0.3 * hard); q.shake = Math.max(q.shake || 0, hard); q.hitN = (q.hitN || 0) + 1; } }
+        for (const [q, o] of [[a, b], [b, a]]) if (q.human) say(`ชน ${o.id}! ${S.opt.health ? 'เลือด −2%' : ''}`, 1.2, toR(q.id));
       }
     }
   }
@@ -437,9 +481,9 @@ function stepContacts(dt) {
     if (a.alliance === b.alliance) continue;
     const key = a.id + '>' + b.id, p = S.pins[key] ??= { t: 0, fouls: 0, sep: 0 }, d = Math.hypot(b.x - a.x, b.z - a.z);
     const push = (a.cmd.vx * (b.x - a.x) + a.cmd.vz * (b.z - a.z)) / Math.max(d, 1e-3) > 0.15;
-    if (d < ROBOT.size * 1.08 && push && (b.clamped || speed(b) < 0.12)) {
+    if (d < ROBOT.size * 1.08 && push && (b.clamped || speed(b) < 0.12) && !(atWall(a) && !b.clamped)) {  // ตัวที่อยู่ชิดกำแพงแล้วดันออกมา = กำลังหนี ไม่ใช่ PIN
       p.t += dt; p.sep = 0; const n = p.t > 3 ? 1 + Math.floor((p.t - 3) / 3) : 0;
-      if (!a.human && p.t > 1.5) { a.mem.escUntil = S.el + 1.0; a.mem.escDir = Math.atan2(a.z - b.z, a.x - b.x); a.mem.ball = null; a.mem.spot = null; }
+      if (!a.human && p.t > 1.5) { a.mem.escUntil = S.el + 1.0; { const [ex, ez] = awayVec(a, b); a.mem.escDir = Math.atan2(ez, ex); } a.mem.ball = null; a.mem.spot = null; }
       while (p.fouls < n) { p.fouls++; foul(a.alliance, 'G421', 'MAJOR', `PIN ${b.id} เกิน 3 วิ`, a.id); }
     } else if (d > ROBOT.size + 0.61) { p.sep += dt; if (p.sep > 3) { p.t = 0; p.fouls = 0; } }
     else if (p.t > 0) p.sep = Math.max(p.sep, 0.001);
@@ -447,13 +491,49 @@ function stepContacts(dt) {
 }
 
 // =================== ลูกบอล ===================
+// ฟิสิกส์ลูกบอล: กลิ้งมีแรงเสียดทาน · เด้งพื้น/กำแพง/โครง HIVE/FLOWER · ลูกชนลูก (ไม่มีแรงต้านอากาศ เพื่อคงระยะยิงเดิม)
+const BALL = { roll: 0.8, bounce: 0.45, keep: 0.72, wall: 0.5, ball: 0.7, robot: 0.3, minVy: 0.6 };
+const massOf = b => b.kind === 'nectar' ? 1.65 : 1;
+function rollBall(b, dt) {
+  let vx = b.vx || 0, vz = b.vz || 0; const v = Math.hypot(vx, vz), r = rad(b), lim = F.half - r;
+  if (v < 0.03) { b.vx = 0; b.vz = 0; return; }
+  const k = Math.max(0, v - BALL.roll * dt) / v; vx *= k; vz *= k;
+  let x = b.x + vx * dt, z = b.z + vz * dt;
+  if (Math.abs(x) > lim) { x = Math.sign(x) * lim; vx *= -BALL.wall; }
+  if (Math.abs(z) > lim) { z = Math.sign(z) * lim; vz *= -BALL.wall; }
+  if (barBlock(x, b.z, r) && !barBlock(b.x, b.z, r)) { x = b.x; vx *= -BALL.wall; }
+  if (barBlock(x, z, r) && !barBlock(x, b.z, r)) { z = b.z; vz *= -BALL.wall; }
+  for (const fl of F.flowers) {
+    const dx = x - fl.x, dz = z - fl.z, d = Math.hypot(dx, dz), m = 0.09 + r;
+    if (d < m && d > 1e-4) { const nx = dx / d, nz = dz / d, vn = vx * nx + vz * nz; x = fl.x + nx * m; z = fl.z + nz * m; if (vn < 0) { vx -= (1 + BALL.wall) * vn * nx; vz -= (1 + BALL.wall) * vn * nz; } }
+  }
+  b.x = x; b.z = z; b.vx = vx; b.vz = vz;
+}
+function collideBalls() {
+  const fl = S.balls.filter(b => b.where === 'floor');
+  for (const a of fl) {
+    if (!a.vx && !a.vz) continue;
+    for (const b of fl) {
+      if (a === b) continue;
+      const dx = b.x - a.x, dz = b.z - a.z, m = rad(a) + rad(b); if (Math.abs(dx) >= m || Math.abs(dz) >= m) continue;
+      const d = Math.hypot(dx, dz); if (d >= m || d < 1e-4) continue;
+      const nx = dx / d, nz = dz / d, ov = (m - d) / 2; a.x -= nx * ov; a.z -= nz * ov; b.x += nx * ov; b.z += nz * ov;
+      const vn = (a.vx - (b.vx || 0)) * nx + (a.vz - (b.vz || 0)) * nz; if (vn <= 0) continue;
+      const ma = massOf(a), mb = massOf(b), j = (1 + BALL.ball) * vn / (1 / ma + 1 / mb);
+      a.vx -= j / ma * nx; a.vz -= j / ma * nz; b.vx = (b.vx || 0) + j / mb * nx; b.vz = (b.vz || 0) + j / mb * nz;
+    }
+  }
+}
 function stepBalls(dt) {
+  for (const b of S.balls) if (b.where === 'floor') rollBall(b, dt);
+  collideBalls();
   for (const b of S.balls) {
     if (b.cool > 0) b.cool -= dt;
     if (b.where !== 'air') continue;
     const py = b.y; b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
     const r = rad(b);
-    if (b.target && underCell(b, py)) { b.vy = -Math.abs(b.vy) * 0.3; b.vx *= 0.4; b.vz *= 0.4; b.target = null; if (b.pred) { S.stats.predBad++; b.pred = false; } if (b.shooter === 'R1') say('ลูกชนใต้ CELL (อยู่ใกล้ HIVE เกินไป)', 1.6); continue; }
+    if (b.y < F.wallH) { const lim = F.half - r; if (Math.abs(b.x) > lim) { b.x = Math.sign(b.x) * lim; b.vx *= -BALL.wall; } if (Math.abs(b.z) > lim) { b.z = Math.sign(b.z) * lim; b.vz *= -BALL.wall; } }
+    if (b.target && underCell(b, py)) { b.vy = -Math.abs(b.vy) * 0.3; b.vx *= 0.4; b.vz *= 0.4; b.target = null; if (b.pred) { S.stats.predBad++; b.pred = false; } if (b.shooter === 'R1' || netHum(b.shooter)) say('ลูกชนใต้ CELL (อยู่ใกล้ HIVE เกินไป)', 1.6, toR(b.shooter)); continue; }
     if (b.spill && b.y < 0.34 && b.y > 0.15) for (const rb of active()) {
       if (Math.abs(b.x - rb.x) < HS && Math.abs(b.z - rb.z) < HS) {
         if (rb.human && speed(rb) < 0.15 && !rb.dead) { S.stats.g409[rb.alliance]++; foul(rb.alliance, 'G409', 'WARN', 'ห้ามรับลูกที่ร่วงจาก HIVE ก่อนแตะพื้น', rb.id); }
@@ -468,12 +548,12 @@ function stepBalls(dt) {
           if (S.opt.disrupt && !tp.revert && tp.t < 0.45 && Math.random() < 0.65) {
             h.tipping = { from: h.angle, to: tp.from, t: 0, revert: true, dumped: true }; S.stats.disrupted[c]++;
             const pop = cellBalls(c)[0]; if (pop) Object.assign(pop, { where: 'air', target: null, spill: true, x: u.x, y: u.y - 0.1, z: u.z, vx: (Math.random() - 0.5), vy: 0.6, vz: h.up * 0.6 });
-            if (c === 'red') say('TIP ถูกขัด! มีลูกเข้า CELL ระหว่าง HIVE กำลังพลิก ต้องยิงเพิ่ม', 3);
+            if (c === 'red' || NET.role) say('TIP ถูกขัด! มีลูกเข้า CELL ระหว่าง HIVE กำลังพลิก ต้องยิงเพิ่ม', 3, toR(c));
           }
           Object.assign(b, { target: null, spill: true, vx: (Math.random() - 0.5) * 0.6, vz: h.up * 0.5, vy: 0.3 }); if (b.pred) { S.stats.predBad++; b.pred = false; }
           continue;
         }
-        Object.assign(b, { where: 'cell', hive: c, vx: 0, vy: 0, vz: 0 }); if (b.shooter === 'R1') S.stats.hits++;
+        Object.assign(b, { where: 'cell', hive: c, vx: 0, vy: 0, vz: 0 }); if (b.shooter === 'R1') S.stats.hits++; { const sh = S.robots.find(q => q.id === b.shooter); if (sh) sh.hits = (sh.hits || 0) + 1; }
         SCN?.onCellHit?.(api, b);
         const willTip = cellLoad(c) >= tipRule().threshold;
         if (b.pred) { willTip ? S.stats.predOk++ : S.stats.predBad++; say(willTip ? 'ทายถูก! ลูกนี้ TIP' : 'ทายผิด ลูกนี้ยังไม่ TIP', 1.8); b.pred = false; }
@@ -482,10 +562,13 @@ function stepBalls(dt) {
       }
     }
     if (b.y <= r) {
-      const wasShot = b.shooter === 'R1' && !b.spill;
-      Object.assign(b, { y: r, where: 'floor', vx: 0, vy: 0, vz: 0, x: clamp(b.x, -F.half + r, F.half - r), z: clamp(b.z, -F.half + r, F.half - r) });
+      const wasShot = (b.shooter === 'R1' || netHum(b.shooter)) && !b.spill, lim = F.half - r;
+      b.y = r; if (Math.abs(b.x) > lim) { b.x = Math.sign(b.x) * lim; b.vx *= -BALL.wall; } if (Math.abs(b.z) > lim) { b.z = Math.sign(b.z) * lim; b.vz *= -BALL.wall; }
+      b.vx *= BALL.keep; b.vz *= BALL.keep;
+      if (b.vy < -BALL.minVy) b.vy = -b.vy * BALL.bounce;             // เด้งต่อ (ยังเป็นลูกลอย แต่ไม่นับเป็นลูกยิงแล้ว)
+      else { b.vy = 0; b.where = 'floor'; }                           // หมดแรงเด้ง = กลิ้งต่อบนพื้น
       if (b.pred) { S.stats.predBad++; b.pred = false; say('ทายผิด ลูกนี้ยิงพลาด', 1.6); }
-      else if (wasShot) say('ยิงพลาด', 1);
+      else if (wasShot) say('ยิงพลาด', 1, toR(b.shooter));
       b.spill = false; b.shooter = null; b.target = null;
     }
   }
@@ -562,8 +645,38 @@ function aiBump(r) { // ไล่ประกบหุ่นเป้าหม�
   const dx = t.x - r.x, dz = t.z - r.z, d = Math.hypot(dx, dz) || 1;
   if (m.ph === 'charge') { m.ct = d < ROBOT.size * 1.12 ? (m.ct || 0) + DT : 0; if (S.el - m.ps > 2.5 || m.ct > 1.2) { m.ph = 'back'; m.ps = S.el; } else { driveTo(r, t.x, t.z, faceTo(r.x, r.z, t.x, t.z), 1.5); return; } }
   if (m.ph === 'back') { if (S.el - m.ps > 1.2) { m.ph = null; m.next = S.el + 6 + Math.random() * 5; } else { r.cmd = { vx: -dx / d, vz: -dz / d, w: 0 }; return; } }
-  if (S.el >= m.next && d < 1.6) { m.ph = 'charge'; m.ps = S.el; m.ct = 0; if (t.human) say(`${r.id} กำลังพุ่งเข้าชน!`, 1.2); return; }
+  if (S.el >= m.next && d < 1.6) { m.ph = 'charge'; m.ps = S.el; m.ct = 0; if (t.human) say(`${r.id} กำลังพุ่งเข้าชน!`, 1.2, toR(t.id)); return; }
   const hx = t.x - dx / d * 1.1, hz = t.z - dz / d * 1.1; driveTo(r, clamp(hx, -1.5, 1.5), clamp(hz, -1.5, 1.5), faceTo(r.x, r.z, t.x, t.z), 1.0);
+}
+const atWall = r => Math.max(Math.abs(r.x), Math.abs(r.z)) > F.half - HSW - 0.05;
+function awayVec(r, t) {  // ทิศถอยห่างจาก t · ถ้าถอยตรง ๆ แล้วจะติดกำแพง/มุม ให้เลี่ยงออกด้านข้างทางกลางสนามแทน ไม่ถอยอัดกำแพงจนกลายเป็นโดน PIN
+  const dx = t.x - r.x, dz = t.z - r.z, d = Math.hypot(dx, dz) || 1, lw = F.half - HSW, cut = (v, p) => Math.abs(p) > lw - 0.04 && v * p > 0 ? 0 : v;
+  let ax = -dx / d, az = -dz / d;
+  if (Math.abs(r.x + ax * 0.5) > lw || Math.abs(r.z + az * 0.5) > lw) { const s = dz * r.x - dx * r.z > 0 ? -1 : 1; ax = dz / d * s; az = -dx / d * s; }
+  ax = cut(ax, r.x); az = cut(az, r.z); const l = Math.hypot(ax, az); return l > 0.05 ? [ax / l, az / l] : [-dx / d, -dz / d];
+}
+function aiContest(r) { // คู่แข่งเข้ามาแย่งลูกที่เป้าหมายกำลังจะเก็บ และเบียดเป็นระยะ (ฝึกเจอการปะทะแบบแมตช์จริง)
+  const m = r.mem, t = targetOf(r); if (!t) return aiOffense(r);
+  if (S.mode !== 'free' && remaining() <= (r.ai.parkAt ?? aiP(r).parkAt)) return goPark(r);
+  const V = r.ai.v ?? aiP(r).travelV * 1.3, dx = t.x - r.x, dz = t.z - r.z, d = Math.hypot(dx, dz) || 1;
+  m.ct = d < ROBOT.size * 1.12 ? (m.ct || 0) + DT : 0;
+  if (m.ct > 1.8) { m.back = S.el + 1.1; m.ct = 0; }  // ติดกันนาน = ถอยออก ไม่ให้เป็น PIN (G421)
+  const away = () => { const [ax, az] = awayVec(r, t); return { vx: ax * 0.9, vz: az * 0.9, w: 0 }; };
+  if (m.back && S.el < m.back) { r.cmd = away(); return; }
+  if (!(m.flee > S.el) && S.pins[t.id + '>' + r.id]?.t > 1.2) m.flee = S.el + 4.5;  // เป้าหมายดันเราค้างนาน = ถอยห่างเกิน 2 ฟุตให้ครบ 3 วิ ตัวนับ PIN (G421) จะได้เริ่มใหม่
+  if (m.flee > S.el) { r.cmd = d < 1.25 ? away() : { ...STOP }; return; }
+  if (r.load.length >= 3 || (m.shooting && r.load.length)) { m.shooting = true; return aiShoot(r); }
+  m.shooting = false; r.intake = !(m.harass > S.el);  // เก็บได้ 1 ลูกแล้วหันไปเบียดเป้าหมายสักพัก ค่อยกลับมาแย่งลูกต่อ
+  const tf = fwdOf(t), ix = t.x + tf[0] * 0.35, iz = t.z + tf[1] * 0.35; let bi = null, bd = 1e9;
+  S.balls.forEach((b, i) => { if (b.where !== 'floor' || b.cool > 0 || (b.kind === 'nectar' && b.color !== r.alliance) || barBlock(b.x, b.z, 0.04)) return; const q = Math.hypot(b.x - ix, b.z - iz) + Math.hypot(b.x - r.x, b.z - r.z) * 0.35; if (q < bd) { bd = q; bi = i; } });
+  if (bi == null && r.load.length) { m.shooting = true; return aiShoot(r); }
+  if (m.next == null) m.next = S.el + 3 + Math.random() * 3;
+  if (S.el >= m.next && d < 1.4) { m.chargeT = S.el + 1.2; m.next = S.el + 6 + Math.random() * 4; if (t.human) say(`${r.id} เข้ามาเบียด!`, 1.2, toR(t.id)); }
+  if (m.harass > S.el && S.el >= (m.chargeT || 0)) { driveTo(r, t.x + tf[0] * 0.52, t.z + tf[1] * 0.52, faceTo(r.x, r.z, t.x, t.z), V); return; }  // ยืนขวางหน้า intake ของเป้าหมาย
+  if (S.el < (m.chargeT || 0) || bi == null) { driveTo(r, t.x, t.z, faceTo(r.x, r.z, t.x, t.z), V * 1.15); return; }
+  const b = S.balls[bi], bx = b.x - r.x, bz = b.z - r.z, bl = Math.hypot(bx, bz) || 1, face = faceTo(r.x, r.z, b.x, b.z);
+  if (Math.abs(wrap(face - r.th)) > 0.6 && bl < 0.6) { r.cmd = { vx: 0, vz: 0, w: clamp(wrap(face - r.th) * 4, -3, 3) }; return; }
+  driveTo(r, b.x - bx / bl * HS * 0.6, b.z - bz / bl * HS * 0.6, face, V);
 }
 function aiTraffic(r) { // วิ่งเข้าออก LOADING ZONE ฝั่งตัวเอง (ฝึก Human Player)
   const m = r.mem; if (!m.wp || Math.hypot(m.wp[0] - r.x, m.wp[1] - r.z) < 0.1 || S.el > (m.wpT || 0) + 6) {
@@ -595,7 +708,7 @@ function runTasks(r) {
   next();
 }
 function aiStep(r) {
-  if (!r.dead && r.ai.dieAt != null && remaining() <= r.ai.dieAt) { r.dead = true; if (r.alliance === 'red') say(`${r.id} ดับ! หยุดนิ่งอยู่กลางสนาม`, 3); }
+  if (!r.dead && r.ai.dieAt != null && remaining() <= r.ai.dieAt) { r.dead = true; if (r.alliance === 'red' || NET.role) say(`${r.id} ดับ! หยุดนิ่งอยู่กลางสนาม`, 3, toR(r.alliance)); }
   if (r.dead) { r.cmd = { ...STOP }; return; }
   if (r.mem.busy > S.el) { r.cmd = { ...STOP }; return; }
   if (r.mem.escUntil && S.el < r.mem.escUntil && phase() === 'teleop') { r.cmd = { vx: Math.cos(r.mem.escDir) * 0.8, vz: Math.sin(r.mem.escDir) * 0.8, w: 0 }; return; }
@@ -603,7 +716,7 @@ function aiStep(r) {
   if (ph === 'trans') { r.cmd = { ...STOP }; return; }
   if (ph === 'auto' && S.mode !== 'free') { runTasks(r); return; }
   if (!S.opt.bots && !r.ai.force) { r.cmd = { ...STOP }; return; }
-  ({ offense: aiOffense, defend: aiDefend, bump: aiBump, script: runTasks, park: goPark, traffic: aiTraffic }[r.ai.mode] || (x => { x.cmd = { ...STOP }; }))(r);
+  ({ offense: aiOffense, defend: aiDefend, bump: aiBump, contest: aiContest, script: runTasks, park: goPark, traffic: aiTraffic }[r.ai.mode] || (x => { x.cmd = { ...STOP }; }))(r);
 }
 
 // =================== คะแนน ===================
@@ -648,7 +761,7 @@ const api = {
   floor(kind, color, x, z) { const i = api.take(kind, color); if (i >= 0) Object.assign(S.balls[i], { where: 'floor', x, z, y: rad(S.balls[i]), vx: 0, vy: 0, vz: 0, owner: null, cool: 0 }); return i; },
   carry(id, list) {
     const r = api.robot(id); r.load.forEach(i => { S.balls[i].where = 'out'; S.balls[i].owner = null; }); r.load = [];
-    list.forEach(k => { const [kind, col] = k === 'pollen' ? ['pollen', 'yellow'] : ['nectar', k.split(':')[1] || r.alliance]; const i = api.take(kind, col); if (i >= 0) { Object.assign(S.balls[i], { where: 'carried', owner: r.id }); r.load.push(i); } });
+    list.forEach(k => { const [kind, col] = k === 'pollen' ? ['pollen', 'yellow'] : ['nectar', k.split(':')[1] || r.alliance]; const i = api.take(kind, col); if (i >= 0) { Object.assign(S.balls[i], { where: 'carried', owner: r.id, vx: 0, vy: 0, vz: 0 }); r.load.push(i); } });
   },
   cell(c, nP, nN) { cellBalls(c).forEach(b => b.where = 'out'); const put = (k, col) => { const i = api.take(k, col); if (i >= 0) Object.assign(S.balls[i], { where: 'cell', hive: c }); }; for (let i = 0; i < nN; i++) put('nectar', c); for (let i = 0; i < nP; i++) put('pollen', 'yellow'); },
   flower(fi, list) { S.balls.filter(b => b.where === 'flower' && b.flower === fi).forEach(b => b.where = 'out'); list.forEach((k, o) => { const [kind, col] = k === 'pollen' ? ['pollen', 'yellow'] : ['nectar', k.split(':')[1]]; const i = api.take(kind, col); if (i >= 0) Object.assign(S.balls[i], { where: 'flower', flower: fi, order: o }); }); },
@@ -775,9 +888,14 @@ function syncMarks() {
   marks.forEach(m => { const ring = new THREE.Mesh(new THREE.RingGeometry((m.r || 0.25) - 0.03, m.r || 0.25, 40), new THREE.MeshBasicMaterial({ color: m.done ? 0x3ec97a : m.cur ? 0xf5c518 : 0x667080, transparent: true, opacity: m.cur ? 0.95 : 0.5, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(m.x, 0.006, m.z); markGroup.add(ring); if (m.label) { const l = makeLabel(m.label, m.cur ? '#f5c518' : '#9aa4b2'); l.position.set(m.x, 0.25, m.z); l.scale.set(0.3, 0.11, 1); markGroup.add(l); } });
 }
 const tmpV = new THREE.Vector3();
+let hitSeen = 0;
+function padRumble(mag, ms) { // สั่นจอยของเครื่องนี้ตอนโดนชน
+  for (const p of [padNow.p1, padNow.p2]) { if (!p) continue; const gp = navigator.getGamepads?.()[p.index], va = gp?.vibrationActuator; try { va?.playEffect?.(va.type || 'dual-rumble', { duration: ms, strongMagnitude: Math.min(1, mag), weakMagnitude: Math.min(1, mag * 0.7) })?.catch?.(() => {}); } catch {} }
+}
 function sync() {
   S.robots.forEach((r, i) => {
-    const g = robotMeshes[i]; g.visible = !r.off; g.position.set(r.x, 0, r.z); g.rotation.y = r.th;
+    const g = robotMeshes[i]; g.visible = !r.off; const sk = r.shake > 0 ? r.shake : 0, st = performance.now() / 1000 * 38 + i * 2; g.position.set(r.x + Math.sin(st) * 0.008 * sk, Math.abs(Math.sin(st * 0.7)) * 0.012 * sk, r.z + Math.cos(st * 1.3) * 0.008 * sk); g.rotation.set(Math.sin(st * 0.9) * 0.06 * sk, r.th, Math.cos(st * 1.1) * 0.06 * sk);
+    if (r === R1() && (r.hitN || 0) !== hitSeen) { if ((r.hitN || 0) > hitSeen) padRumble(0.4 + 0.6 * sk, 180 + 220 * sk); hitSeen = r.hitN || 0; }
     g.userData.carried.forEach((m, k) => { const bi = r.load[k]; m.visible = bi != null; if (bi != null) { const b = S.balls[bi]; m.material = b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue); } });
     g.userData.intake.material.color.set(r.intake ? 0x4ad66d : 0x555555); g.userData.body.material = r.dead ? M.dead : M.dark; g.userData.deadLabel.visible = r.dead; g.userData.label.visible = !r.dead;
   });
@@ -791,7 +909,7 @@ function sync() {
     else if (b.where === 'staged') { const n = staged[b.color]++; m.position.set(b.color === 'red' ? -2.15 : 2.15, F.nectarR, (b.color === 'red' ? -0.3 : 0.3) + (b.color === 'red' ? 1 : -1) * n * 0.12); }
     else m.position.set(b.x, b.y, b.z);
   });
-  const u = upCellCenter('red'); gateRing.position.set(u.x, 0.003, u.z); gateRing.visible = (S.opt.gate || S.opt.traj) && !R1().off && R1().human;
+  const u = upCellCenter(MY()); gateRing.position.set(u.x, 0.003, u.z); gateRing.visible = (S.opt.gate || S.opt.traj) && !R1().off && R1().human;
   const gk = DRV.gateMin + ',' + DRV.gateMax; if (gk !== gateKey) { gateKey = gk; gateRing.geometry.dispose(); gateRing.geometry = new THREE.RingGeometry(Math.min(DRV.gateMin, DRV.gateMax - 0.05), DRV.gateMax, 48); }
   syncTraj();
   const hb = S.hl != null ? S.balls[S.hl] : null; hlRing.visible = !!hb && hb.where === 'floor'; if (hlRing.visible) hlRing.position.set(hb.x, 0.01, hb.z);
@@ -809,14 +927,16 @@ function updateCamera(dt) {
   const r = R1(), cm = S.opt.lockCam ?? S.cam; let p, l;
   if (cm === 0) { const f = fwdOf(r); p = new THREE.Vector3(r.x - f[0] * 1.6, 1.25, r.z - f[1] * 1.6); l = new THREE.Vector3(r.x + f[0] * 1.2, 0.3, r.z + f[1] * 1.2); }
   else if (cm === 1) { p = new THREE.Vector3(Math.sin(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist, Math.sin(orbit.pitch) * orbit.dist + 0.3, Math.cos(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist); l = new THREE.Vector3(0, 0.3, 0); }
-  else { p = new THREE.Vector3(-3.3, 1.65, 0); l = new THREE.Vector3(0.3, 0.35, 0); }
+  else { const sg = NET.role && MY() === 'blue' ? -1 : 1; p = new THREE.Vector3(-3.3 * sg, 1.65, 0); l = new THREE.Vector3(0.3 * sg, 0.35, 0); }  // ทีมน้ำเงินยืนอีกฝั่งของสนาม
+  if (cm === 0 && r.shake > 0) { const t = performance.now() / 1000 * 45; p.x += Math.sin(t) * 0.035 * r.shake; p.y += Math.cos(t * 1.3) * 0.025 * r.shake; p.z += Math.sin(t * 0.8) * 0.035 * r.shake; }  // กล้องตามหลังสั่นตอนโดนชน
   const k = 1 - Math.exp(-dt * (cm === 1 ? 20 : 6)); camPos.lerp(p, k); camLook.lerp(l, k); camera.position.copy(camPos); camera.lookAt(camLook);
 }
 const CAM_TH = ['ตามหลังหุ่น', 'รอบสนาม', 'Driver Station'];
 
 // =================== อินพุต ===================
 const keys = new Set(), once = new Set();
-addEventListener('keydown', e => { if (e.target.closest?.('input,select,textarea')) return; if (e.repeat) return; keys.add(e.code); once.add(e.code); if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); });
+addEventListener('keydown', e => { if (e.target.closest?.('input,select,textarea')) return; if (e.repeat) return; keys.add(e.code); once.add(e.code); if (e.code === 'KeyX') document.body.classList.toggle('nopanel'); if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); });
+addEventListener('blur', () => keys.clear());  // สลับหน้าต่างขณะกดปุ่มค้าง = ปล่อยทุกปุ่ม (กันหุ่นวิ่งค้าง)
 addEventListener('keyup', e => keys.delete(e.code));
 // จอย 2 ตัวคุมหุ่นตัวเดียวกัน (แบบ gamepad1 / gamepad2 ของ FTC)
 // split: Joy 1 ขับ (L/R/□) · Joy 2 คนยิง (ยิง วาง intake คาย) · both: ทั้ง 2 จอยทำได้ทุกอย่าง
@@ -850,9 +970,9 @@ function readPad(pad) {
 }
 function readInput() {
   const o = emptyInput(), kd = c => keys.has(c), kp = c => once.has(c);
-  o.fwd = (kd('KeyW') ? 1 : 0) - (kd('KeyS') ? 1 : 0); o.strafe = (kd('KeyD') ? 1 : 0) - (kd('KeyA') ? 1 : 0); o.turn = (kd('KeyE') ? 1 : 0) - (kd('KeyQ') ? 1 : 0); o.slow = kd('ShiftLeft') || kd('ShiftRight');
+  o.fwd = (kd('KeyW') || kd('ArrowUp') ? 1 : 0) - (kd('KeyS') || kd('ArrowDown') ? 1 : 0); o.strafe = (kd('KeyD') ? 1 : 0) - (kd('KeyA') ? 1 : 0); o.turn = (kd('KeyE') || kd('ArrowRight') ? 1 : 0) - (kd('KeyQ') || kd('ArrowLeft') ? 1 : 0); o.slow = kd('ShiftLeft') || kd('ShiftRight');
   Object.assign(o, { shootP: kp('Space'), shootN: kp('KeyN'), placeP: kp('Digit1'), placeN: kp('Digit2'), intakeT: kp('KeyF'), eject: kp('KeyG'), start: kp('Enter'), cam: kp('KeyC'), call: kp('KeyB'), predict: kp('KeyP'), confirm: kp('KeyY'), hp: kp('KeyH') });
-  if (S.mode === 'free') { if (kp('KeyK')) saveCk(); if (kp('KeyL')) loadCk(); if (kp('KeyR')) resetFree(); }
+  if (S.mode === 'free' && !NET.role) { if (kp('KeyK')) saveCk(); if (kp('KeyL')) loadCk(); if (kp('KeyR')) resetFree(); }
   const rs = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).map(readPad);
   for (const p of rs) if (p.assign) {
     const me = 'p' + p.assign, other = p.assign === 1 ? 'p2' : 'p1';
@@ -874,32 +994,42 @@ function readInput() {
 }
 
 // =================== Tick ===================
-function tick(dt, inp) {
-  const r = R1();
-  if (inp.start) togglePause();
-  if (inp.cam && S.opt.lockCam == null) { S.cam = (S.cam + 1) % 3; say('กล้อง: ' + CAM_TH[S.cam], 1); }
-  if (!S.running) { S.msgT -= dt; return; }
-  if (inp.call) { S.calls.push(remaining()); say(`📣 ประกาศเวลา ${fmt(remaining())}`, 1.2); }
-  if (inp.predict) { S.predict = true; say('🎯 ทาย: ลูกต่อไปจะ TIP', 1.4); }
-  if (inp.confirm) SCN?.onConfirm?.(api);
-  if (inp.hp && (S.opt.hpManual || S.mode === 'free')) release('red', 1, false);
+const inpOf = (rb, inp) => rb === R1() ? inp : (NET.inputs[rb.id] ||= emptyInput());
+function actFor(r, inp) {  // ปุ่มสั่งงานของผู้เล่น 1 คน (ออนไลน์: host เรียกให้หุ่นของทุกเครื่อง)
+  SAYTO = toR(r.id);
+  if (inp.hp && (S.opt.hpManual || S.mode === 'free')) release(NET.role ? r.alliance : 'red', 1, false);
   const canAct = r.human && !r.off && phase() === 'teleop' && !(S.ds && S.ds.state !== 'ok') && !r.dead;
   if (canAct) {
     if (inp.intakeT) { r.intake = !r.intake; say('Intake ' + (r.intake ? 'เปิด' : 'ปิด'), 1); }
     if (inp.eject) eject(r);
     if (inp.shootP) launch(r, 'pollen'); if (inp.shootN) launch(r, 'nectar'); if (inp.placeP) place(r, 'pollen'); if (inp.placeN) place(r, 'nectar');
   }
+}
+function tick(dt, inp) {
+  NET.inTick = true; try { tick0(dt, inp); } finally { NET.inTick = false; SAYTO = null; }
+}
+function tick0(dt, inp) {
+  const r = R1();
+  if (inp.start) togglePause();
+  if (inp.cam && S.opt.lockCam == null) { S.cam = (S.cam + 1) % 3; sayMe('กล้อง: ' + CAM_TH[S.cam], 1); }
+  if (!S.running) { S.msgT -= dt; if (NET.role === 'host') for (const id in NET.inputs) for (const k of EDGE) NET.inputs[id][k] = false; return; }
+  if (inp.call) { S.calls.push(remaining()); sayMe(`📣 ประกาศเวลา ${fmt(remaining())}`, 1.2); }
+  if (inp.predict) { S.predict = true; sayMe('🎯 ทาย: ลูกต่อไปจะ TIP', 1.4); }
+  if (inp.confirm) SCN?.onConfirm?.(api);
+  actFor(r, inp);
+  if (NET.role === 'host') for (const rb of S.robots) if (rb !== r && rb.net) { const ip = inpOf(rb, inp); actFor(rb, ip); for (const k of EDGE) ip[k] = false; }
+  SAYTO = null;
   const prevEl = S.el, prevRem = remaining();
   S.el += dt;  // Free Control ก็เดินเวลา (ใช้กับ cooldown) แต่นาฬิกาแสดง ∞
   if (S.mode !== 'free' && prevEl < AUTO_LEN && S.el >= AUTO_LEN) endAuto();
   if (S.mode !== 'free' && prevEl < AUTO_LEN + TRANS_LEN && S.el >= AUTO_LEN + TRANS_LEN) say('TELEOP เริ่ม! คนขับควบคุมได้แล้ว', 2);
   if (S.mode !== 'free' && prevRem > 60 && remaining() <= 60) {
     say('เหลือ 1:00 · FLOWER เปิด · Human Player ปล่อย NECTAR ที่เหลือได้ทั้งหมด', 3);
-    for (const c of ['red', 'blue']) if (!(S.opt.hpManual && c === 'red')) release(c, 5, true);
+    for (const c of ['red', 'blue']) if (!hpMan(c)) release(c, 5, true);
   }
-  for (const rb of active()) { if (rb.human) { if (phase() === 'auto' && S.mode !== 'free') runTasks(rb); else humanCmd(rb, inp); } else aiStep(rb); applyCmd(rb, dt); }
+  for (const rb of active()) { if (rb.human) { if (phase() === 'auto' && S.mode !== 'free') runTasks(rb); else humanCmd(rb, inpOf(rb, inp)); } else aiStep(rb); applyCmd(rb, dt); }
   stepContacts(dt); stepBalls(dt); stepHives(dt);
-  for (const rb of active()) pickup(rb);
+  for (const rb of active()) { SAYTO = toR(rb.id); pickup(rb, dt); } SAYTO = null;
   for (const rb of active()) if (rb.load.length > ROBOT.capacity && rb.mem.over != null && S.el - rb.mem.over > 2 && !rb.mem.overMajor) { rb.mem.overMajor = true; foul(rb.alliance, 'G407', 'MAJOR', 'ถือ 5 ลูกนานเกิน (ไม่ใช่ชั่วขณะ) = STRATEGIC + ใบเหลือง', rb.id); }
   for (const rb of active()) if (rb.load.length <= ROBOT.capacity) { rb.mem.over = null; rb.mem.overMajor = false; }
   SCN?.tick?.(api, dt);
@@ -924,16 +1054,18 @@ function startMatch(kind, plan) {
   S.bot = { opp: MCFG.opp, ally: MCFG.ally }; if (kind !== 'free') S.opt.hpManual = MCFG.hp === 'manual';
   S.el = kind === 'full' ? 0 : MATCH_LEN - 120;
   if (kind === 'full' && plan) for (const id of ['R1', 'R2']) api.robot(id).ai.autoTasks = clone(SCN_ALL['3.5']?.plans?.[id]?.[plan[id] ?? 0]?.tasks || DEFAULT_AUTO[id]);
-  if (kind === 'free') { S.opt.bots = false; S.opt.gate = false; S.opt.traj = true; S.robots.slice(1).forEach(rb => api.bench(rb.id)); }  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
-  S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: หุ่นมี pre-load 4 ลูก (เต็ม) ยิงออกก่อน แล้ววิ่งใส่ลูกบนพื้น intake จะดูดเอง' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
+  if (kind === 'free') { Object.assign(S.opt, { bots: false, gate: false, traj: true, intakeDelay: true, rival: true }, loadFreeOpt()); S.robots.slice(1).forEach(rb => api.bench(rb.id)); applyFreeBots(); }
+  else S.opt.intakeDelay = true;  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
+  S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: ยิงได้ทุกที่ · เก็บลูกมีดีเลย์ · ระวัง B1 เข้ามาเบียดแย่งลูก (ปรับได้ที่แผงขวา)' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
 }
-function togglePause() { if (S.over) { SCN ? showIntro() : showMenu(); return; } if (!$('overlay').classList.contains('hidden')) return; S.running = !S.running; say(S.running ? 'เล่นต่อ' : 'หยุดชั่วคราว (กด Options/Enter เพื่อเล่นต่อ)', 1.5); }
+function togglePause() { if (NET.role === 'client') return; if (S.over) { NET.role ? netBack() : SCN ? showIntro() : showMenu(); return; } if (!$('overlay').classList.contains('hidden')) return; S.running = !S.running; say(S.running ? 'เล่นต่อ' : 'หยุดชั่วคราว (กด Options/Enter เพื่อเล่นต่อ)', 1.5); }
 function evalObj() { return (SCN?.obj || []).map(o => { try { return !!o.ok(S, api); } catch { return false; } }); }
 function endMatch() {
-  if (S.over) return; S.running = false; S.over = true;
+  if (S.over || NET.role === 'client') return; S.running = false; S.over = true;
   const a = assess(true); S.end = { score: { red: total('red'), blue: total('blue') }, park: a.park, owners: a.owners, bottoms: a.bottoms, det: a.det };
   const ok = evalObj(), allOk = ok.length > 0 && ok.every(Boolean);
   if (SCN) sendResult({ id: SCN_ID, title: SCN.title, ok, allOk, ts: Date.now(), score: S.end.score });
+  if (NET.role === 'host') netEnd();
   showResult(ok, allOk);
 }
 function sendResult(r) {
@@ -947,7 +1079,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 function ov(show, html) { $('overlay').classList.toggle('hidden', !show); if (html != null) $('ovBox').innerHTML = html; }
 function plansHtml(P) { return P ? ['R1', 'R2'].map(id => `<div class="plan"><b>แผน AUTO ของ ${id}</b>${P[id].map((p, k) => `<label><input type="radio" name="plan${id}" value="${k}" ${k === 0 ? 'checked' : ''}> ${esc(p.label)}</label>`).join('')}</div>`).join('') : ''; }
 const readPlan = () => ({ R1: +(document.querySelector('input[name=planR1]:checked')?.value || 0), R2: +(document.querySelector('input[name=planR2]:checked')?.value || 0) });
-const ROLE_TH = { coach: 'Drive Coach', driver: 'Driver', hp: 'Human Player' };
+const ROLE_TH = { coach: 'Drive Coach', driver: 'Driver', operator: 'Operator', hp: 'Human Player' };
 function showIntro() {
   ov(true, `<div class="mut">สถานการณ์ฝึก ${esc(SCN_ID)}${SCN.role ? ' · บทบาท ' + ROLE_TH[SCN.role] : ''}</div><h2>${esc(SCN.title)}</h2><p>${esc(SCN.brief)}</p>
     <h4>เป้าหมาย (ต้องผ่านทุกข้อในรอบเดียว)</h4>${SCN.obj.map(o => `<div class="obj"><b>•</b><span>${esc(o.t)}</span></div>`).join('')}
@@ -957,14 +1089,16 @@ function showIntro() {
   $('go').onclick = () => startScenario(readPlan());
 }
 function showMenu() {
-  const groups = { coach: [], driver: [], hp: [] };
+  const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D</h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วย DualShock 4 หรือคีย์บอร์ด</p>
+  ov(true, `<h2>BIOBUZZ Trainer · 3D</h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><a href="gamepad-test.html"><button class="sec">🎮 ทดสอบจอย</button></a></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
     ${Object.entries(groups).filter(([, l]) => l.length).map(([k, l]) => `<h4>สถานการณ์ฝึก · ${ROLE_TH[k]}</h4><div class="grid">${l.join('')}</div>`).join('')}
     <p><a href="../coach-training/index.html" style="color:var(--yel)">← ไปหน้าบทเรียน (เลือกบทบาท Coach / Driver / Human Player)</a></p>`);
   $('mFree').onclick = () => startMatch('free'); $('mTele').onclick = () => startMatch('tele'); $('mFull').onclick = () => startMatch('full', { R1: 0, R2: 0 });
+  $('mNet').onclick = () => showOnline(); $('mHist').onclick = () => showHistory(showMenu);
   const mc = $('mcfg'), lvOpt = v => Object.entries(BOT_LV).map(([k, l]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l.th}</option>`).join('');
   mc.innerHTML = `<h4>ตั้งค่าแมตช์ (ใช้กับแมตช์ TELEOP, แมตช์เต็ม และหุ่น AI ใน Free Control)</h4>
     <div class="mrow"><label>บอทคู่แข่ง (BLUE 1, BLUE 2) <select id="cfgOpp">${lvOpt(MCFG.opp)}</select></label><span class="mut" id="cfgOppD"></span></div>
@@ -974,6 +1108,7 @@ function showMenu() {
   $('cfgOpp').onchange = e => { MCFG.opp = e.target.value; saveMcfg(); desc(); }; $('cfgAlly').onchange = e => { MCFG.ally = e.target.value; saveMcfg(); desc(); }; $('cfgHp').onchange = e => { MCFG.hp = e.target.value; saveMcfg(); desc(); }; desc();
 }
 function showResult(ok, allOk) {
+  if (NET.role) return showNetResult();
   const sc = S.end.score, acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0;
   const objHtml = SCN ? `<h4>เป้าหมาย</h4>${SCN.obj.map((o, i) => `<div class="obj"><b class="${ok[i] ? 'ok' : 'bad'}">${ok[i] ? '✓' : '✗'}</b><span>${esc(o.t)}</span></div>`).join('')}
     <p style="font-size:16px;font-weight:700" class="${allOk ? 'ok' : 'bad'}">${allOk ? 'ผ่านสถานการณ์นี้แล้ว ผลถูกส่งกลับไปที่หน้าบทเรียน' : 'ยังไม่ผ่าน ลองใหม่อีกครั้ง'}</p>` : '';
@@ -988,24 +1123,431 @@ function showResult(ok, allOk) {
   $('again').onclick = () => SCN ? showIntro() : showMenu();
 }
 
+// =================== ออนไลน์ (หลายเครื่อง) ===================
+// host คำนวณสนามทั้งหมด · เครื่องอื่นส่งปุ่มมาแล้วรับภาพสนามกลับ · เชื่อมแบบ WebRTC ผ่าน PeerJS ด้วยรหัสห้อง 6 หลัก
+// ?net=local = ทดสอบในเครื่องเดียว (หลายแท็บของเบราว์เซอร์เดียวกัน) ไม่ผ่านอินเทอร์เน็ต
+const SLOT_TH = { R1: 'RED 1', R2: 'RED 2', B1: 'BLUE 1', B2: 'BLUE 2' };
+const NET_DEF = { kind: 'tele', hp: 'manual', bot: 'normal', intakeDelay: true, shove: true, health: false };
+const PRESET = { 2: ['human', 'bot', 'human', 'bot'], 3: ['human', 'human', 'human', 'bot'], 4: ['human', 'human', 'human', 'human'] };
+const NET_EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'hp'];
+const PEER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js', LOCALNET = Q.get('net') === 'local';
+const loadPeer = () => window.Peer ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'); s.src = PEER_SRC; s.onload = () => ok(); s.onerror = () => no(new Error('โหลดตัวเชื่อมต่อ (PeerJS) ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่')); document.head.appendChild(s); });
+async function tpHost(code, onConn) {
+  if (LOCALNET) {
+    const ch = new BroadcastChannel('biobuzz-' + code), cs = {};
+    ch.onmessage = e => { const { from, to, d } = e.data; if (to !== 'H') return; let c = cs[from];
+      if (!c) { c = cs[from] = { id: from, send: o => ch.postMessage({ from: 'H', to: from, d: o }), close() { delete cs[from]; } }; onConn(c); }
+      if (d === '__bye') { delete cs[from]; c.onclose?.(); } else c.ondata?.(d); };
+    return { close() { ch.postMessage({ from: 'H', to: '*', d: '__bye' }); ch.close(); } };
+  }
+  await loadPeer();
+  return new Promise((ok, no) => {
+    const p = new Peer('biobuzz-' + code); let open = false;
+    p.on('open', () => { open = true; ok({ close: () => p.destroy() }); });
+    p.on('error', e => { if (!open) { p.destroy(); no(e); } });
+    p.on('disconnected', () => { try { p.reconnect(); } catch {} });
+    p.on('connection', c => { const w = { id: c.peer, send: o => { if (c.open) c.send(o); }, close: () => c.close() }; c.on('open', () => onConn(w)); c.on('data', d => w.ondata?.(d)); c.on('close', () => w.onclose?.()); c.on('error', () => w.onclose?.()); });
+  });
+}
+async function tpJoin(code) {
+  if (LOCALNET) {
+    const ch = new BroadcastChannel('biobuzz-' + code), id = 'c' + Math.random().toString(36).slice(2, 8);
+    const w = { id, send: o => ch.postMessage({ from: id, to: 'H', d: o }), close() { ch.postMessage({ from: id, to: 'H', d: '__bye' }); ch.close(); } };
+    ch.onmessage = e => { const { from, to, d } = e.data; if (from !== 'H' || (to !== id && to !== '*')) return; if (d === '__bye') w.onclose?.(); else w.ondata?.(d); };
+    return w;
+  }
+  await loadPeer();
+  return new Promise((ok, no) => {
+    const p = new Peer(); let done = false;
+    const fail = m => { if (done) return; done = true; clearTimeout(t); p.destroy(); no(new Error(m)); };
+    const t = setTimeout(() => fail('เชื่อมต่อห้องไม่ได้ (หมดเวลา) ตรวจรหัสห้องและอินเทอร์เน็ต'), 15000);
+    p.on('error', e => fail(e.type === 'peer-unavailable' ? 'ไม่พบห้องรหัสนี้ (host ต้องเปิดหน้าห้องค้างไว้)' : 'เชื่อมต่อไม่ได้: ' + (e.type || e)));
+    p.on('open', () => { const c = p.connect('biobuzz-' + code, { reliable: false }), w = { id: p.id, send: o => { if (c.open) c.send(o); }, close: () => p.destroy(),
+        relay: async () => { await new Promise(r => setTimeout(r, 1500)); try { const st = await c.peerConnection.getStats(); let rel = false; st.forEach(v => { if (v.type === 'candidate-pair' && v.state === 'succeeded' && v.nominated !== false) for (const id of [v.localCandidateId, v.remoteCandidateId]) if (st.get(id)?.candidateType === 'relay') rel = true; }); return rel; } catch { return false; } } };
+      c.on('open', () => { done = true; clearTimeout(t); ok(w); }); c.on('data', d => w.ondata?.(d)); c.on('close', () => w.onclose?.()); c.on('error', () => w.onclose?.()); });
+  });
+}
+const netCast = m => { for (const id in NET.peers) NET.peers[id].conn.send(m); };
+const DRV_LIM = { vmax: [0.8, 2.4], acc: [1.5, 9], wmax: [1.5, 6], strafe: [0.4, 1], dead: [0, 0.25], elev: [40, 85], vmin: [2, 9], vmax2: [2, 9], vfix: [2, 9], lh: [0.15, 0.6], gateMin: [0.3, 2.5], gateMax: [0.5, 3], intakeTime: [0, 1.5], dead1: [0.02, 0.25], dead2: [0.02, 0.25] };
+const netDrv = d => ({ ...DEFAULT_DRIVE, ...Object.fromEntries(Object.keys(DEFAULT_DRIVE).filter(k => d && typeof d[k] === typeof DEFAULT_DRIVE[k] && (typeof d[k] !== 'number' || (Number.isFinite(d[k]) && DRV_LIM[k]))).map(k => [k, typeof d[k] === 'number' ? clamp(d[k], ...DRV_LIM[k]) : typeof d[k] === 'string' ? d[k].slice(0, 12) : d[k]])) });
+const netSan = o => {  // ข้อมูลจากเครื่องอื่น: ตัดอักขระ HTML ออกจากข้อความทุกตัวก่อนนำไปใช้
+  if (typeof o === 'string') return o.replace(/[<>"]/g, c => c === '<' ? '‹' : c === '>' ? '›' : '”');
+  if (Array.isArray(o)) { for (let i = 0; i < o.length; i++) if (typeof o[i] !== 'number') o[i] = netSan(o[i]); }
+  else if (o && typeof o === 'object') for (const k in o) { if (/[<"]/.test(k)) delete o[k]; else if (typeof o[k] !== 'number') o[k] = netSan(o[k]); }
+  return o;
+};
+const humanSlots = () => NET.room.slots.filter(s => s.type === 'human').length;
+async function netCreate(name) {
+  let room = null, tp = null;
+  for (let k = 0; k < 4 && !room; k++) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    try { tp = await tpHost(code, c => { c.ondata = d => netHostMsg(c, d); c.onclose = () => netDrop(c.id); }); room = { code, cfg: { ...NET_DEF }, slots: PRESET[2].map(t => ({ type: t, who: null, name: '' })) }; }
+    catch (e) { if (e.type !== 'unavailable-id') throw new Error(e.message || 'สร้างห้องไม่ได้: ' + (e.type || e)); }
+  }
+  if (!room) throw new Error('สร้างห้องไม่ได้ ลองใหม่อีกครั้ง');
+  Object.assign(NET, { role: 'host', id: 'H', name, tp, room, peers: {}, playing: false, res: false, inputs: {}, says: [], seq: 0, lseq: 0 }); netBgTicker();
+  Object.assign(room.slots[0], { who: 'H', name }); netLog(`${name} สร้างห้อง ${room.code}`);
+}
+function netHostMsg(c, d) {
+  if (!d || typeof d !== 'object' || NET.role !== 'host') return;
+  d = netSan(d);
+  if (d.t === 'hello') {
+    if (NET.peers[c.id]) return;  // hello ซ้ำจากเครื่องเดิม = ไม่จองที่นั่งเพิ่ม
+    const p = NET.peers[c.id] = { conn: c, name: String(d.name || 'ผู้เล่น').slice(0, 16), drv: netDrv(d.drv), inN: 0 };
+    const s = !NET.playing && NET.room.slots.find(s => s.type === 'human' && !s.who); if (s) { s.who = c.id; s.name = p.name; }
+    netLog(`${p.name} เข้าห้อง${s ? ' · นั่ง ' + SLOT_TH[SLOT_ID[NET.room.slots.indexOf(s)]] : NET.playing ? ' (ระหว่างแมตช์ · รอรอบถัดไป)' : ' (ยังไม่มีตำแหน่ง)'}`);
+    netLobbyPush();
+  } else if (d.t === 'pick' && !NET.playing) {
+    const p = NET.peers[c.id], s = NET.room.slots[d.slot]; if (!p) return;
+    if (d.slot === -1 || (s && s.type === 'human' && (!s.who || s.who === c.id))) { NET.room.slots.forEach(x => { if (x.who === c.id) { x.who = null; x.name = ''; } }); if (s) { s.who = c.id; s.name = p.name; } netLog(`${p.name} ${s ? 'เลือกนั่ง ' + SLOT_TH[SLOT_ID[d.slot]] : 'ลุกจากที่นั่ง (เป็นผู้ชม)'}`); }
+    netLobbyPush();
+  } else if (d.t === 'in' && NET.playing) {
+    const rb = S.robots.find(r => r.net === c.id); if (!rb) return;
+    const ip = NET.inputs[rb.id] ||= emptyInput(), a = Array.isArray(d.a) ? d.a : [], p = NET.peers[c.id];
+    if (p && !(d.n <= p.inN)) { p.inN = +d.n || 0; ip.at = performance.now(); ip.fwd = clamp(+a[0] || 0, -1, 1); ip.strafe = clamp(+a[1] || 0, -1, 1); ip.turn = clamp(+a[2] || 0, -1, 1); ip.slow = !!a[3]; ip.fc = !!a[4]; }
+    for (const k of Array.isArray(d.e) ? d.e : []) if (NET_EDGE.includes(k)) ip[k] = true;
+  } else if (d.t === 'pg') c.send({ t: 'po', c: d.c });
+}
+function netLobbyPush() { NET.room.n = 1 + Object.keys(NET.peers).length; for (const id in NET.peers) { NET.lseq++; NET.peers[id].conn.send({ t: 'lobby', n: NET.lseq, room: NET.room, playing: !!NET.playing, you: id }); } if (!NET.playing && !NET.res) showLobby(); }
+function netDrop(id) {
+  const p = NET.peers[id]; if (!p) return; delete NET.peers[id];
+  NET.room.slots.forEach(s => { if (s.who === id) { s.who = null; s.name = ''; } });
+  const rb = NET.playing && S.robots.find(r => r.net === id);
+  if (rb) { rb.net = null; rb.human = false; rb.ai.mode = 'offense'; rb.cmd = { ...STOP }; rb.pname = p.name + ' → Bot'; const m = `${SLOT_TH[rb.id]} (${p.name}) หลุดการเชื่อมต่อ → Bot ขับแทน`; say(m, 3, null); NET.says.push([m, 3, null]); }
+  netLog(`${p.name} ออกจากห้อง / หลุดการเชื่อมต่อ${rb ? ' · Bot ขับ ' + SLOT_TH[rb.id] + ' แทน' : ''}`);
+  netLobbyPush();
+}
+function netStartMatch() {
+  const R = NET.room, c = R.cfg;
+  S = newState(); applyOpts({}); S.mode = c.kind === 'free' ? 'free' : 'match'; S.bot = { opp: c.bot, ally: c.bot };
+  Object.assign(S.opt, { hpManual: c.hp === 'manual', intakeDelay: !!c.intakeDelay, shove: !!c.shove, health: !!c.health, gate: false, rival: false });
+  S.el = c.kind === 'full' ? 0 : MATCH_LEN - 120;
+  Object.assign(NET, { inputs: {}, says: [], sig: '', bp: [], tF: 0, tS: 0, playing: true, res: false, saved: false, lastRec: null, spec: false, t0: Date.now() });
+  netLog(`เริ่มแมตช์ · ${NKIND_TH[c.kind]} · ${R.slots.map((s, i) => s.type === 'none' ? '' : `${SLOT_TH[SLOT_ID[i]]} ${s.type === 'human' && s.who ? s.name : 'Bot'}`).filter(Boolean).join(' · ')}`); netLobbyPush();
+  R.slots.forEach((s, i) => {
+    const rb = S.robots[i], p = NET.peers[s.who], hum = s.type === 'human' && (s.who === 'H' || !!p);
+    if (s.type === 'none') return api.bench(rb.id);
+    rb.human = hum; rb.ai.mode = hum ? 'human' : 'offense'; rb.net = hum && s.who !== 'H' ? s.who : null; rb.drv = rb.net ? p.drv : null; rb.pname = hum ? s.name : 'Bot';
+    if (s.who === 'H') ME = i;
+  });
+  S.startProj = projected(); S.robots.forEach(r => r.cycleStart = S.el);
+  S.running = true; ov(false); renderPanels();
+  for (const id in NET.peers) NET.peers[id].conn.send({ t: 'start', n: NET.seq, S, me: R.slots.findIndex(s => s.who === id) });
+  say(c.kind === 'full' ? 'แมตช์ออนไลน์: AUTO 30 วิเริ่ม' : c.kind === 'free' ? 'ซ้อมออนไลน์ (ไม่จับเวลา) เริ่ม!' : 'แมตช์ออนไลน์ TELEOP 2:00 เริ่ม!', 2.5, null);
+}
+const rd = v => Math.round(v * 1000) / 1000;
+// ช่องสัญญาณเป็นแบบไม่บังคับลำดับ (ข้อความที่มาช้าไม่ถ่วงข้อความใหม่) ทุกข้อความจึงมีเลขลำดับ n · ข้อความที่เก่ากว่าที่ใช้ไปแล้วถูกทิ้ง
+function netFast() {
+  const sig = S.balls.map(b => b.where + (b.where === 'cell' ? b.hive : b.where === 'flower' ? b.flower + '.' + b.order : b.where === 'carried' ? b.owner : '')).join('|'), full = sig !== NET.sig; NET.sig = sig;
+  const H2 = S.hives, m = { t: 'f', n: ++NET.seq, el: S.el, run: S.running, h: [H2.red.angle, H2.blue.angle, H2.red.up, H2.blue.up],
+    r: S.robots.map(r => [rd(r.x), rd(r.z), rd(r.th), rd(r.vx), rd(r.vz), rd(r.w), rd(r.shake || 0), r.hitN || 0, rd(r.pickP || 0), r.intake ? 1 : 0, r.hp, r.dead ? 1 : 0, r.off ? 1 : 0, r.load]) };
+  const p = []; S.balls.forEach((b, i) => { const k = b.x * 7 + b.z * 13 + b.y * 3 + (b.vx || 0) * 17 + (b.vz || 0) * 19; if (k !== NET.bp[i]) { NET.bp[i] = k; p.push([i, rd(b.x), rd(b.y), rd(b.z), rd(b.vx || 0), rd(b.vy || 0), rd(b.vz || 0)]); } });
+  if (full) m.B = S.balls; else if (p.length) m.p = p;
+  if (NET.says.length) { m.m = NET.says; NET.says = []; }
+  netCast(m);
+}
+function netSlow() { const { balls, msg, msgT, cam, events, dsLog, ...rest } = S; netCast({ t: 's', n: ++NET.seq, S: rest }); }
+function netHostFrame(now) {  // ส่งภาพสนามทุกเฟรม (~60 ครั้ง/วิ) · ข้อมูลที่เปลี่ยนช้า (คะแนน FOUL สถิติ) 4 ครั้ง/วิ
+  if (!NET.playing || S.over) return;
+  for (const rb of S.robots) { const ip = rb.net && NET.inputs[rb.id]; if (ip && now - (ip.at || 0) > 600) ip.fwd = ip.strafe = ip.turn = 0; }  // เครื่องนั้นเงียบไป (สลับแท็บ/เน็ตสะดุด) = ปล่อยคันโยก
+  if (now - NET.tF >= 15) { NET.tF = now; netFast(); }
+  if (now - NET.tS >= 250) { NET.tS = now; netSlow(); }
+}
+function netEnd() {  // host: ส่งผลให้ทุกเครื่อง แล้วเปิดห้องให้จัดตำแหน่งรอบใหม่ได้ (หน้าผลยังค้างอยู่จนกด “กลับห้อง”)
+  if (NET.role !== 'host' || !NET.playing) return;
+  netLog(`จบแมตช์ RED ${S.end.score.red} – BLUE ${S.end.score.blue}`); netFast(); netCast({ t: 'end', S, log: NET.room.log });
+  NET.playing = false; NET.res = true; netLobbyPush();
+}
+function netBack() { if (!NET.role) return; NET.res = false; showLobby(); }
+let bgW = null;
+function netBgTicker() {  // host สลับแท็บ/ย่อหน้าต่าง: เบราว์เซอร์หยุดวาดภาพ → ใช้ Worker จับเวลาให้สนามเดินต่อ เครื่องอื่นจึงไม่ค้าง
+  if (bgW) return;
+  try { bgW = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),16)'], { type: 'text/javascript' }))); bgW.onmessage = () => { if (document.hidden && NET.role === 'host' && NET.playing && !S.over) simFrame(performance.now()); }; } catch {}
+}
+// ---- เครื่องที่เข้าร่วม ----
+async function netJoin(code, name) {
+  const c = await tpJoin(code);
+  Object.assign(NET, { role: 'client', conn: c, name, id: c.id, room: null, playing: false, peers: {}, tI: 0, tP: 0, inSeq: 0, lN: 0, ping: 0, relay: false });
+  c.ondata = netClientMsg; c.onclose = () => netLeave('การเชื่อมต่อกับ host หลุด (host ปิดห้องหรือเน็ตหลุด)');
+  c.send({ t: 'hello', name, drv: DRV });
+  let tm; try { await new Promise((ok, no) => { NET.wait = ok; NET.waitNo = no; tm = setTimeout(() => no(new Error('ไม่พบห้องรหัสนี้ (host ต้องเปิดหน้าห้องค้างไว้)')), 8000); }); }
+  catch (e) { if (NET.conn === c) { c.onclose = null; try { c.close(); } catch {} Object.assign(NET, { role: null, conn: null }); } throw e; }
+  finally { clearTimeout(tm); if (NET.conn === c || !NET.role) NET.wait = NET.waitNo = null; }
+  c.relay?.().then(v => { NET.relay = v; netBarKey = '-'; });
+}
+function netClientMsg(d) {
+  if (!d || typeof d !== 'object' || NET.role !== 'client') return;
+  d = netSan(d);
+  if (d.t === 'lobby') { if (d.n <= NET.lN) return; NET.lN = d.n; NET.room = d.room; NET.id = d.you; NET.busy = !!d.playing; if (NET.wait) { NET.wait(); NET.wait = null; } if (!NET.playing && !NET.res) showLobby(); }
+  else if (d.t === 'bye') netLeave('host ปิดห้องแล้ว', 'hostleft');
+  else if (d.t === 'po') { const p = performance.now() - d.c; NET.ping = NET.ping ? NET.ping * 0.7 + p * 0.3 : p; }
+  else if (d.t === 'start') {
+    S = d.S; Object.assign(NET, { res: false, busy: false, lastR: null, tgt: null, fN: d.n, sN: d.n, bN: d.n, bq: [], age: 0, pred: false, spec: !(d.me >= 0), playing: true, saved: false, lastRec: null, t0: Date.now() }); ME = NET.spec ? 0 : d.me;
+    S.msg = ''; S.msgT = 0; ov(false); renderPanels(); say(NET.spec ? 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)' : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
+  }
+  else if (d.t === 'f' && NET.playing) netApplyFast(d);
+  else if (d.t === 's' && NET.playing) netApplySlow(d);
+  else if (d.t === 'end' && NET.playing) { const cam = S.cam; S = d.S; S.cam = cam; S.over = true; S.running = false; if (Array.isArray(d.log) && NET.room) NET.room.log = d.log; NET.playing = false; NET.res = true; showResult([], false); }
+}
+const BK = ['x', 'y', 'z', 'vx', 'vy', 'vz'];
+function netApplyFast(d) {
+  for (const [m, t, to] of d.m || []) if (mine(to)) { S.msg = m; S.msgT = t; }
+  if (d.B && d.n > NET.bN) { const o = S.balls; S.balls = d.B; S.balls.forEach((b, i) => { if (NET.bq[i] > d.n && o[i]) for (const k of BK) b[k] = o[i][k]; }); NET.bN = d.n; }
+  for (const a of d.p || []) { const b = S.balls[a[0]]; if (b && d.n > NET.bN && d.n > (NET.bq[a[0]] || 0)) { [, b.x, b.y, b.z, b.vx, b.vy, b.vz] = a; NET.bq[a[0]] = d.n; } }
+  if (d.n <= NET.fN) return; NET.fN = d.n; NET.age = 0;
+  S.el = d.el; S.running = d.run; [S.hives.red.angle, S.hives.blue.angle, S.hives.red.up, S.hives.blue.up] = d.h;
+  NET.lastR = d.r; NET.tgt = d.r.map(a => a.slice(0, 6)); netRobots();
+}
+function netRobots(keep) {  // ค่าที่เปลี่ยนเร็วของหุ่นมาจากข้อความถี่ · ตำแหน่งบนจอค่อย ๆ ไล่ตามเป้า NET.tgt (ไม่กระโดด) · หุ่นของเราเองใช้ความเร็วที่คำนวณในเครื่อง (ตอบสนองทันที)
+  (NET.lastR || []).forEach((a, i) => { const r = S.robots[i]; if (!r) return;
+    if (keep?.[i]) [r.x, r.z, r.th, r.vx, r.vz, r.w] = keep[i];
+    if (!(i === ME && NET.pred)) { r.vx = a[3]; r.vz = a[4]; r.w = a[5]; }
+    r.shake = a[6]; r.hitN = a[7]; r.pickP = a[8]; r.intake = !!a[9]; r.hp = a[10]; r.dead = !!a[11]; r.off = !!a[12]; r.load = a[13]; });
+}
+function netApplySlow(d) {
+  if (d.n <= NET.sN) return; NET.sN = d.n;
+  const o = S, keep = o.robots.map(r => [r.x, r.z, r.th, r.vx, r.vz, r.w]);
+  S = { ...d.S, balls: o.balls, msg: o.msg, msgT: o.msgT, cam: o.cam, events: o.events || [], dsLog: o.dsLog || [], el: o.el, running: o.running };
+  for (const c of ['red', 'blue']) { S.hives[c].angle = o.hives[c].angle; S.hives[c].up = o.hives[c].up; }
+  netRobots(keep);
+}
+function netClientFrame(dt, inp) {  // เครื่องที่เข้าร่วมไม่คำนวณสนามเอง: เดินภาพต่อจากข้อมูลล่าสุดของ host · ขับหุ่นตัวเองล่วงหน้าในเครื่อง · ส่งปุ่มกลับไปทุกเฟรม
+  if (inp.cam && S.opt.lockCam == null) { S.cam = (S.cam + 1) % 3; say('กล้อง: ' + CAM_TH[S.cam], 1, null); }
+  S.msgT -= dt; if (!NET.playing || S.over) return;
+  const me = R1(), run = S.running, tg = NET.tgt; NET.age += dt;
+  NET.pred = run && !NET.spec && me.human && !me.off && !me.dead && phase() === 'teleop';
+  const n = Math.max(1, Math.ceil(dt * 60)), h = dt / n, ext = run && NET.age < 0.15, ip = { ...inp, fc: fieldOn() };
+  for (let s = 0; s < n; s++) S.robots.forEach((r, i) => {
+    if (r.off) return; const t = tg?.[i];
+    if (t && ext) { t[0] += t[3] * h; t[1] += t[4] * h; t[2] = wrap(t[2] + t[5] * h); }
+    if (i === ME && NET.pred) { humanCmd(r, ip); applyCmd(r, h); }
+    else if (run) { r.x += r.vx * h; r.z += r.vz * h; r.th = wrap(r.th + r.w * h); if (r.shake > 0) r.shake = Math.max(0, r.shake - h * 2.2); }
+    if (!t) return;
+    let ex = r.x - t[0], ez = r.z - t[1], eth = wrap(r.th - t[2]); const e = Math.hypot(ex, ez);
+    if (e > 0.6) ex = ez = eth = 0;  // ห่างจากของจริงมาก (ถูกย้ายตำแหน่ง) = ไปที่ตำแหน่งจริงทันที
+    else if (i === ME && NET.pred) {  // หุ่นเรา: ยอมให้นำหน้าของจริงได้เล็กน้อย (ชดเชยเวลาเดินทางของสัญญาณ) แล้วค่อย ๆ ดึงกลับ
+      const cap = 0.04 + 0.1 * Math.min(1, Math.hypot(t[3], t[4])), capA = 0.06 + 0.2 * Math.min(1, Math.abs(t[5]) / 2), k = Math.exp(-h * 3), q = e * k > cap ? cap / e : k;
+      ex *= q; ez *= q; eth = clamp(eth * k, -capA, capA);
+    } else { const k = Math.exp(-h * 14); ex *= k; ez *= k; eth *= k; }
+    r.x = t[0] + ex; r.z = t[1] + ez; r.th = wrap(t[2] + eth);
+  });
+  if (run) for (const b of S.balls) { if (b.where === 'floor') rollBall(b, dt); else if (b.where === 'air') { b.vy -= G * dt; b.x += b.vx * dt; b.z += b.vz * dt; b.y = Math.max(rad(b), b.y + b.vy * dt); } }
+  const e = NET_EDGE.filter(k => inp[k]), now = performance.now();
+  if (!NET.spec && (e.length || now - NET.tI >= 15)) { NET.tI = now; NET.conn.send({ t: 'in', n: ++NET.inSeq, a: [rd(inp.fwd), rd(inp.strafe), rd(inp.turn), inp.slow ? 1 : 0, ip.fc ? 1 : 0], e }); }
+  if (now - NET.tP >= 2000) { NET.tP = now; NET.conn.send({ t: 'pg', c: now }); }
+}
+function netLeave(why, code) {
+  const role = NET.role; if (!role) return;
+  const wn = NET.waitNo; NET.wait = NET.waitNo = null;  // ยังรอเข้าห้องอยู่ = ยกเลิกการรอ
+  if (NET.playing) netHist(code || (why ? 'lost' : 'left'));
+  try { if (role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else { NET.conn.onclose = null; NET.conn.close(); } } catch {}
+  Object.assign(NET, { role: null, room: null, playing: false, peers: {}, conn: null, tp: null, inputs: {}, says: [], spec: false, res: false, busy: false, lastR: null, tgt: null, pred: false, saved: false, lastRec: null }); ME = 0;
+  NET.stat = null; S = newState(); renderPanels(); showMenu(); netBar(); if (why) $('ovBox').insertAdjacentHTML('afterbegin', `<p class="bad" style="font-weight:700">${esc(why)}</p>`);
+  wn?.(new Error(why || 'ออกจากห้องแล้ว'));
+}
+
+// ---- ประวัติการเล่นออนไลน์ (เก็บในเครื่องนี้ด้วย localStorage) + หน้าผลแมตช์ออนไลน์ ----
+const HIST_KEY = 'dca-net-history', HIST_MAX = 60;
+const nN = v => Number.isFinite(+v) ? +v : 0, nT = (v, n = 40) => netSan(String(v ?? '').slice(0, n)), nRB = o => ({ red: nN(o?.red), blue: nN(o?.blue) }), nA = a => Array.isArray(a) ? a : [];
+const recClean = r => ({ ts: nN(r.ts), dur: nN(r.dur), code: nT(r.code, 8), role: r.role === 'host' ? 'host' : 'client', name: nT(r.name, 16), slot: SLOT_ID.includes(r.slot) ? r.slot : null, why: nT(r.why, 10),  // บังคับชนิดข้อมูลทุกช่องก่อนแสดงผล / บันทึก
+  cfg: { kind: nT(r.cfg?.kind, 10), hp: nT(r.cfg?.hp, 10), bot: nT(r.cfg?.bot, 10), intakeDelay: !!r.cfg?.intakeDelay, shove: !!r.cfg?.shove, health: !!r.cfg?.health },
+  score: nRB(r.score), tips: nRB(r.tips), autoTips: nRB(r.autoTips), leavePark: nRB(r.leavePark),
+  det: nA(r.det).slice(0, 20).map(d => [nT(d?.[0], 60), nN(d?.[1]), nT(d?.[2], 5)]),
+  fouls: nA(r.fouls).slice(0, 80).map(f => ({ all: nT(f?.all, 5), rule: nT(f?.rule, 8), sev: nT(f?.sev, 6), pts: nN(f?.pts), why: nT(f?.why, 80), by: nT(f?.by, 4), rem: nN(f?.rem) })),
+  robots: nA(r.robots).filter(x => SLOT_ID.includes(x?.id)).slice(0, 4).map(x => ({ id: x.id, off: !!x.off, human: !!x.human, name: nT(x.name, 24), shots: nN(x.shots), hits: nN(x.hits), nCyc: nN(x.nCyc), cyc: nN(x.cyc), hp: nN(x.hp) })),
+  log: nA(r.log).slice(-40).map(e => ({ ts: nN(e?.ts), t: nT(e?.t, 160) })) });
+const histLoad = () => { try { const a = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(a) ? a.filter(r => r && r.score && r.cfg && Array.isArray(r.robots)).map(recClean) : []; } catch { return []; } };
+const netLog = t => { const R = NET.room; if (!R) return; (R.log ||= []).push({ ts: Date.now(), t }); if (R.log.length > 40) R.log.shift(); };
+function netRec(why) {  // สรุปแมตช์ออนไลน์ 1 แมตช์ · ใช้ทั้งหน้าผลและประวัติ
+  const R = NET.room, t0 = NET.t0 || Date.now(), me = NET.spec ? null : R1();
+  return recClean({ ts: t0, dur: Math.round((Date.now() - t0) / 1000), code: R.code, role: NET.role, name: NET.name || '', slot: me ? me.id : null, why, cfg: { ...R.cfg },
+    score: S.end?.score || { red: total('red'), blue: total('blue') }, tips: { ...S.stats.tips }, autoTips: { ...S.stats.autoTips }, leavePark: { ...S.stats.leavePark },
+    det: (S.end?.det || []).map(d => [d[0], d[1], d[2]]),
+    fouls: S.fouls.map(f => ({ all: f.all, rule: f.rule, sev: f.sev, pts: f.pts, why: f.why, by: f.by, rem: Math.round(f.rem) })),
+    robots: S.robots.map(r => ({ id: r.id, off: !!r.off, human: !!r.human, name: r.pname || 'Bot', shots: r.shots || 0, hits: r.hits || 0, nCyc: r.cycles.length, cyc: r.cycles.length ? +(r.cycles.reduce((a, b) => a + b, 0) / r.cycles.length).toFixed(1) : 0, hp: r.hp })),
+    log: (R.log || []).filter(e => e.ts >= t0 - 500) });
+}
+function netHist(why) {  // บันทึกลงประวัติ 1 ครั้งต่อแมตช์
+  if (!NET.role || !NET.room || NET.saved) return null; NET.saved = true;
+  const rec = netRec(why); try { const a = histLoad(); a.unshift(rec); localStorage.setItem(HIST_KEY, JSON.stringify(a.slice(0, HIST_MAX))); } catch {}
+  return rec;
+}
+const WHY_TH = { end: 'เล่นจนจบแมตช์', left: 'ออกจากห้องก่อนจบแมตช์', lost: 'การเชื่อมต่อหลุดก่อนจบแมตช์', closed: 'ปิดหน้าเว็บก่อนจบแมตช์', hostleft: 'host ปิดห้องก่อนจบแมตช์' };
+const fmtDate = ts => new Date(ts).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+const fmtClock = ts => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function recRes(rec) {
+  if (rec.why !== 'end') return ['ไม่จบแมตช์', 'mut']; if (!rec.slot) return ['ผู้ชม', 'mut'];
+  const my = rec.slot[0] === 'R' ? 'red' : 'blue', a = rec.score[my], b = rec.score[my === 'red' ? 'blue' : 'red'];
+  return a > b ? ['ชนะ', 'ok'] : a < b ? ['แพ้', 'bad'] : ['เสมอ', ''];
+}
+function recHtml(rec) {
+  const c = rec.cfg, [rt, rc] = recRes(rec), BL = '#6aa2ff', td = 'style="text-align:center;font-weight:700;color:', fl = a => (rec.fouls || []).filter(f => f.all === a);
+  const row = (k, r, b) => `<tr><td>${k}</td><td ${td}var(--red)">${r}</td><td ${td}${BL}">${b}</td></tr>`;
+  const flTxt = a => fl(a).map(f => `${esc(f.rule)}${f.sev === 'WARN' ? ' เตือน' : ' +' + f.pts}`).join(', ') || 'ไม่มี', flPts = a => fl(a).reduce((s, f) => s + (f.pts || 0), 0);
+  const det = a => (rec.det || []).filter(d => d[2] === a).map(d => `${esc(d[0])} <b>+${d[1]}</b>`).join('<br>') || '<span class="mut">—</span>';
+  const bots = rec.robots.map(r => { const col = r.id[0] === 'R' ? 'var(--red)' : BL;
+    return r.off ? `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b></td><td colspan="4" class="mut" style="text-align:left;font-weight:400">ไม่ลงสนาม</td></tr>`
+      : `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b>${r.id === rec.slot ? ' ★' : ''}</td><td style="text-align:left">${r.human ? '🧑 ' : '🤖 '}${esc(r.name)}</td><td style="text-align:center">${r.shots} / ${r.hits}${r.shots ? ` (${Math.round(r.hits / r.shots * 100)}%)` : ''}</td><td style="text-align:center">${r.nCyc ? `${r.cyc} วิ × ${r.nCyc}` : '—'}</td><td>${r.hp}%</td></tr>`; }).join('');
+  return `<h3 style="margin:6px 0"><span style="color:var(--red)">RED ${rec.score.red}</span> – <span style="color:${BL}">BLUE ${rec.score.blue}</span> · <span class="${rc}">${rt}</span></h3>
+    <p>${fmtDate(rec.ts)} · ห้อง <b>${esc(rec.code)}</b> · ${esc(rec.name)} ${rec.slot ? `ขับ <b>${SLOT_TH[rec.slot]}</b>` : '(ผู้ชม)'}${rec.role === 'host' ? ' · เป็น host' : ''} · เล่น ${Math.floor(rec.dur / 60)}:${String(rec.dur % 60).padStart(2, '0')} นาที · ${WHY_TH[rec.why] || ''}</p>
+    <p class="mut" style="font-size:12px">กติกา: ${NKIND_TH[c.kind] || esc(c.kind)} · Human Player ${c.hp === 'manual' ? 'กดปล่อยเอง' : 'อัตโนมัติ'} · Bot ระดับ ${BOT_LV[c.bot]?.th || esc(c.bot)} · เก็บลูกมีดีเลย์ ${c.intakeDelay ? 'เปิด' : 'ปิด'} · ชนแล้วถูกเบียด ${c.shove ? 'เปิด' : 'ปิด'} · เลือดลดเมื่อชน ${c.health ? 'เปิด' : 'ปิด'}</p>
+    <table><tr class="mut"><td></td><td style="text-align:center">RED</td><td style="text-align:center">BLUE</td></tr>
+      ${row('TIP (ช่วง AUTO)', `${rec.tips.red} (${rec.autoTips.red})`, `${rec.tips.blue} (${rec.autoTips.blue})`)}${row('LEAVE + PARK', rec.leavePark.red, rec.leavePark.blue)}
+      ${row('คะแนนที่ได้จาก FOUL ของอีกฝ่าย', flPts('blue'), flPts('red'))}${row('FOUL ที่ทำ', flTxt('red'), flTxt('blue'))}
+      ${rec.det?.length ? row('คะแนนตอนจบแมตช์', det('red'), det('blue')) : ''}</table>
+    <table><tr class="mut"><td>หุ่น</td><td style="text-align:left">ผู้ขับ</td><td style="text-align:center">ยิง / เข้า CELL</td><td style="text-align:center">cycle เฉลี่ย</td><td>เลือด</td></tr>${bots}</table>
+    ${rec.log?.length ? `<h4>เหตุการณ์ในห้อง</h4><div class="mut" style="font-size:12px;line-height:1.5">${rec.log.map(e => `${fmtClock(e.ts)} · ${esc(e.t)}`).join('<br>')}</div>` : ''}`;
+}
+function showNetResult() {
+  const rec = NET.lastRec ||= netHist('end') || netRec('end'), host = NET.role === 'host', [rt] = recRes(rec);
+  ov(true, `<h2>${rt === 'ชนะ' ? '🏆 จบแมตช์ · ทีมคุณชนะ' : rt === 'แพ้' ? 'จบแมตช์ · ทีมคุณแพ้' : 'จบแมตช์ออนไลน์'}</h2>${recHtml(rec)}
+    <p class="mut" style="font-size:12px">ผลแมตช์นี้ถูกบันทึกในประวัติการเล่นออนไลน์ของเครื่องนี้แล้ว</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="again">กลับห้อง${host ? ' (เล่นรอบใหม่)' : ''}</button><button class="sec" id="resHist">📜 ประวัติ</button><button class="sec" id="resLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button></div>`);
+  $('again').onclick = netBack; $('resLeave').onclick = () => netLeave(); $('resHist').onclick = () => showHistory(showNetResult);
+}
+function showHistory(back = () => showOnline(), i = -1) {
+  const a = histLoad();
+  if (a[i]) { ov(true, `<h2>📜 รายละเอียดแมตช์</h2>${recHtml(a[i])}<button class="sec" id="hBack">← กลับรายการ</button>`); $('hBack').onclick = () => showHistory(back); return; }
+  const n = { ชนะ: 0, แพ้: 0, เสมอ: 0 }; a.forEach(r => { const k = recRes(r)[0]; if (k in n) n[k]++; });
+  const rows = a.map((r, k) => { const [rt, rc] = recRes(r);
+    return `<tr data-h="${k}" style="cursor:pointer"><td>${fmtDate(r.ts)}</td><td>${esc(r.code)}</td><td>${r.slot ? SLOT_TH[r.slot] : 'ผู้ชม'}${r.role === 'host' ? ' · host' : ''}</td><td style="text-align:center"><b style="color:var(--red)">${r.score.red}</b> – <b style="color:#6aa2ff">${r.score.blue}</b></td><td class="${rc}">${rt} ›</td></tr>`; }).join('');
+  ov(true, `<h2>📜 ประวัติการเล่นออนไลน์</h2>
+    <p>เก็บในเครื่องนี้ (เบราว์เซอร์นี้) สูงสุด ${HIST_MAX} แมตช์ล่าสุด · กดที่แถวเพื่อดูรายละเอียดการเล่น</p>
+    ${a.length ? `<p>ทั้งหมด <b>${a.length}</b> แมตช์ · <span class="ok">ชนะ ${n.ชนะ}</span> · <span class="bad">แพ้ ${n.แพ้}</span> · เสมอ ${n.เสมอ}</p>
+      <table><tr class="mut"><td>วันเวลา</td><td>ห้อง</td><td>ตำแหน่ง</td><td style="text-align:center">RED – BLUE</td><td>ผล</td></tr>${rows}</table>` : '<p class="mut">ยังไม่มีประวัติ · เมื่อเล่นออนไลน์ ผลและรายละเอียดของแต่ละแมตช์จะถูกเก็บไว้ที่นี่</p>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="hBack">← กลับ</button>${a.length ? '<button class="sec" id="hClear">ล้างประวัติทั้งหมด</button>' : ''}</div>`);
+  $('hBack').onclick = () => back();
+  $('ovBox').querySelectorAll('[data-h]').forEach(tr => tr.onclick = () => showHistory(back, +tr.dataset.h));
+  if ($('hClear')) $('hClear').onclick = () => { if (confirm('ล้างประวัติการเล่นออนไลน์ทั้งหมดในเครื่องนี้?')) { try { localStorage.removeItem(HIST_KEY); } catch {} showHistory(back); } };
+}
+
+// ---- หน้าจอออนไลน์: สร้าง/เข้าห้อง · ห้องรอ · แถบสถานะในเกม ----
+const SLOT_ID = Object.keys(SLOT_TH), TYPE_TH = { human: 'คนจริง', bot: 'Bot', none: 'ไม่มีหุ่น' };
+const NKIND_TH = { tele: 'แมตช์ TELEOP 2:00', full: 'แมตช์เต็ม AUTO 0:30 + TELEOP 2:00', free: 'ซ้อมอิสระ ไม่จับเวลา (host กดจบเอง)' };
+function showOnline(code = '', err = '') {
+  NET.stat = err ? { t: err, bad: true } : null;
+  let nm = NET.name || ''; try { nm = nm || localStorage.getItem('dca-net-name') || ''; } catch {}
+  ov(true, `<h2>🌐 เล่นออนไลน์ (หลายเครื่อง)</h2>
+    <p>เล่นพร้อมกันได้ 2–4 เครื่อง แบ่งทีมแดง / ทีมน้ำเงิน · เครื่องที่สร้างห้องจะได้รหัส 6 หลัก ส่งให้เพื่อนใช้เข้าห้องจากเครื่องอื่น · <b>เปิดได้หลายห้องพร้อมกันไม่จำกัดจำนวน</b> แต่ละห้องมีรหัสของตัวเองและแข่งแยกกัน${LOCALNET ? ' · <b>โหมดทดสอบในเครื่องเดียว</b> (เปิดหลายแท็บในเบราว์เซอร์เดียวกัน)' : ''}</p>
+    ${err ? `<p class="bad" style="font-weight:700">${esc(err)}</p>` : ''}
+    <div class="mcfg"><div class="mrow"><label>ชื่อผู้เล่น <input id="nName" maxlength="16" value="${esc(nm)}" placeholder="เช่น ทีม A · Driver" style="font:inherit;padding:4px 8px;width:190px"></label></div></div>
+    <div class="mcfg"><h4>สร้างห้องใหม่ (เป็น host)</h4><div class="mrow"><button id="nCreate">สร้างห้อง</button><span class="mut">ตั้งกติกา จำนวนผู้เล่น และคนจริง / Bot ได้ในหน้าถัดไป</span></div></div>
+    <div class="mcfg"><h4>เข้าร่วมห้องของเพื่อน</h4><div class="mrow"><label>รหัสห้อง <input id="nCode" inputmode="numeric" maxlength="6" value="${esc(code)}" placeholder="6 หลัก" style="font:inherit;font-size:20px;font-weight:700;letter-spacing:4px;padding:4px 8px;width:140px;text-align:center"></label><button id="nJoin">เข้าร่วม</button></div></div>
+    <p id="nStat" class="mut"></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับเมนู</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button></div>`);
+  netBar();
+  const name = () => { const n = $('nName').value.trim().slice(0, 16) || 'ผู้เล่น'; try { localStorage.setItem('dca-net-name', n); } catch {} return n; };
+  const busy = (b, m) => { $('nCreate').disabled = $('nJoin').disabled = $('nBack').disabled = $('nHist').disabled = b; $('nStat').textContent = m || ''; NET.stat = b ? { t: m } : null; netBar(); };
+  $('nBack').onclick = () => { NET.stat = null; netBar(); showMenu(); }; $('nHist').onclick = () => showHistory(() => showOnline($('nCode')?.value || code));
+  $('nCreate').onclick = async () => { const c = $('nCode').value; busy(true, 'กำลังสร้างห้อง…'); try { await netCreate(name()); showLobby(); } catch (e) { showOnline(c, e.message || String(e)); } };
+  const join = async () => { const c = $('nCode').value.replace(/\D/g, ''); if (c.length !== 6) return busy(false, 'รหัสห้องต้องเป็นตัวเลข 6 หลัก'); busy(true, 'กำลังเชื่อมต่อห้อง ' + c + ' …'); try { await netJoin(c, name()); } catch (e) { showOnline(c, e.message || String(e)); } };
+  $('nJoin').onclick = join; $('nCode').onkeydown = e => { if (e.key === 'Enter') join(); };
+}
+function netPreset(n) {  // เลือกจำนวนผู้เล่น 2 / 3 / 4 = จัดคนจริง / Bot ให้ตามแบบ แล้วย้ายคนที่นั่งอยู่ไปตำแหน่งคนจริงที่ว่าง
+  const old = NET.room.slots, seated = old.map((s, i) => s.who ? { who: s.who, name: s.name, i } : null).filter(Boolean).sort((a, b) => (b.who === 'H') - (a.who === 'H'));
+  const ns = PRESET[n].map(t => ({ type: t, who: null, name: '' }));
+  for (const p of seated) { const s = ns[p.i].type === 'human' && !ns[p.i].who ? ns[p.i] : ns.find(x => x.type === 'human' && !x.who); if (s) { s.who = p.who; s.name = p.name; } }
+  NET.room.slots = ns; netLobbyPush();
+}
+function showLobby() {
+  const R = NET.room; if (!NET.role || !R) return;
+  const host = NET.role === 'host', c = R.cfg, me = NET.id, dis = host ? '' : 'disabled';
+  const sel = (id, cur, o) => `<select id="${id}" ${dis}>${Object.entries(o).map(([v, t]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const chk = (k, t) => `<label><input type="checkbox" data-cfg="${k}" ${c[k] ? 'checked' : ''} ${dis}> ${t}</label>`;
+  const link = location.origin + location.pathname + '?room=' + R.code + (LOCALNET ? '&net=local' : '');
+  const types = R.slots.map(s => s.type).join(), pre = Object.keys(PRESET).find(n => PRESET[n].join() === types) || '';
+  const mySlot = R.slots.findIndex(s => s.who === me), nHum = humanSlots(), nIn = R.slots.filter(s => s.type === 'human' && s.who).length;
+  const rows = R.slots.map((s, i) => {
+    const col = i < 2 ? 'var(--red)' : 'var(--blu)', mineS = s.who === me;
+    const who = s.type === 'none' ? '<span class="mut">ไม่ลงสนาม</span>' : s.type === 'bot' ? '🤖 Bot' : s.who ? `🧑 <b>${esc(s.name)}</b>${mineS ? ' (คุณ)' : ''}${s.who === 'H' ? ' · host' : ''}` : '<span class="mut">ว่าง · รอคนเข้า (ถ้าไม่มี Bot ขับแทน)</span>';
+    const act = s.type === 'human' && !s.who && !NET.busy ? `<button class="sec" data-seat="${i}">นั่งตำแหน่งนี้</button>` : '';
+    return `<tr><td style="width:74px"><b style="color:${col}">${SLOT_TH[SLOT_ID[i]]}</b></td><td style="width:118px;text-align:left">${host ? `<select data-type="${i}" ${mineS ? 'disabled title="ตำแหน่งของคุณเอง ย้ายที่นั่งก่อนถึงเปลี่ยนได้"' : ''}>${Object.entries(TYPE_TH).map(([v, t]) => `<option value="${v}" ${v === s.type ? 'selected' : ''}>${t}</option>`).join('')}</select>` : TYPE_TH[s.type]}</td><td style="text-align:left;font-weight:400">${who}</td><td style="width:120px">${act}</td></tr>`;
+  }).join('');
+  ov(true, `<h2>🌐 ห้องออนไลน์</h2>
+    <div class="mcfg" style="text-align:center"><div class="mut">รหัสห้อง (ส่งให้เพื่อนเพื่อเข้าร่วม)</div><div style="font-size:44px;font-weight:800;letter-spacing:8px;color:var(--yel);line-height:1.15" id="lbCode">${esc(R.code)}</div>
+      <div class="mrow" style="justify-content:center"><input id="lbLink" readonly value="${esc(link)}" style="font:inherit;font-size:12px;padding:4px 6px;width:330px;max-width:100%"><button class="sec" id="lbCopy">คัดลอกลิงก์</button></div></div>
+    <div class="mcfg"><h4>กติกา ${host ? '' : '(host เป็นคนกำหนด)'}</h4>
+      <div class="mrow"><label>รูปแบบ ${sel('lbKind', c.kind, NKIND_TH)}</label></div>
+      <div class="mrow"><label>Human Player ${sel('lbHp', c.hp, { manual: 'ผู้เล่นกดปล่อย NECTAR เอง (H)', auto: 'ปล่อยอัตโนมัติ' })}</label><label>ระดับ Bot ${sel('lbBot', c.bot, Object.fromEntries(Object.entries(BOT_LV).map(([k, l]) => [k, l.th])))}</label></div>
+      <div class="mrow">${chk('intakeDelay', 'เก็บลูกมีดีเลย์')}${chk('shove', 'ชนแล้วหุ่นถูกเบียด')}${chk('health', 'เลือดลด 2% ต่อการชน')}</div></div>
+    <div class="mcfg"><h4>ผู้เล่น · คนจริง ${nIn}/${nHum} ตำแหน่ง</h4>
+      ${host ? `<div class="mrow"><label>จำนวนผู้เล่น (เครื่อง) <select id="lbN"><option value="" ${pre ? '' : 'selected'}>กำหนดเอง</option>${[2, 3, 4].map(n => `<option value="${n}" ${String(n) === pre ? 'selected' : ''}>${n} เครื่อง</option>`).join('')}</select></label><span class="mut">หรือเลือกทีละตำแหน่งด้านล่าง: คนจริง / Bot / ไม่มีหุ่น</span></div>` : ''}
+      <table>${rows}</table>
+      <p class="mut" style="font-size:12px">ตำแหน่ง “คนจริง” ที่ยังว่างตอนกดเริ่ม จะให้ Bot ขับแทน · ทีมน้ำเงินเห็นสนามจากฝั่งตัวเอง</p></div>
+    ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : host ? '' : `<p style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]} · รอ host กดเริ่ม…` : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</p>`}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${host ? '<button id="lbStart">▶ เริ่มแมตช์</button>' : ''}<button class="sec" id="lbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button></div>
+    ${host ? '<p class="mut" style="font-size:12px">เครื่อง host เป็นตัวคำนวณสนาม: อย่าปิดแท็บนี้ระหว่างแมตช์ (ปิด = ห้องปิด) · ควรใช้เครื่องและอินเทอร์เน็ตที่ดีที่สุดเป็น host</p>' : ''}
+    ${R.log?.length ? `<div class="mut" style="font-size:12px;line-height:1.5;margin-top:6px;border-top:1px solid var(--line);padding-top:6px"><b>เหตุการณ์ในห้อง</b><br>${R.log.slice(-6).map(e => `${fmtClock(e.ts)} · ${esc(e.t)}`).join('<br>')}</div>` : ''}`);
+  NET.stat = null; netBar();
+  $('lbCopy').onclick = () => { $('lbLink').select(); try { navigator.clipboard?.writeText(link); } catch {} $('lbCopy').textContent = 'คัดลอกแล้ว ✓'; };
+  $('lbLeave').onclick = () => netLeave();
+  $('ovBox').querySelectorAll('[data-seat]').forEach(b => b.onclick = () => { const i = +b.dataset.seat;
+    if (!host) return NET.conn.send({ t: 'pick', slot: i });
+    R.slots.forEach(s => { if (s.who === 'H') { s.who = null; s.name = ''; } }); Object.assign(R.slots[i], { who: 'H', name: NET.name }); netLobbyPush(); });
+  if (!host) return;
+  $('lbStart').onclick = netStartMatch;
+  $('lbKind').onchange = e => { c.kind = e.target.value; netLobbyPush(); }; $('lbHp').onchange = e => { c.hp = e.target.value; netLobbyPush(); }; $('lbBot').onchange = e => { c.bot = e.target.value; netLobbyPush(); };
+  $('ovBox').querySelectorAll('[data-cfg]').forEach(b => b.onchange = () => { c[b.dataset.cfg] = b.checked; netLobbyPush(); });
+  $('lbN').onchange = e => { if (e.target.value) netPreset(e.target.value); };
+  $('ovBox').querySelectorAll('[data-type]').forEach(b => b.onchange = () => { const s = R.slots[+b.dataset.type]; s.type = b.value; if (s.type !== 'human') { s.who = null; s.name = ''; } netLobbyPush(); });
+}
+let netBarKey = '';
+function netBar() {  // status bar บนสุดของจอ: สถานะการสร้าง / เข้าห้องออนไลน์ รหัสห้อง จำนวนผู้เล่น · แสดงทั้งในห้องรอและระหว่างแข่ง
+  const el = $('netBar'), R = NET.role ? NET.room : null, st = R ? null : NET.stat, sl = R ? R.slots : [];
+  const nHum = sl.filter(s => s.type === 'human').length, nIn = sl.filter(s => s.type === 'human' && s.who).length, nBot = sl.filter(s => s.type === 'bot').length;
+  const host = NET.role === 'host', nPc = host ? 1 + Object.keys(NET.peers).length : R?.n || 1, seat = sl.findIndex(s => s.who === NET.id);
+  const key = R ? [NET.role, R.code, ME, seat, NET.playing, NET.spec, NET.res, NET.busy, S.over, nHum, nIn, nBot, nPc].join() : st ? 's' + st.t : '';
+  if (key === netBarKey) return netPing(); netBarKey = key;
+  el.classList.toggle('hidden', !key); document.body.classList.toggle('online', !!key);
+  if (!key) { el.innerHTML = ''; return; }
+  if (!R) { el.innerHTML = `<span><i class="dot" style="background:${st.bad ? '#ff7b6b' : 'var(--yel)'}"></i><b>ออนไลน์</b> · ${esc(st.t)}</span>`; return; }
+  const [stT, col] = NET.playing ? ['กำลังแข่ง', 'var(--red)'] : NET.res ? ['จบแมตช์ · ดูผล', 'var(--yel)'] : NET.busy ? ['ห้องกำลังแข่ง · รอรอบถัดไป', 'var(--yel)'] : [nIn < nHum ? `รอผู้เล่นอีก ${nHum - nIn} คน` : 'ครบแล้ว · รอ host กดเริ่ม', 'var(--grn)'];
+  const sid = NET.playing || NET.res ? (NET.spec ? null : R1().id) : SLOT_ID[seat], me = sid ? `คุณ: <b style="color:${sid[0] === 'R' ? 'var(--red)' : '#6aa2ff'}">${SLOT_TH[sid]}</b>` : 'คุณ: ผู้ชม';
+  el.innerHTML = `<span><i class="dot" style="background:${col}"></i><b>ออนไลน์</b> · ห้อง <b style="color:var(--yel);letter-spacing:1px">${esc(R.code)}</b><span class="opt"> (${host ? 'คุณสร้างห้องนี้ · host' : 'เข้าร่วม'})</span></span>
+    <span>สถานะ: <b>${stT}</b></span>
+    <span title="ผู้เล่นคนจริงที่เข้านั่งแล้ว / ตำแหน่งคนจริงทั้งหมด">👥 ผู้เล่น <b>${nIn}/${nHum}</b> คน · 🤖 Bot <b>${nBot}</b><span class="opt"> · 🖥 เชื่อมต่อ <b>${nPc}</b> เครื่อง</span></span>
+    <span>${me}</span><span id="nbPing"></span>
+    ${host && NET.playing && !S.over ? '<button class="sec" id="nbEnd">จบแมตช์</button>' : ''}<button class="sec" id="nbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button>`;
+  $('nbLeave').onclick = () => { if (confirm(host ? 'ปิดห้องนี้? ผู้เล่นทุกเครื่องจะหลุดออก' : NET.playing ? 'ออกจากห้องนี้? Bot จะขับหุ่นของคุณแทน' : 'ออกจากห้องนี้?')) netLeave(); };
+  if ($('nbEnd')) $('nbEnd').onclick = () => endMatch(); netPing();
+}
+function netPing() {  // เวลาไป-กลับของสัญญาณถึง host (เครื่องที่เข้าร่วม) · เตือนเมื่อการเชื่อมต่อต้องอ้อมผ่านเซิร์ฟเวอร์ relay
+  const el = $('nbPing'); if (!el) return;
+  if (NET.role !== 'client' || !NET.ping) { el.textContent = ''; return; }
+  const p = Math.round(NET.ping); el.style.color = p < 80 ? 'var(--grn)' : p < 180 ? 'var(--yel)' : '#ff7b6b';
+  el.textContent = `ping ${p} ms${NET.relay ? ' · ⚠ ผ่าน relay (หน่วงสูง)' : ''}`;
+}
+addEventListener('pageshow', e => { if (e.persisted && NET.dead) location.reload(); });
+addEventListener('pagehide', () => { if (NET.role) NET.dead = true; if (NET.role && NET.playing) netHist('closed'); try { if (NET.role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else if (NET.role === 'client') NET.conn.close(); } catch {} });
+
 // =================== Free Control ===================
 function saveCk() { saved = clone(S); say('จำจุดนี้แล้ว (L = โหลด)'); }
 function loadCk() { if (!saved) return say('ยังไม่ได้จำจุด'); S = clone(saved); say('ซ้อมจากจุดที่จำ'); renderPanels(); }
-function resetFree() { const o = { ...S.opt }; startMatch('free'); S.opt = o; if (o.bots) S.robots.slice(1).forEach(rb => { rb.off = false; api.carry(rb.id, ['pollen', 'pollen']); }); renderPanels(); }
+const FREE_KEYS = ['autoStop', 'traj', 'gate', 'intakeDelay', 'rival', 'shove', 'health', 'simple', 'bots'];
+const loadFreeOpt = () => { try { const o = JSON.parse(localStorage.getItem('dca-free-opt') || '{}'); return Object.fromEntries(FREE_KEYS.filter(k => typeof o[k] === 'boolean').map(k => [k, o[k]])); } catch { return {}; } };
+const saveFreeOpt = () => { try { localStorage.setItem('dca-free-opt', JSON.stringify(Object.fromEntries(FREE_KEYS.map(k => [k, !!S.opt[k]])))); } catch {} };
+function applyFreeBots() { // Free Control: เปิด/ปิดหุ่น AI ตามตัวเลือก · B1 เป็นคู่แข่งที่เข้ามาเบียด/แย่งลูกเมื่อเปิด rival
+  S.robots.forEach((rb, i) => {
+    if (i === ME) return; const rival = S.opt.rival && rb.id === 'B1', on = S.opt.bots || rival;
+    if (on && rb.off) { rb.off = false; if (!rb.load.length) api.carry(rb.id, ['pollen', 'pollen']); } else if (!on) rb.off = true;
+    Object.assign(rb.ai, { mode: rival ? 'contest' : 'offense', force: rival, target: rival ? R1().id : null }); rb.mem.shooting = false; rb.intake = true;
+  });
+}
+function resetFree() { startMatch('free'); }
 let drvOpen = false;
 function renderPanels() {
   const sb = $('scnBox'), cb = $('coachBox'), fb = $('freeBox');
-  sb.innerHTML = SCN ? `<h4>สถานการณ์ ${esc(SCN_ID)}</h4><b>${esc(SCN.title)}</b><div id="objLive" style="margin-top:4px"></div>` : `<h4>${S.mode === 'free' ? 'Free Control' : 'แมตช์'}</h4>`;
+  sb.innerHTML = SCN ? `<h4>สถานการณ์ ${esc(SCN_ID)}</h4><b>${esc(SCN.title)}</b><div id="objLive" style="margin-top:4px"></div>` : NET.role ? `<h4>แมตช์ออนไลน์ · ห้อง ${esc(NET.room?.code || '')}</h4><div class="mut" style="font-size:12px">${NKIND_TH[NET.room?.cfg.kind] || ''}</div>` : `<h4>${S.mode === 'free' ? 'Free Control' : 'แมตช์'}</h4>`;
+  { const r = R1(), a = TH[r.alliance]; $('myHdr').textContent = `หุ่นของเรา (${SLOT_TH[r.id] || r.id})`; $('hiveHdr').textContent = `HIVE ${a} · CELL ที่หงาย`; $('tipLbl').textContent = `TIP ${a}`; $('foulHdr').textContent = `FOUL / คำเตือน ของ${a}`; }
   const btns = [...(SCN?.coach || []), ...(S.mode === 'free' || S.opt.hpManual ? ['hp'] : [])].filter((v, i, a) => a.indexOf(v) === i);
-  const BL = { call: ['📣 ประกาศเวลา (B)', 'KeyB'], predict: ['🎯 ทาย: ลูกนี้ TIP (P)', 'KeyP'], confirm: ['✅ ยืนยันตำแหน่ง (Y)', 'KeyY'], hp: ['🟥 Human Player ปล่อย NECTAR (H)', 'KeyH'] };
+  const BL = { call: ['📣 ประกาศเวลา (B)', 'KeyB'], predict: ['🎯 ทาย: ลูกนี้ TIP (P)', 'KeyP'], confirm: ['✅ ยืนยันตำแหน่ง (Y)', 'KeyY'], hp: [`${MY() === 'red' ? '🟥' : '🟦'} Human Player ปล่อย NECTAR (H)<br><b id="hpLeft" style="font-size:13px"></b>`, 'KeyH'] };
   cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
   cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
   const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
-  fb.innerHTML = S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${driveSel('driveMode2')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'บังคับกฎจุดยิง (ไม่ผ่านเกณฑ์ = ยิงไม่ได้)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+  fb.innerHTML = NET.role ? '' : S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${driveSel('driveMode2')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'ล็อกการยิง: ต้องผ่านเกณฑ์จุดยิงถึงยิงได้ (ปิด = ยิงได้ทุกที่ เข้า/ไม่เข้าตามจริง)')}${opt('intakeDelay', 'เก็บลูกมีดีเลย์ (ลูกต้องอยู่ที่ปาก intake จนดูดเสร็จ)')}${opt('rival', 'หุ่นคู่แข่ง 1 ตัว (B1) เข้ามาเบียด / แย่งลูก')}${opt('shove', 'โดนชนแล้วหุ่นถูกดัน ไถล บิดหมุน (เหมือนจริง)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
     ${padPanel()}
     <details id="drvBox" ${drvOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าหุ่น ปืน และเกณฑ์จุดยิง</summary>
     <h4>ตั้งค่าหุ่นให้เหมือนหุ่นจริงของทีม</h4><div class="mut" style="font-size:12px">วัดจากหุ่นจริงแล้วใส่ ค่าจะถูกจำไว้และใช้กับทุกสถานการณ์</div>
-    ${[['vmax', 'ความเร็วสูงสุด', 0.8, 2.4, 0.05, 'm/s'], ['acc', 'อัตราเร่ง', 1.5, 9, 0.5, 'm/s²'], ['wmax', 'ความเร็วหมุน', 1.5, 6, 0.1, 'rad/s'], ['strafe', 'การสไลด์ข้าง (mecanum)', 0.4, 1, 0.05, '×']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
+    ${[['vmax', 'ความเร็วสูงสุด', 0.8, 2.4, 0.05, 'm/s'], ['acc', 'อัตราเร่ง', 1.5, 9, 0.5, 'm/s²'], ['wmax', 'ความเร็วหมุน', 1.5, 6, 0.1, 'rad/s'], ['strafe', 'การสไลด์ข้าง (mecanum)', 0.4, 1, 0.05, '×'], ['intakeTime', 'เวลาดูดลูก 1 ลูก (intake)', 0, 1.5, 0.05, 'วิ']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
     <div style="margin-top:4px">เส้นโค้งจอย <select id="drvCurve" style="font:inherit">${[['linear', 'เส้นตรง'], ['square', 'ยกกำลังสอง (นุ่มตอนเริ่ม)'], ['cubic', 'ยกกำลังสาม (ละเอียดมาก)']].map(([v, t]) => `<option value="${v}" ${DRV.curve === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
     <h4>ปืนยิง (วัดจากหุ่นจริง)</h4>
     ${[['elev', 'มุมยิง', 40, 85, 1, '°'], ['lh', 'ความสูงจุดปล่อยลูก', 0.15, 0.6, 0.01, 'ม.']].map(([k, t, mn, mx, st, u]) => `<div style="margin-top:4px">${t} <b id="dv_${k}">${DRV[k]}</b> ${u}</div><input type="range" data-drv="${k}" min="${mn}" max="${mx}" step="${st}" value="${DRV[k]}">`).join('')}
@@ -1018,7 +1560,7 @@ function renderPanels() {
     <div style="margin-top:6px">ความเร็วชั่วคราว <span id="spdV">${Math.round(S.opt.speed * 100)}%</span></div><input type="range" id="spdR" min="40" max="120" value="${Math.round(S.opt.speed * 100)}">
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="sec" id="fRefill">เติม POLLEN 4 ลูก</button><button class="sec" id="fScatter">โปรยลูก 10 ลูก</button><button class="sec" id="fReset">รีเซ็ตสนาม (R)</button><button class="sec" id="fSave">จำจุด (K)</button><button class="sec" id="fLoad">โหลดจุด (L)</button><button class="sec" id="fMenu">เมนู</button></div>`
     : !SCN ? `<div style="display:flex;gap:6px;margin-top:6px"><button class="sec" id="fMenu">เมนู</button></div>` : '';
-  fb.querySelectorAll('input[data-opt]').forEach(i => i.onchange = () => { S.opt[i.dataset.opt] = i.checked; if (i.dataset.opt === 'bots') S.robots.slice(1).forEach(rb => { rb.off = !i.checked; if (i.checked && rb.load.length === 0) api.carry(rb.id, ['pollen', 'pollen']); }); });
+  fb.querySelectorAll('input[data-opt]').forEach(i => i.onchange = () => { S.opt[i.dataset.opt] = i.checked; if (['bots', 'rival'].includes(i.dataset.opt)) applyFreeBots(); saveFreeOpt(); });
   const q = id => fb.querySelector('#' + id);
   fb.querySelectorAll('input[data-drv]').forEach(i => i.oninput = () => { DRV[i.dataset.drv] = +i.value; q('dv_' + i.dataset.drv).textContent = i.value; saveDrv(); });
   padPanelWire(q); if (q('driveMode2')) q('driveMode2').onchange = e => setDriveMode(e.target.value);
@@ -1044,26 +1586,30 @@ document.querySelectorAll('#ds button').forEach(b => b.onclick = () => {
 function hud(inp) {
   const r = R1(), ph = phase(), rem = remaining();
   $('clock').textContent = S.opt.hideClock && S.running ? '— : —' : S.mode === 'free' ? '∞' : ph === 'auto' ? fmt(AUTO_LEN - S.el) : ph === 'trans' ? fmt(AUTO_LEN + TRANS_LEN - S.el) : fmt(rem);
-  $('phase').textContent = S.mode === 'free' ? 'Free Control' : S.over ? 'จบ' : !S.running ? 'หยุด' : ph === 'auto' ? 'AUTO' : ph === 'trans' ? 'ช่วงเปลี่ยน · ห้ามขยับ' : rem <= 60 ? 'TELEOP · FLOWER เปิด' : 'TELEOP';
+  $('phase').textContent = S.mode === 'free' ? (NET.role ? 'ซ้อมออนไลน์' : 'Free Control') : S.over ? 'จบ' : !S.running ? 'หยุด' : ph === 'auto' ? 'AUTO' : ph === 'trans' ? 'ช่วงเปลี่ยน · ห้ามขยับ' : rem <= 60 ? 'TELEOP · FLOWER เปิด' : 'TELEOP';
   $('sRed').textContent = total('red'); $('sBlue').textContent = total('blue');
   const p = projected(); $('projTxt').textContent = S.mode === 'free' ? '' : `ถ้าจบตอนนี้: แดง ${p.red} – น้ำเงิน ${p.blue}`;
   $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
   $('carryTxt').textContent = `${r.load.length}/4`; $('carryTxt').style.color = r.load.length > 4 ? 'var(--red)' : ''; $('slots').innerHTML = [...Array(Math.max(4, r.load.length)).keys()].map(i => { const b = r.load[i] != null ? S.balls[r.load[i]] : null; return `<div class="slot ${b ? (b.kind === 'pollen' ? 'pollen' : b.color) : ''}"></div>`; }).join('');
-  $('intakeTxt').textContent = !r.intake ? 'ปิด' : r.load.length > ROBOT.capacity ? 'เปิด · เกิน 4 ลูก! คายออก' : r.load.length >= capOf(r) ? 'เปิด · เต็มแล้ว หยุดดูด' : r.load.length >= ROBOT.capacity ? 'เปิด · ครบ 4 (ไม่มีระบบหยุดดูด)' : 'เปิด · ดูดอัตโนมัติ'; $('intakeTxt').style.color = !r.intake ? 'var(--red)' : r.load.length >= ROBOT.capacity ? 'var(--yel)' : ''; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (fieldOn() ? 'field-centric' : DRV.driveMode !== 'robot' ? 'robot-centric (กล้องตามหลัง)' : 'robot-centric') : 'AI ขับ';
+  $('intakeTxt').textContent = !r.intake ? 'ปิด' : r.load.length > ROBOT.capacity ? 'เปิด · เกิน 4 ลูก! คายออก' : r.load.length >= capOf(r) ? 'เปิด · เต็มแล้ว หยุดดูด' : r.load.length >= ROBOT.capacity ? 'เปิด · ครบ 4 (ไม่มีระบบหยุดดูด)' : r.pickP > 0 ? `กำลังดูดลูก… ${Math.round(r.pickP * 100)}%` : 'เปิด · ดูดอัตโนมัติ'; $('intakeTxt').style.color = !r.intake ? 'var(--red)' : r.load.length >= ROBOT.capacity ? 'var(--yel)' : ''; $('spd').textContent = speed(r).toFixed(2); $('drvTxt').textContent = r.human ? (fieldOn() ? 'field-centric' : DRV.driveMode !== 'robot' ? 'robot-centric (กล้องตามหลัง)' : 'robot-centric') : 'AI ขับ';
   const g = gateCheck(r); $('gate').textContent = !g.ok ? 'ยังไม่ได้' : g.warn ? 'ยิงได้ (นอกเกณฑ์)' : 'พร้อม'; $('gate').className = !g.ok ? 'bad' : g.warn ? '' : 'ok'; $('gate').style.color = g.ok && g.warn ? 'var(--yel)' : '';
   $('gateWhy').textContent = g.why + (traj ? ` · วิถี: ${traj.res === 'cell' ? 'เข้า CELL ✓' : traj.res === 'under' ? 'ชนใต้ CELL ✗' : `ตกพื้น ห่าง CELL ${traj.miss.toFixed(2)} ม. ✗`} · ลูก ${traj.v.toFixed(2)} m/s` : '');
   const er = $('effR'); if (er) { const e = effRange(); er.textContent = e ? `${e.min}–${e.max} ม.` : 'ยิงไม่ถึงทุกระยะ'; }
-  let pin = ''; for (const [k, v] of Object.entries(S.pins)) if (v.t > 0.4 && v.sep === 0) { const [a, b] = k.split('>'); if (a === 'R1') pin = `⚠ เรากำลัง PIN ${b} ${v.t.toFixed(1)} วิ ถอย!`; else if (b === 'R1' && !pin) pin = `${a} กำลัง PIN เรา ${v.t.toFixed(1)} วิ`; }
+  let pin = ''; for (const [k, v] of Object.entries(S.pins)) if (v.t > 0.4 && v.sep === 0) { const [a, b] = k.split('>'); if (a === r.id) pin = `⚠ เรากำลัง PIN ${b} ${v.t.toFixed(1)} วิ ถอย!`; else if (b === r.id && !pin) pin = `${a} กำลัง PIN เรา ${v.t.toFixed(1)} วิ`; }
   $('pinTxt').textContent = pin;
-  $('loadBox').classList.toggle('hidden', !!S.opt.hideLoad); const rule = tipRule(), load = cellLoad('red'); $('loadTxt').textContent = `${load.toFixed(2)} / ${rule.threshold}`; $('load').style.width = Math.min(100, load / rule.threshold * 100) + '%';
-  $('tips').textContent = S.stats.tips.red; $('stash').textContent = S.balls.filter(b => b.where === 'staged' && b.color === 'red').length;
-  $('credit').textContent = S.opt.hpManual ? `· สิทธิ์ปล่อย ${rem <= 60 && ph === 'teleop' ? 'ทั้งหมด' : Math.max(0, S.stats.tips.red - S.hp.red.used)}` : '· ปล่อยอัตโนมัติ';
-  const fr = S.fouls.filter(f => f.all === 'red'); $('fouls').innerHTML = fr.length ? fr.slice(-5).map(f => `${f.rule} ${f.sev === 'WARN' ? 'เตือน' : '+' + f.pts} · ${fmt(f.rem)}`).join('<br>') : '<span class="mut">ไม่มี</span>';
+  $('loadBox').classList.toggle('hidden', !!S.opt.hideLoad); const my = MY(), rule = tipRule(), load = cellLoad(my); $('loadTxt').textContent = `${load.toFixed(2)} / ${rule.threshold}`; $('load').style.width = Math.min(100, load / rule.threshold * 100) + '%';
+  const left = stagedN(my), cr = rem <= 60 && ph === 'teleop' || S.mode === 'free' ? 'ทั้งหมด' : Math.max(0, S.stats.tips[my] - S.hp[my].used);
+  $('tips').textContent = S.stats.tips[my]; $('stash').textContent = left; $('stashDots').textContent = '●'.repeat(left) + '○'.repeat(Math.max(0, 5 - left)); $('stashDots').style.color = my === 'red' ? 'var(--red)' : '#4a8cff';
+  $('credit').textContent = S.opt.hpManual || S.mode === 'free' ? `กด H / △ ปล่อยเอง · สิทธิ์ปล่อยตอนนี้ ${cr}` : 'ปล่อยอัตโนมัติหลัง TIP และที่ 1:00';
+  const hl = document.getElementById('hpLeft'); if (hl) hl.textContent = `เหลือ ${left} ลูก` + (S.mode === 'free' ? '' : ` · สิทธิ์ ${cr}`);
+  $('pickBar').style.display = S.opt.intakeDelay ? '' : 'none'; $('pick').style.width = Math.round((r.pickP || 0) * 100) + '%';
+  const fr = S.fouls.filter(f => f.all === my); $('fouls').innerHTML = fr.length ? fr.slice(-5).map(f => `${esc(f.rule)} ${f.sev === 'WARN' ? 'เตือน' : '+' + (+f.pts || 0)} · ${fmt(+f.rem || 0)}`).join('<br>') : '<span class="mut">ไม่มี</span>';
   padHud(inp);
   const ol = $('objLive'); if (ol && SCN) { const ok = S.mode === 'scenario' ? evalObj() : SCN.obj.map(() => false); ol.innerHTML = SCN.obj.map((o, i) => { const s = ok[i] ? ['✓', 'ok'] : o.live ? ['✗', 'bad'] : ['…', 'mut']; return `<div class="obj"><b class="${s[1]}">${s[0]}</b><span>${esc(o.t)}</span></div>`; }).join('') + (SCN.status && S.mode === 'scenario' ? `<div class="mut" style="margin-top:4px">${esc((() => { try { return SCN.status(api) || ''; } catch { return ''; } })())}</div>` : ''); }
   const cc = $('coachClock'); if (cc) cc.textContent = `นาฬิกาโค้ช: ${S.mode === 'free' ? '∞' : ph === 'teleop' ? fmt(rem) : ph === 'auto' ? 'AUTO ' + fmt(AUTO_LEN - S.el) : 'เปลี่ยนช่วง'} · ประกาศแล้ว ${S.calls.length} ครั้ง`;
   $('ds').classList.toggle('hidden', !(S.ds && S.running)); if (S.ds) $('dsTime').textContent = `หุ่นหยุดนิ่ง · ${(S.el - S.ds.t0).toFixed(1)} วิ (ต้องไม่เกิน 15)`;
   $('msg').textContent = S.msgT > 0 ? S.msg : ''; $('msg').style.opacity = S.msgT > 0 ? 1 : 0;
+  netBar();
 }
 
 const padRoleTxt = (n, kind) => { const B = BTN_NAMES[kind] || BTN_NAMES.ps; return n === 1 ? `คนขับ: L เดิน/สไลด์ · R หมุน · ${B[2]} ช้า` : `คนยิง: ${B[5]}/${B[4]} ยิง · ${B[7]}/${B[6]} วาง · ${B[0]} intake · ${B[1]} คาย`; };
@@ -1113,25 +1659,37 @@ function padLive() {
 function padHud(inp) {
   padLive();
   const pt = $('padTxt'), pd = inp.pads || {}, nm = v => esc(v.replace(/\s*\(.*$/, '').slice(0, 28));
-  if (!pd.p1 && !pd.p2) { pt.className = 'bad'; pt.textContent = 'ไม่พบจอย กดปุ่มใดก็ได้บน DualShock 4'; }
+  if (!pd.p1 && !pd.p2) { pt.className = 'mut'; pt.textContent = 'ไม่พบจอย · เล่นด้วยคีย์บอร์ดได้เลย (ต่อจอยแล้วกดปุ่มใดก็ได้เพื่อใช้จอย)'; }
   else { pt.className = 'ok'; const one = pd.p1 || pd.p2;
     pt.innerHTML = pd.p1 && pd.p2 ? `Joy 1 ${pd.split ? '(ขับ)' : '(ทุกปุ่ม)'}: ${nm(pd.p1)}<br>Joy 2 ${pd.split ? '(ยิง)' : '(ทุกปุ่ม)'}: ${nm(pd.p2)}` : `จอย 1 ตัว (ทุกปุ่ม): ${nm(one)} · ต่อจอยตัวที่ 2 ได้`; }
 }
 
 // =================== ลูป ===================
 let last = performance.now(), acc = 0, hudT = 1;
-function frame(now) {
-  const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt;
-  if (acc >= DT) { const inp = readInput(); let first = true; while (acc >= DT) { tick(DT, first ? inp : { ...inp, ...Object.fromEntries(EDGE.map(k => [k, false])) }); first = false; acc -= DT; } hudT += dt; if (hudT > 0.1) { hudT = 0; hud(inp); } }
-  sync(); updateCamera(dt); renderer.render(scene, camera); requestAnimationFrame(frame);
+function simFrame(now) {  // เดินสนาม + รับส่งข้อมูลออนไลน์ (ไม่วาดภาพ) · host ที่สลับแท็บเรียกตัวนี้จาก Worker
+  const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now; acc += dt;
+  if (NET.role === 'client') { const inp = readInput(); netClientFrame(acc, inp); acc = 0; hudT += dt; if (hudT > 0.1) { hudT = 0; hud(inp); } }
+  else if (acc >= DT) { const inp = readInput(); let first = true; while (acc >= DT) { tick(DT, first ? inp : { ...inp, ...Object.fromEntries(EDGE.map(k => [k, false])) }); first = false; acc -= DT; } hudT += dt; if (hudT > 0.1) { hudT = 0; hud(inp); } }
+  if (NET.role === 'host') netHostFrame(now);
+  return dt;
+}
+function frame(now) { const dt = simFrame(now); sync(); updateCamera(dt); renderer.render(scene, camera); autoQuality(now); requestAnimationFrame(frame); }
+$('fsBtn').onclick = e => { e.preventDefault(); try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch {} };
+// laptop ที่การ์ดจอเบา: ถ้าเฟรมเรตเฉลี่ยต่ำกว่า ~33 fps ต่อเนื่อง ลดความละเอียดภาพลงทีละขั้น (2 → 1 → 0.75) เพื่อให้ขับลื่น
+let pxr = Math.min(devicePixelRatio, 2), fqN = 0, fqT = 0, fqLast = 0;
+function autoQuality(now) {
+  const d = now - fqLast; fqLast = now; if (d <= 0 || d > 250 || document.hidden) { fqN = fqT = 0; return; }
+  fqN++; fqT += d; if (fqN < 120) return;
+  const avg = fqT / fqN; fqN = fqT = 0;
+  if (avg > 30 && pxr > 0.75) { pxr = pxr > 1 ? 1 : 0.75; renderer.setPixelRatio(pxr); renderer.setSize(innerWidth, innerHeight); }
 }
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 addEventListener('gamepadconnected', e => { const n = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).length; say(`พบจอยตัวที่ ${Math.min(n, 2)}: ${e.gamepad.id.slice(0, 32)}` + (n >= 2 ? (DRV.padMode === 'both' ? ' · ทั้ง 2 จอยคุมได้ทุกปุ่ม' : ' · Joy 1 ขับ / Joy 2 ยิง') : ''), 3); });
 addEventListener('gamepaddisconnected', e => { for (const r of ['p1', 'p2']) if (padRole[r] === e.gamepad.index) padRole[r] = null; savePadRole(); say('จอยหลุด: ' + e.gamepad.id.slice(0, 32), 3); });
 $('driveHelp').innerHTML = driveSel('driveMode'); $('driveMode').onchange = e => setDriveMode(e.target.value);
 $('padMode').value = DRV.padMode || 'split'; $('padMode').onchange = e => setPadMode(e.target.value);
-window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()) };
-renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else showMenu();
+window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()), simFrame, net: { get NET() { return NET; }, get ME() { return ME; }, create: netCreate, join: netJoin, start: netStartMatch, preset: netPreset, leave: netLeave, back: netBack, hostMsg: netHostMsg, lobbyPush: netLobbyPush, showOnline, showLobby, showHistory, histLoad, rec: netRec } };
+renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else if (Q.get('mode') === 'online') showOnline(); else if (/^\d{6}$/.test(Q.get('room') || '')) showOnline(Q.get('room')); else showMenu();
 sync(); hud(emptyInput()); requestAnimationFrame(frame);
 </script>
 </body>
