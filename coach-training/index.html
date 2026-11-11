@@ -102,7 +102,7 @@ dialog::backdrop { background:rgba(0,0,0,.45) }
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v1.6</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v1.7</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -783,7 +783,7 @@ function mergeSim(r) {
 }
 function pullSim() { const all = store.get('dca-sim-results') || {}; let ch = false; for (const [id, v] of Object.entries(all)) { const p = ST.sim[id]; if (!p || (v.last && (!p.last || v.last.ts > p.last.ts))) { ST.sim[id] = v; ch = true; } } if (ch) { save(); render(); } }
 addEventListener('message', e => { if (e.data && e.data.type === 'dca-sim-result') mergeSim(e.data.result); });
-addEventListener('storage', e => { if (e.key === 'dca-sim-results') pullSim(); if (e.key === 'dca-pad-test') render(); });
+addEventListener('storage', e => { if (e.key === 'dca-sim-results') pullSim(); if (e.key === 'dca-pad-test' || e.key === 'dca-pad-indep') render(); });
 addEventListener('focus', pullSim);
 const openSim = q => { const w = window.open(ST.mockUrl + q, 'biobuzz-sim'); if (w) w.focus(); };
 const padUrl = () => { try { return new URL('gamepad-test.html', new URL(ST.mockUrl, location.href)).href; } catch { return '../mockup/gamepad-test.html'; } };
@@ -812,8 +812,8 @@ function renderHome() {
       <button class="btn" data-role="${k}">${a ? (a === b ? 'ดูใบผ่าน' : 'ฝึกต่อ') : 'เริ่มฝึก'}</button></div>`; }).join('')}
       <div class="role free"><div class="ico">🕹️</div><h3>Free Control</h3><p>คนขับบังคับหุ่นได้ทุกฟังก์ชันเหมือนหุ่นจริงบนสนามเต็ม: เดิน สไลด์ หมุน เก็บลูก ยิง วาง FLOWER ดึงลูก คายลูก ไม่จับเวลา ตั้งค่าหุ่นให้ตรงกับหุ่นจริงของทีมได้ (ความเร็ว อัตราเร่ง การหมุน การสไลด์ mecanum เส้นโค้งจอย deadzone) และค่านี้ใช้กับทุกสถานการณ์</p>
       <button class="btn" id="goFree">เปิด Free Control</button><button class="btn sec" id="goMenu">เมนู simulator ทั้งหมด</button></div>
-      <div class="role free"><div class="ico">✅</div><h3>ทดสอบจอย DualShock 4</h3><p>เช็กว่าจอยเชื่อมต่อเรียบร้อย ปุ่มครบ แกนไปสุดทุกทิศ ไม่มี drift พร้อมวิธีจับคู่ Bluetooth และวิธีแก้ปัญหา ควรทำก่อนซ้อมทุกครั้ง</p>
-      <div class="mut" style="font-size:13px">${padOk() ? '✓ ผ่านการทดสอบแล้ว · ' + esc((store.get('dca-pad-test') || {}).id?.slice(0, 36) || '') : 'ยังไม่ได้ทดสอบบนเครื่องนี้'}</div>
+      <div class="role free"><div class="ico">✅</div><h3>ทดสอบจอย Joy 1 / Joy 2</h3><p>เช็กจอยทีละตัวว่าเชื่อมต่อเรียบร้อย ปุ่มครบ แกนไปสุดทุกทิศ ไม่มี drift และทดสอบว่า 2 จอยทำงานแยกกันอิสระ รองรับ DualShock 4 และ Logitech F310 / F710 พร้อมวิธีต่อจอยและแก้ปัญหา ควรทำก่อนซ้อมทุกครั้ง</p>
+      <div class="mut" style="font-size:13px">${padOk() ? '✓ ทดสอบปุ่มผ่านแล้ว' : 'ยังไม่ได้ทดสอบปุ่มบนเครื่องนี้'} · ${(store.get('dca-pad-indep') || {}).ok ? '✓ 2 จอยแยกอิสระผ่านแล้ว' : 'ยังไม่ได้ทดสอบ 2 จอยแยกอิสระ'}</div>
       <a class="btn" href="${esc(padUrl())}" target="_blank">เปิดหน้าทดสอบจอย</a></div></div>
     <div class="card"><h4>ฝึกเป็นทีม</h4><ul class="act"><li>Drive Coach กับ Driver ใช้สถานการณ์ร่วมกันได้ เช่น 5.3 คู่แข่งเล่นเกมรับ ผ่านรอบเดียวนับให้ทั้งสองบทบาท</li><li>สถานการณ์ของ Human Player ให้หุ่นทุกตัวขับโดย AI คนฝึกกดปุ่ม H เพื่อปล่อย NECTAR</li><li>ความคืบหน้าเก็บไว้ในเบราว์เซอร์ของเครื่องนี้ ถ้าเปลี่ยนเครื่องต้องเริ่มนับใหม่</li></ul></div>`;
   $('homeView').querySelectorAll('button[data-role]').forEach(b => b.onclick = () => go(b.dataset.role));
@@ -929,7 +929,7 @@ $('navToggle').onclick = () => $('nav').classList.toggle('show');
 $('homeLink').onclick = () => go(null);
 addEventListener('hashchange', () => { const h = location.hash.slice(1); if ((h || null) !== ST.role) { ST.role = ROLES[h] ? h : null; save(); render(); } });
 { const h = location.hash.slice(1); if (ROLES[h]) ST.role = h; else if (location.hash === '#home') ST.role = null; }
-// ---------------- สถานะจอย DualShock 4 (มุมขวาบน) ----------------
+// ---------------- สถานะ Joy 1 / Joy 2 (มุมขวาบน) ----------------
 // ป้าย Joy 1 / Joy 2 (ลำดับเดียวกับ simulator และหน้าทดสอบ: ค่าที่ตั้งไว้ใน dca-pad-role หรือตัวที่ต่อก่อน = Joy 1)
 const padSeen = [false, false];
 const padKindTh = id => /054c|dualshock|dualsense|wireless controller|playstation|sony/i.test(id) ? 'DualShock 4' : /046d|logitech|f310|f710|dual action/i.test(id) ? 'Logitech' : /xbox|xinput|045e/i.test(id) ? 'Xbox' : 'จอย';
