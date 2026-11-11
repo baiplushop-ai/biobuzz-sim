@@ -46,6 +46,7 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
         <h3>สถานะการเชื่อมต่อ</h3>
         <div class="status" id="connStatus">ยังไม่พบจอย</div>
         <div class="mut" id="connDetail">จับคู่ Bluetooth แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</div>
+        <div id="padPick" class="row" style="margin-top:6px"></div>
         <ul class="steps" style="margin-top:10px" id="checklist"></ul>
       </div>
       <div class="card" style="margin-top:14px">
@@ -128,14 +129,15 @@ const NAMES = { 0:'✕', 1:'○', 2:'□', 3:'△', 4:'L1', 5:'R1', 6:'L2', 7:'R
 const USE = { 0:'intake', 1:'คายลูก', 2:'โหมดช้า', 4:'ยิง NECTAR', 5:'ยิง POLLEN', 6:'วาง POLLEN', 7:'วาง NECTAR', 8:'กล้อง', 9:'เริ่ม/หยุด' };
 const ORDER = [5, 4, 7, 6, 0, 1, 2, 3, 8, 9, 12, 13, 14, 15, 10, 11, 16, 17];
 const OPTIONAL = new Set([16, 17]);
-let seq = 0, done = {}, skipped = {}, prev = [], lsDir = new Set(), rsDir = new Set(), trMax = [0, 0], drift = null, padId = null, mapping = null, everSeen = false;
+let seq = 0, done = {}, skipped = {}, prev = [], lsDir = new Set(), rsDir = new Set(), trMax = [0, 0], drift = null, padId = null, mapping = null, everSeen = false, pick = Math.max(0, (+new URLSearchParams(location.search).get('pad') || 1) - 1), pickKey = '', padIdx = null;
 const $ = id => document.getElementById(id);
 function chips() { $('chips').innerHTML = ORDER.map(i => `<span class="chip ${done[i] ? 'done' : skipped[i] ? 'skip' : ''}">${NAMES[i]}${done[i] ? ' ✓' : skipped[i] ? ' ข้าม' : ''}</span>`).join(''); }
 function promptTxt() { while (seq < ORDER.length && (done[ORDER[seq]] || skipped[ORDER[seq]])) seq++; $('prompt').textContent = !padId ? 'รอจอย…' : seq >= ORDER.length ? 'ทดสอบปุ่มครบแล้ว ✓' : `กด ${NAMES[ORDER[seq]]}${USE[ORDER[seq]] ? ' · ' + USE[ORDER[seq]] : ''}`; }
 $('skip').onclick = () => { if (seq < ORDER.length) { skipped[ORDER[seq]] = true; promptTxt(); chips(); } };
-$('restart').onclick = () => { seq = 0; done = {}; skipped = {}; lsDir.clear(); rsDir.clear(); trMax = [0, 0]; drift = null; $('driftTxt').textContent = 'ยังไม่ได้วัด'; promptTxt(); chips(); };
+const restart = () => { seq = 0; done = {}; skipped = {}; lsDir.clear(); rsDir.clear(); trMax = [0, 0]; drift = null; $('driftTxt').textContent = 'ยังไม่ได้วัด'; promptTxt(); chips(); };
+$('restart').onclick = restart;
 $('driftBtn').onclick = () => { if (!padId) return; drift = { t0: performance.now(), max: 0 }; $('driftTxt').textContent = 'ปล่อยมือจากแกน… กำลังวัด'; };
-$('rumble').onclick = async () => { const p = [...navigator.getGamepads()].find(g => g); const va = p && p.vibrationActuator; if (!va) { $('rumbleTxt').textContent = 'เบราว์เซอร์นี้ไม่รองรับการสั่น (ไม่เป็นไร)'; return; } try { await va.playEffect(va.type || 'dual-rumble', { duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5 }); $('rumbleTxt').textContent = 'ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่นแปลว่าใช้ได้'; } catch { $('rumbleTxt').textContent = 'สั่งสั่นไม่ได้ (ไม่บังคับ)'; } };
+$('rumble').onclick = async () => { const p = [...navigator.getGamepads()].filter(g => g && g.connected)[pick]; const va = p && p.vibrationActuator; if (!va) { $('rumbleTxt').textContent = 'เบราว์เซอร์นี้ไม่รองรับการสั่น (ไม่เป็นไร)'; return; } try { await va.playEffect(va.type || 'dual-rumble', { duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5 }); $('rumbleTxt').textContent = 'ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่นแปลว่าใช้ได้'; } catch { $('rumbleTxt').textContent = 'สั่งสั่นไม่ได้ (ไม่บังคับ)'; } };
 const dirOf = (x, y) => { const s = new Set(); if (x > 0.9) s.add('R'); if (x < -0.9) s.add('L'); if (y > 0.9) s.add('D'); if (y < -0.9) s.add('U'); return s; };
 function check() {
   const steps = [
@@ -152,15 +154,21 @@ function check() {
   const all = steps.every(s => s[1]), core = steps.slice(0, 2).every(s => s[1]) && steps[4][1];
   $('result').textContent = all ? 'เชื่อมต่อเรียบร้อย พร้อมซ้อม ✓' : core ? 'ใช้งานได้ แต่ยังทดสอบไม่ครบ' : 'ยังไม่พร้อม';
   $('result').className = 'status ' + (all ? 'ok' : core ? '' : 'bad');
+  try { if (all && padIdx != null) { const m = JSON.parse(localStorage.getItem('dca-pad-tests') || '{}'), k = padIdx + '|' + padId; if (!m[k]?.ok) { m[k] = { ok: true, slot: pick + 1, ts: Date.now() }; localStorage.setItem('dca-pad-tests', JSON.stringify(m)); pickKey = ''; } } } catch {}
   try { const prevSave = JSON.parse(localStorage.getItem('dca-pad-test') || 'null'); if (all && (!prevSave || !prevSave.ok || prevSave.id !== padId)) localStorage.setItem('dca-pad-test', JSON.stringify({ ok: true, id: padId, mapping, ts: Date.now() })); } catch {}
 }
+const tested = g => { try { return !!JSON.parse(localStorage.getItem('dca-pad-tests') || '{}')[g.index + '|' + g.id]?.ok; } catch { return false; } };
 function loop() {
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
-  const p = pads[0];
+  if (pads.length && pick >= pads.length) pick = 0;
+  const key = pads.map(g => g.index + (tested(g) ? 'y' : 'n')).join() + '|' + pick;
+  if (key !== pickKey) { pickKey = key; $('padPick').innerHTML = pads.length > 1 ? pads.map((g, i) => `<button class="btn ${i === pick ? '' : 'sec'}" data-pick="${i}">ทดสอบจอย ${i + 1} ${i === 0 ? '(คนขับ)' : i === 1 ? '(คนยิง)' : ''}${tested(g) ? ' ✓' : ''}</button>`).join('') + '<span class="mut">ทดสอบให้ผ่านทีละตัว · ✓ = ผ่านแล้ว · กด "เริ่มทดสอบใหม่" ได้ทุกเมื่อ</span>' : '';
+    $('padPick').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { pick = +b.dataset.pick; prev = []; restart(); }); }
+  const p = pads[pick];
   if (p) {
-    everSeen = true; padId = p.id; mapping = p.mapping;
+    everSeen = true; padId = p.id; mapping = p.mapping; padIdx = p.index;
     $('connStatus').textContent = 'เชื่อมต่อแล้ว ✓'; $('connStatus').className = 'status ok';
-    $('connDetail').textContent = `${p.id} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${p.buttons.length} · แกน ${p.axes.length}${pads.length > 1 ? ` · พบจอย ${pads.length} ตัว (ใช้ตัวแรก)` : ''}`;
+    $('connDetail').textContent = `${p.id} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${p.buttons.length} · แกน ${p.axes.length}${pads.length > 1 ? ` · พบจอย ${pads.length} ตัว กำลังทดสอบจอย ${pick + 1}` : ''}`;
     p.buttons.forEach((b, i) => {
       const v = b.value > 0.5 || b.pressed, el = $('b' + i); if (el) el.classList.toggle('on', v);
       if (v && !prev[i]) { if (seq < ORDER.length && ORDER[seq] === i) { done[i] = true; seq++; promptTxt(); chips(); } else if (ORDER.includes(i) && !done[i] && seq < ORDER.length) { /* ปุ่มอื่นยังไม่ถึงคิว */ } }
