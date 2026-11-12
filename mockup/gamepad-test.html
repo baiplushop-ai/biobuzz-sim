@@ -24,7 +24,9 @@ h1 { margin:0 0 4px; font-size:24px } h1 span { color:var(--acc) }
 .btn.sec { background:var(--surface2); color:var(--fg); border:1px solid var(--line); font-weight:600 }
 .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
 .prompt { font-size:28px; font-weight:700; text-align:center; padding:12px; border-radius:10px; background:var(--surface2); margin:8px 0 }
-.chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px } .chip { font-size:12px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); background:var(--surface2) } .chip.done { border-color:var(--ok); color:var(--ok) } .chip.skip { opacity:.6 }
+.chips { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:5px; margin-top:6px } .chip { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:12px; padding:2px 4px 2px 8px; border-radius:10px; border:1px solid var(--line); background:var(--surface2) } .chip.done { border-color:var(--ok); color:var(--ok) } .chip.skip { border-style:dashed; color:var(--mut) }
+.chipx { font:inherit; font-size:11px; padding:1px 7px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--fg); cursor:pointer; white-space:nowrap }
+.warn { border:1px solid var(--bad); border-left-width:5px; border-radius:8px; padding:8px 12px; margin:8px 0; background:color-mix(in srgb, var(--bad) 10%, transparent) } .warn b.bad { font-size:16px }
 .meter { height:10px; border-radius:5px; background:var(--surface2); overflow:hidden; margin:3px 0 6px } .meter > div { height:100%; background:var(--acc) }
 svg .b { fill:var(--pad); stroke:var(--line); stroke-width:2; transition:fill .05s } svg .b.on { fill:var(--on) } svg text { fill:var(--fg); font-size:13px; font-family:Sarabun,sans-serif; text-anchor:middle; dominant-baseline:middle; pointer-events:none }
 svg .body { fill:var(--surface2); stroke:var(--line); stroke-width:2 }
@@ -45,9 +47,10 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
 <body>
 <div class="wrap">
   <div class="row" style="justify-content:space-between">
-    <div><h1>ทดสอบจอย <span>Joy 1 / Joy 2</span></h1><div class="mut">ตรวจว่าจอยแต่ละตัวต่อกับเบราว์เซอร์ได้ ปุ่มครบ แกนไม่ drift และ 2 จอยทำงานแยกกันอิสระ ก่อนใช้ซ้อมใน simulator</div></div>
-    <div class="row"><a class="btn sec" href="../coach-training/index.html">← หน้าบทเรียน</a><a class="btn sec" href="index.html">เมนู simulator</a></div>
+    <div><h1>ทดสอบจอย <span>Joy 1 / Joy 2</span> <small class="mut" style="font-size:12px;font-weight:400" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v2.0</small></h1><div class="mut">ตรวจว่าจอยแต่ละตัวต่อกับเบราว์เซอร์ได้ ปุ่มครบ แกนไม่ drift และ 2 จอยทำงานแยกกันอิสระ ก่อนใช้ซ้อมใน simulator</div></div>
+    <div class="row"><a class="btn sec" href="../coach-training/index.html" id="backAcademy">← หน้าบทเรียน</a><a class="btn sec" href="index.html" id="backSim">เมนู simulator</a></div>
   </div>
+  <div class="warn small" id="errLine" hidden role="alert"></div>
 
   <div class="card" style="margin-top:14px">
     <h3>Joy 1 และ Joy 2 (คุมหุ่นตัวเดียวกัน)</h3>
@@ -70,7 +73,8 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
       <div class="card">
         <h3>สถานะการเชื่อมต่อ <span id="slotName" class="mut"></span></h3>
         <div class="status" id="connStatus">ยังไม่พบจอย</div>
-        <div class="mut" id="connDetail">จับคู่ Bluetooth แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</div>
+        <div class="mut" id="connDetail">เสียบสาย USB (หรือจับคู่ Bluetooth สำหรับซ้อม) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</div>
+        <div class="warn small" id="mapWarn" hidden></div>
         <ul class="steps" style="margin-top:10px" id="checklist"></ul>
       </div>
       <div class="card" style="margin-top:14px">
@@ -101,9 +105,10 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
     <div>
       <div class="card">
         <h3>ทดสอบทีละปุ่ม</h3>
-        <div class="mut" style="font-size:14px">กดปุ่มที่ขึ้นบนจอ ระบบจะไปปุ่มถัดไปเอง ปุ่ม PS กับ touchpad บางเครื่องถูกระบบปฏิบัติการจับไว้ กด "ข้าม" ได้</div>
+        <div class="mut" style="font-size:14px">กดปุ่มที่ขึ้นบนจอ ระบบจะไปปุ่มถัดไปเอง · ปุ่มไหนเสียหรือจอยรุ่นนี้ไม่มี กด "ข้ามปุ่มนี้" ที่ปุ่มนั้นในรายการด้านล่างได้ <b>ปุ่มที่ข้ามจะถูกบันทึกไว้ในผลทดสอบ</b> (ผ่านแบบข้ามปุ่ม) ให้โค้ชและหน้าอื่นเห็น · ปุ่ม PS กับ touchpad ไม่ได้ใช้ในเกม ข้ามได้โดยไม่ถูกบันทึก</div>
         <div class="prompt" id="prompt">รอจอย…</div>
-        <div class="row"><button class="btn sec" id="skip">ข้ามปุ่มนี้</button><button class="btn sec" id="restart">เริ่มทดสอบใหม่</button></div>
+        <div class="row"><button class="btn sec" id="skip">ข้ามปุ่มนี้</button><button class="btn sec" id="restart" title="เริ่มกดปุ่มใหม่ โดยยังจำปุ่มที่ข้ามไว้ของจอยตัวนี้">เริ่มทดสอบใหม่</button><button class="btn sec" id="restartAll" title="ล้างผลที่กดแล้วและปุ่มที่ข้ามไว้ทั้งหมด">เริ่มใหม่ทั้งหมด</button></div>
+        <div class="mut small" id="skipNote" style="margin-top:4px"></div>
         <div class="chips" id="chips"></div>
       </div>
       <div class="card" style="margin-top:14px">
@@ -116,10 +121,12 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
         <div class="row"><button class="btn sec" id="driftBtn">เริ่มวัด drift</button><span id="driftTxt" class="mut">ยังไม่ได้วัด</span></div>
         <h3 style="margin-top:10px">ทดสอบการสั่น</h3>
         <div class="row"><button class="btn sec" id="rumble">สั่น 0.5 วิ</button><span id="rumbleTxt" class="mut">บางเบราว์เซอร์ไม่รองรับ ไม่บังคับ</span></div>
+        <div class="mut small" style="margin-top:4px">ตอนนี้ simulator จะสั่นจอยเมื่อหุ่นชน เมื่อโดน FOUL และเมื่อมีคำเตือน PIN · กดปุ่มนี้เพื่อเช็กว่าจอยตัวนี้สั่นได้จริงบนเครื่องนี้ (Safari / Firefox และจอย Bluetooth บางรุ่นสั่นไม่ได้ ไม่มีผลกับผลทดสอบ)</div>
       </div>
       <div class="card" style="margin-top:14px">
         <h3>ผลการทดสอบ</h3>
         <div class="status" id="result">ยังไม่ครบ</div>
+        <div class="mut small" id="resultNote"></div>
         <div class="row" style="margin-top:8px"><a class="btn" href="index.html?mode=free" id="goFree">ไปซ้อม Free Control</a></div>
       </div>
     </div>
@@ -127,10 +134,13 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
 
   <div class="card" style="margin-top:14px">
     <h3>วิธีต่อจอยและแก้ปัญหา <span class="mut" id="tipsKind"></span></h3>
+    <div class="warn" id="r904"><b class="bad">วันแข่งต้องเสียบสาย USB เท่านั้น (กติกา R904)</b>
+      <div>วันแข่งจอยต้องต่อ<b>สาย USB เข้ากับ Driver Station</b> ห้ามใช้ Bluetooth / ไร้สายทุกแบบ รวมถึง DualShock 4 ที่ต่อผ่าน Bluetooth และ Logitech F710 ที่ใช้ตัวรับสัญญาณไร้สาย</div>
+      <div>Bluetooth ใช้ได้<b>เฉพาะตอนซ้อมกับ simulator นี้</b>เท่านั้น · <b>ซ้อมด้วยสาย USB อย่างน้อย 1 ครั้งก่อนวันแข่ง</b></div></div>
     <div id="tipsXB" hidden>
     <table>
       <tr><th style="width:28%">ขั้นตอน</th><th>ทำอย่างไร</th></tr>
-      <tr><td>1. เสียบสาย</td><td><b>Logitech F310</b> เป็นจอยมีสาย เสียบ USB เข้าคอมได้เลย ไม่ต้องจับคู่ (วันแข่งเสียบเข้า Driver Station แบบเดียวกัน)</td></tr>
+      <tr><td>1. เสียบสาย</td><td><b>Logitech F310</b> เป็นจอยมีสาย เสียบ USB เข้าคอมได้เลย ไม่ต้องจับคู่ (วันแข่งก็เสียบสาย USB เข้า Driver Station แบบเดียวกัน)</td></tr>
       <tr><td>2. สวิตช์ด้านหลัง X / D</td><td>แนะนำ <b>X</b> (XInput) ปุ่มจะตรงแบบ standard · บน Mac ถ้าตั้ง X แล้วเบราว์เซอร์ไม่เห็นจอย ให้ใช้ <b>D</b> หน้านี้และ simulator เรียงปุ่ม A / B / X ให้ถูกเอง</td></tr>
       <tr><td>3. ปุ่ม MODE</td><td>ให้ไฟข้างปุ่ม MODE <b>ดับ</b> ถ้าไฟติด แกนซ้ายกับ D-pad จะสลับกัน หุ่นจะไม่เดินตามแกน</td></tr>
       <tr><td>4. ให้เบราว์เซอร์เห็นจอย</td><td>เปิดหน้านี้ใน Chrome หรือ Edge เต็มแท็บ แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</td></tr>
@@ -138,8 +148,9 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
     </table>
     <details><summary>ปัญหาที่พบบ่อย</summary>
       <ul>
-        <li><b>F710 (ไร้สาย)</b>: ใช้ตัวรับสัญญาณ USB ไร้สาย ซ้อมกับ simulator ได้ แต่<b>วันแข่งห้ามใช้</b> เพราะ R904 ห้ามจอยไร้สาย ใช้ F310 แบบสายแทน</li>
-        <li><b>ปุ่มสลับกัน (กด A แต่ขึ้น X)</b>: จอยอยู่โหมด D และเบราว์เซอร์ไม่แปลงปุ่ม ตรวจว่าชื่อจอยมีคำว่า Logitech ระบบจะเรียงให้เอง ถ้ายังผิด เปลี่ยนสวิตช์เป็น X</li>
+        <li><b>F710 (ไร้สาย)</b>: ต่อผ่านตัวรับสัญญาณไร้สายที่เสียบช่อง USB จึงนับเป็นจอยไร้สาย ซ้อมกับ simulator ได้ แต่<b>วันแข่งห้ามใช้</b> (R904 ห้ามจอยไร้สาย) วันแข่งให้ใช้จอยที่ต่อสาย USB เข้า Driver Station</li>
+        <li><b>ปุ่มสลับกัน (กด A แต่ขึ้น X)</b>: จอยอยู่โหมด D และเบราว์เซอร์ไม่แปลงปุ่ม ตรวจว่าชื่อจอยมีคำว่า Logitech ระบบจะเรียงให้เอง ถ้ายังผิด เปลี่ยนสวิตช์เป็น X แล้วถอดสายเสียบใหม่</li>
+        <li><b>D-pad กดไม่ติดในโหมด D</b>: โหมด D ส่ง D-pad มาเป็นแกน (hat) ไม่ใช่ปุ่ม หน้านี้แปลงเป็น D-pad ▲ ▼ ◀ ▶ ให้เองเมื่อ mapping ไม่ใช่ standard ถ้ายังกดไม่ติด เปลี่ยนสวิตช์เป็น X หรือกด "ข้ามปุ่มนี้" (จะถูกบันทึกไว้)</li>
         <li><b>LT / RT ค่าไม่ถึง 1</b>: โหมด D ไกเป็นปุ่มกด (0 หรือ 1) โหมด X เป็นค่าต่อเนื่อง ทั้งสองแบบใช้ใน simulator ได้</li>
         <li><b>แกน drift</b>: simulator ตัดค่าต่ำกว่า deadzone ของแต่ละจอยอยู่แล้ว ปรับได้ใน Free Control › ตั้งค่าและทดสอบจอย 2 ตัว</li>
       </ul>
@@ -148,37 +159,93 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
     <div id="tipsPS">
     <table>
       <tr><th style="width:28%">ขั้นตอน</th><th>ทำอย่างไร</th></tr>
-      <tr><td>1. เข้าโหมดจับคู่</td><td>กดปุ่ม <b>Share</b> ค้างไว้ แล้วกด <b>PS</b> ค้างพร้อมกันประมาณ 3–5 วิ จนไฟแถบด้านหลังกะพริบถี่ ๆ สีขาว</td></tr>
+      <tr><td>ต่อสาย USB (แบบเดียวกับวันแข่ง)</td><td>เสียบสาย micro-USB ที่ส่งข้อมูลได้ จอยจะทำงานทันทีโดยไม่ต้องจับคู่ · วันแข่งต้องต่อแบบนี้เข้ากับ Driver Station (R904)</td></tr>
+      <tr><td>1. เข้าโหมดจับคู่ Bluetooth<br><span class="mut small">(ใช้ซ้อมเท่านั้น)</span></td><td>กดปุ่ม <b>Share</b> ค้างไว้ แล้วกด <b>PS</b> ค้างพร้อมกันประมาณ 3–5 วิ จนไฟแถบด้านหลังกะพริบถี่ ๆ สีขาว</td></tr>
       <tr><td>2. จับคู่บน Mac</td><td>System Settings › Bluetooth › หา "Wireless Controller" › กด Connect ไฟจอยจะนิ่ง</td></tr>
       <tr><td>2. จับคู่บน Windows</td><td>Settings › Bluetooth &amp; devices › Add device › Bluetooth › เลือก "Wireless Controller"</td></tr>
-      <tr><td>3. ให้เบราว์เซอร์เห็นจอย</td><td>เปิดหน้านี้ใน Chrome, Edge หรือ Safari เต็มแท็บ แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</td></tr>
-      <tr><td>หรือใช้สาย USB</td><td>เสียบสาย micro-USB ที่ส่งข้อมูลได้ จอยจะทำงานทันทีโดยไม่ต้องจับคู่</td></tr>
+      <tr><td>3. ให้เบราว์เซอร์เห็นจอย</td><td>เปิดหน้านี้ใน Chrome หรือ Edge เต็มแท็บ (Safari ใช้ได้ แต่สั่นจอยไม่ได้) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง</td></tr>
     </table>
     <details><summary>ปัญหาที่พบบ่อย</summary>
       <ul>
         <li><b>ไม่ขึ้นว่าพบจอย</b>: กดปุ่มบนจอยอีกครั้งตอนที่หน้านี้อยู่ด้านหน้า เบราว์เซอร์ไม่ส่งข้อมูลจอยให้แท็บที่ซ่อนอยู่ ถ้ายังไม่ได้ ลองปิดแล้วเปิดแท็บใหม่</li>
-        <li><b>ขึ้น mapping ไม่ใช่ "standard"</b>: ปุ่มอาจสลับตำแหน่ง แนะนำ Chrome หรือ Edge ซึ่งรองรับ DualShock 4 แบบ standard</li>
+        <li><b>ขึ้น mapping ไม่ใช่ "standard"</b>: ปุ่มอาจสลับตำแหน่ง ให้ใช้ Chrome หรือ Edge ซึ่งรองรับ DualShock 4 แบบ standard แล้วถอดจอยต่อใหม่</li>
         <li><b>จอยจับคู่แล้วแต่ไม่ตอบสนอง</b>: ลบ "Wireless Controller" ออกจาก Bluetooth แล้วจับคู่ใหม่ หรือกดปุ่ม reset รูเล็กด้านหลังจอย (ข้าง L2) ด้วยเข็มประมาณ 5 วิ</li>
         <li><b>หลุดบ่อย</b>: ชาร์จแบตให้เต็ม ไฟแถบกะพริบช้าเป็นสัญญาณแบตต่ำ และอยู่ห่างเครื่องไม่เกิน 3–5 เมตร</li>
         <li><b>แกน drift</b> (หุ่นขยับเองตอนไม่จับ): simulator ตัดค่าต่ำกว่า 0.10 อยู่แล้ว ถ้าวัดได้เกินนี้ให้ทำความสะอาดแกนหรือเปลี่ยนจอย</li>
         <li><b>ปุ่ม PS เปิดเมนูของระบบ</b>: ไม่ได้ใช้ปุ่มนี้ใน simulator ข้ามได้</li>
-        <li><b>ในสนามจริง</b> จอยต้องเสียบสาย USB กับ Driver Station ห้ามใช้ Bluetooth (R904) ซ้อมแบบเสียบสายให้คุ้นก่อนวันแข่ง</li>
+        <li><b>วันแข่ง</b> จอยต้องเสียบสาย USB เข้ากับ Driver Station ห้ามใช้ Bluetooth / ไร้สาย (R904) · ซ้อมด้วยสาย USB อย่างน้อย 1 ครั้งก่อนวันแข่ง และเตรียมสายสำรองไว้ด้วย</li>
       </ul>
     </details>
     </div>
   </div>
 </div>
 <script>
+const $ = id => document.getElementById(id);
 const NAMES_PS = { 0:'✕', 1:'○', 2:'□', 3:'△', 4:'L1', 5:'R1', 6:'L2', 7:'R2', 8:'Share', 9:'Options', 10:'L3 (กดแกนซ้าย)', 11:'R3 (กดแกนขวา)', 12:'D-pad ▲', 13:'D-pad ▼', 14:'D-pad ◀', 15:'D-pad ▶', 16:'PS', 17:'Touchpad (กด)' };
 const NAMES_XB = { 0:'A', 1:'B', 2:'X', 3:'Y', 4:'LB', 5:'RB', 6:'LT', 7:'RT', 8:'Back', 9:'Start', 10:'L3 (กดแกนซ้าย)', 11:'R3 (กดแกนขวา)', 12:'D-pad ▲', 13:'D-pad ▼', 14:'D-pad ◀', 15:'D-pad ▶', 16:'ปุ่ม Logitech / Home', 17:'(ไม่มี touchpad)' };
 let NAMES = NAMES_PS;
 const padKind = id => /054c|dualshock|dualsense|wireless controller|playstation|sony/i.test(id || '') ? 'ps' : /046d|logitech|f310|f710|dual action|xbox|xinput|045e/i.test(id || '') ? 'xb' : null;
-// Logitech โหมด D ที่เบราว์เซอร์ไม่แปลงเป็น standard: ปุ่ม 0 = X, 1 = A, 2 = B → เรียงใหม่
-const padButtons = g => { const v = g.buttons.map(b => b?.value ?? (b?.pressed ? 1 : 0)); if (g.mapping !== 'standard' && /046d|logitech|dual action/i.test(g.id)) { const o = [...v]; o[0] = v[1]; o[1] = v[2]; o[2] = v[0]; o[3] = v[3]; return o; } return v; };
-const loadRole = () => { try { return JSON.parse(localStorage.getItem('dca-pad-role') || '{}'); } catch { return {}; } };
-const saveRole = r => { try { localStorage.setItem('dca-pad-role', JSON.stringify(r)); } catch {} };
-// Joy 1 / Joy 2: ใช้ค่าที่ตั้งไว้ (ร่วมกับ simulator) ถ้าไม่มี ตัวที่ต่อก่อน = Joy 1
-const joysOf = pads => { const r = loadRole(), f = i => pads.find(g => g.index === i); let a = f(r.p1), b = f(r.p2); const rest = pads.filter(g => g !== a && g !== b); if (!a) a = rest.shift(); if (!b) b = rest.shift(); return [a, b]; };
+const isLogi = id => /046d|logitech|dual action/i.test(id || '');
+const getPads = () => { try { return navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : []; } catch { return []; } };
+const num = v => Number.isFinite(v) ? Math.max(-1, Math.min(1, v)) : 0;
+// ---- localStorage: แปลงค่าครั้งเดียวแล้วเก็บไว้ อ่านใหม่เฉพาะตอนเขียนเองหรือมี storage event จากแท็บอื่น ----
+const lsCache = {};
+const lsGet = k => { if (!(k in lsCache)) { try { lsCache[k] = JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { lsCache[k] = null; } } return lsCache[k]; };
+const lsSet = (k, v) => { lsCache[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+// ---- D-pad ของจอยที่ mapping ไม่ใช่ standard (เช่น Logitech โหมด D): มาเป็นแกน hat หรือคู่แกน ±1 ไม่ใช่ปุ่ม 12–15 ----
+const HAT_DIRS = [[-1, 'U'], [-0.714, 'UR'], [-0.428, 'R'], [-0.142, 'DR'], [0.142, 'D'], [0.428, 'DL'], [0.714, 'L'], [1, 'UL']];
+const hatMem = {};
+function hatDpad(g) {
+  const ax = g.axes || [], st = hatMem[g.index + '|' + g.id] ||= { hat: new Set(), analog: new Set(), rest: new Set() };
+  ax.forEach((a, i) => { if (Number.isFinite(a) && a > 1.1) st.hat.add(i); });   // ค่าตอนปล่อย ~1.286 / 3.286 = แกน hat แน่นอน
+  if (ax.length >= 10) st.hat.add(9);
+  let found = false, dir = '';
+  for (const i of st.hat) { const a = ax[i]; if (!Number.isFinite(a)) continue; found = true; const m = HAT_DIRS.find(h => Math.abs(a - h[0]) < 0.08); if (m) dir += m[1]; }
+  // คู่แกน ±1 (พบบน Linux / Firefox): จอย 8 แกนขึ้นไปใช้แกน 6/7 จอย 6–7 แกนใช้แกน 4/5 · นับเป็น D-pad เมื่อค่าเป็น −1/0/1 เท่านั้นและเคยอยู่ที่ 0,0
+  const pi = st.hat.size ? -1 : ax.length >= 8 ? 6 : ax.length >= 6 ? 4 : -1;
+  if (pi >= 0) {
+    const x = ax[pi], y = ax[pi + 1], dig = v => Number.isFinite(v) && [-1, 0, 1].some(t => Math.abs(v - t) < 0.05);
+    if (!dig(x) || !dig(y)) st.analog.add(pi);
+    else if (Math.abs(x) < 0.05 && Math.abs(y) < 0.05) st.rest.add(pi);
+    if (!st.analog.has(pi) && st.rest.has(pi)) { found = true; if (x < -0.5) dir += 'L'; if (x > 0.5) dir += 'R'; if (y < -0.5) dir += 'U'; if (y > 0.5) dir += 'D'; }
+  }
+  return found ? [dir.includes('U') ? 1 : 0, dir.includes('D') ? 1 : 0, dir.includes('L') ? 1 : 0, dir.includes('R') ? 1 : 0] : null;
+}
+// Logitech โหมด D ที่เบราว์เซอร์ไม่แปลงเป็น standard: ปุ่ม 0 = X, 1 = A, 2 = B → เรียงใหม่ และอ่าน D-pad จาก hat / แกน
+const padButtons = g => {
+  const v = [...(g.buttons || [])].map(b => num(typeof b === 'number' ? b : b?.value ?? (b?.pressed ? 1 : 0)));
+  if (g.mapping === 'standard') return v;
+  let o = v; if (isLogi(g.id)) { o = [...v]; o[0] = v[1] ?? 0; o[1] = v[2] ?? 0; o[2] = v[0] ?? 0; }
+  const d = hatDpad(g); if (d) { if (o === v) o = [...v]; while (o.length < 12) o.push(0); [12, 13, 14, 15].forEach((b, k) => { o[b] = d[k]; }); }
+  return o;
+};
+// แกนซ้าย / ขวา [lx, ly, rx, ry] · ทนต่อจอยที่มีแกนไม่ครบ 4 หรือค่าเป็น undefined / NaN · จอย HID ดิบ (มี hat ที่แกน 9) แกนขวาอยู่ที่แกน 2 กับ 5
+const padAxes = g => { const a = g.axes || [], raw = g.mapping !== 'standard' && a.length >= 10; return [num(a[0]), num(a[1]), num(a[2]), num(a[raw ? 5 : 3])]; };
+// ---- Joy 1 / Joy 2: dca-pad-role = { p1, p2, id1, id2 } ใช้ร่วมกับ simulator · ค่าเก่าที่ไม่มี id1 / id2 ยังอ่านได้ ----
+const loadRole = () => { const r = lsGet('dca-pad-role'), o = r && typeof r === 'object' ? r : {}, n = v => Number.isInteger(v) && v >= 0 ? v : null, s = v => typeof v === 'string' && v ? v : null; return { p1: n(o.p1), p2: n(o.p2), id1: s(o.id1), id2: s(o.id2) }; };
+const saveRole = r => lsSet('dca-pad-role', { p1: r.p1 ?? null, p2: r.p2 ?? null, id1: r.id1 ?? null, id2: r.id2 ?? null });
+// ใช้ค่าที่ตั้งไว้ ถ้าไม่มี ตัวที่ต่อก่อน = Joy 1 · จอยหลุดไม่ลบ role ทิ้ง จอยตัวเดิม (id เดิม) ต่อกลับมาคนละช่องก็ได้ role เดิมคืน
+function joysOf(pads) {
+  const r = loadRole(), out = [null, null], used = new Set(); let fix = false;
+  [1, 2].forEach(n => { const g = pads.find(x => x.index === r['p' + n] && !used.has(x) && (r['id' + n] == null || r['id' + n] === x.id)); if (!g) return; out[n - 1] = g; used.add(g); if (r['id' + n] == null && g.id) { r['id' + n] = g.id; fix = true; } });
+  [1, 2].forEach(n => { if (out[n - 1] || r['id' + n] == null) return; const g = pads.find(x => x.id === r['id' + n] && !used.has(x)); if (!g) return; out[n - 1] = g; used.add(g); r['p' + n] = g.index; fix = true; });
+  if (fix) { [1, 2].forEach(n => { const o = 3 - n; if (out[n - 1] && !out[o - 1] && r['p' + o] === out[n - 1].index) r['p' + o] = null; }); saveRole(r); }
+  const rest = pads.filter(g => !used.has(g)); if (!out[0]) out[0] = rest.shift() || null; if (!out[1]) out[1] = rest.shift() || null;
+  return out;
+}
+function setRole(n, g) { const r = loadRole(), o = 3 - n; if (r['p' + o] === g.index && (r['id' + o] == null || r['id' + o] === g.id)) { r['p' + o] = null; r['id' + o] = null; } r['p' + n] = g.index; r['id' + n] = g.id || null; saveRole(r); pickKey = ''; }
+// ---- ผลทดสอบ: dca-pad-tests เก็บตาม id ของจอย (จอยรุ่นเดียวกัน 2 ตัว ตัวที่ 2 ใช้ id + '#2') และเขียน key แบบเก่า index|id ให้หน้าอื่นด้วย ----
+const padKey = (g, pads) => { const n = pads.filter(x => x.id === g.id).sort((a, b) => a.index - b.index).indexOf(g); return n > 0 ? g.id + '#' + (n + 1) : g.id; };
+const testsMap = () => { const m = lsGet('dca-pad-tests'); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; };
+function testOf(g, pads) {
+  const m = testsMap(), k = padKey(g, pads); let r = m[k]?.ok ? m[k] : m[g.index + '|' + g.id];
+  // ผลเก่าที่บันทึกด้วย index|id: index เปลี่ยนเมื่อถอดเสียบใหม่ จึงดูจาก id อย่างเดียว (เฉพาะเมื่อไม่มีจอยรุ่นเดียวกันต่ออยู่ 2 ตัว)
+  if (!r?.ok && k === g.id && !pads.some(x => x !== g && x.id === g.id)) for (const key in m) if (/^\d+\|/.test(key) && key.slice(key.indexOf('|') + 1) === g.id && m[key]?.ok) { r = m[key]; break; }
+  return r?.ok ? r : null;
+}
+// simulator ยังอ่าน dca-pad-tests[index|id] → เติม key แบบเก่าของช่องปัจจุบันให้จอยที่ผ่านแล้ว
+function syncLegacy(pads) { const m = testsMap(); let ch = false; for (const g of pads) { const r = testOf(g, pads), lk = g.index + '|' + g.id; if (r && !m[lk]?.ok) { m[lk] = r; ch = true; } } if (ch) lsSet('dca-pad-tests', m); }
+const skipTxt = r => r && Array.isArray(r.skipped) && r.skipped.length ? ` (ข้าม ${r.skipped.length} ปุ่ม)` : '';
 let kindSel = 'auto', kindNow = 'ps';
 function applyKind(k) {
   if (k === kindNow && document.body.dataset.kind === k) return; kindNow = k; document.body.dataset.kind = k; NAMES = k === 'xb' ? NAMES_XB : NAMES_PS;
@@ -186,7 +253,6 @@ function applyKind(k) {
   const tp = $('b17'); if (tp) tp.style.display = k === 'xb' ? 'none' : '';
   for (const [i, c] of [[0, 'xb-a'], [1, 'xb-b'], [2, 'xb-x'], [3, 'xb-y']]) $('b' + i)?.classList.toggle(c, k === 'xb');
   $('tipsXB').hidden = k !== 'xb'; $('tipsPS').hidden = k === 'xb'; $('tipsKind').textContent = k === 'xb' ? '· Logitech F310 / F710' : '· DualShock 4';
-  if (k === 'xb') skipped[17] = true; else delete skipped[17];
   chips(); promptTxt(); kindTabs();
 }
 function kindTabs() {
@@ -198,37 +264,82 @@ function kindTabs() {
 const USE = { 0:'intake', 1:'คายลูก', 2:'โหมดช้า', 4:'ยิง NECTAR', 5:'ยิง POLLEN', 6:'วาง POLLEN', 7:'วาง NECTAR', 8:'กล้อง', 9:'เริ่ม/หยุด' };
 const ORDER = [5, 4, 7, 6, 0, 1, 2, 3, 8, 9, 12, 13, 14, 15, 10, 11, 16, 17];
 const OPTIONAL = new Set([16, 17]);
-let seq = 0, done = {}, skipped = {}, prev = [], lsDir = new Set(), rsDir = new Set(), trMax = [0, 0], drift = null, padId = null, mapping = null, everSeen = false, pick = Math.max(0, (+new URLSearchParams(location.search).get('pad') || 1) - 1), pickKey = '', padIdx = null;
-const $ = id => document.getElementById(id);
-function chips() { $('chips').innerHTML = ORDER.map(i => `<span class="chip ${done[i] ? 'done' : skipped[i] ? 'skip' : ''}">${NAMES[i]}${done[i] ? ' ✓' : skipped[i] ? ' ข้าม' : ''}</span>`).join(''); }
-function promptTxt() { while (seq < ORDER.length && (done[ORDER[seq]] || skipped[ORDER[seq]])) seq++; $('prompt').textContent = !padId ? 'รอจอย…' : seq >= ORDER.length ? 'ทดสอบปุ่มครบแล้ว ✓' : `กด ${NAMES[ORDER[seq]]}${USE[ORDER[seq]] ? ' · ' + USE[ORDER[seq]] : ''}`; }
+// ?pad= รับเฉพาะ 1 หรือ 2 (ค่าอื่นปัดเข้าช่วง ค่าที่อ่านไม่ได้ = 1)
+const padParam = (() => { let n = NaN; try { n = parseInt(new URLSearchParams(location.search).get('pad'), 10); } catch {} return Number.isFinite(n) ? Math.min(2, Math.max(1, n)) : 1; })();
+// skipMem: ปุ่มที่ผู้ใช้กดข้าม จำแยกตามจอย (id) · เริ่มทดสอบใหม่ไม่ล้าง ล้างเฉพาะตอนกด "เริ่มใหม่ทั้งหมด"
+const skipMem = {};
+let seq = 0, done = {}, skipped = skipMem[''] = {}, prev = [], lsDir = new Set(), rsDir = new Set(), trMax = [0, 0], drift = null, padId = null, mapping = null, everSeen = false, pick = padParam - 1, pickKey = '', padIdx = null, testKey = null;
+const isSkip = i => !!skipped[i] || (i === 17 && kindNow === 'xb');   // Logitech ไม่มี touchpad → ข้ามอัตโนมัติเสมอ
+const skipList = () => ORDER.filter(i => !OPTIONAL.has(i) && !done[i] && skipped[i]).sort((a, b) => a - b);
+const btnName = i => String(NAMES[i] ?? i).replace(/ \(.*\)/, '');
+function chips() {
+  $('chips').innerHTML = ORDER.map(i => { const d = done[i], s = isSkip(i), auto = i === 17 && kindNow === 'xb';
+    return `<span class="chip ${d ? 'done' : s ? 'skip' : ''}"><span>${NAMES[i]}${d ? ' ✓' : s ? ' · ข้าม' : ''}</span>${d || auto ? '' : `<button type="button" class="chipx" data-skip="${i}" title="${s ? 'กลับมาทดสอบปุ่มนี้' : 'ข้ามปุ่มนี้ (จะถูกบันทึกไว้ในผลทดสอบ)'}">${s ? 'ยกเลิกข้าม' : 'ข้ามปุ่มนี้'}</button>`}</span>`; }).join('');
+  const sk = skipList(); $('skipNote').textContent = sk.length ? `ปุ่มที่ข้ามไว้ของจอยตัวนี้: ${sk.map(btnName).join(', ')} · จะถูกบันทึกในผลทดสอบ · กด "เริ่มใหม่ทั้งหมด" เพื่อล้าง` : '';
+}
+function promptTxt() { seq = ORDER.findIndex(i => !done[i] && !isSkip(i)); if (seq < 0) seq = ORDER.length; $('prompt').textContent = !padId ? 'รอจอย…' : seq >= ORDER.length ? (skipList().length ? `ทดสอบปุ่มครบแล้ว ✓ (ข้าม ${skipList().length} ปุ่ม)` : 'ทดสอบปุ่มครบแล้ว ✓') : `กด ${NAMES[ORDER[seq]]}${USE[ORDER[seq]] ? ' · ' + USE[ORDER[seq]] : ''}`; }
 $('skip').onclick = () => { if (seq < ORDER.length) { skipped[ORDER[seq]] = true; promptTxt(); chips(); } };
-const restart = () => { seq = 0; done = {}; skipped = {}; lsDir.clear(); rsDir.clear(); trMax = [0, 0]; drift = null; $('driftTxt').textContent = 'ยังไม่ได้วัด'; promptTxt(); chips(); };
-$('restart').onclick = restart;
-$('driftBtn').onclick = () => { if (!padId) return; drift = { t0: performance.now(), max: 0 }; $('driftTxt').textContent = 'ปล่อยมือจากแกน… กำลังวัด'; };
-$('rumble').onclick = async () => { const p = joysOf([...navigator.getGamepads()].filter(g => g && g.connected))[pick]; const va = p && p.vibrationActuator; if (!va) { $('rumbleTxt').textContent = 'เบราว์เซอร์นี้ไม่รองรับการสั่น (ไม่เป็นไร)'; return; } try { await va.playEffect(va.type || 'dual-rumble', { duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5 }); $('rumbleTxt').textContent = 'ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่นแปลว่าใช้ได้'; } catch { $('rumbleTxt').textContent = 'สั่งสั่นไม่ได้ (ไม่บังคับ)'; } };
+$('chips').onclick = e => { const b = e.target.closest?.('[data-skip]'); if (!b) return; const i = +b.dataset.skip; if (skipped[i]) delete skipped[i]; else skipped[i] = true; promptTxt(); chips(); };
+// restart(false) = เริ่มกดปุ่มใหม่ แต่ยังจำปุ่มที่ข้ามไว้ · restart(true) = ล้างปุ่มที่ข้ามด้วย
+const restart = all => { seq = 0; done = {}; if (all === true) for (const k of Object.keys(skipped)) delete skipped[k]; lsDir.clear(); rsDir.clear(); trMax = [0, 0]; drift = null; $('driftTxt').textContent = 'ยังไม่ได้วัด'; $('driftTxt').className = 'mut'; promptTxt(); chips(); };
+$('restart').onclick = () => restart(false);
+$('restartAll').onclick = () => restart(true);
+$('driftBtn').onclick = () => { if (!padId) return; drift = { t0: performance.now(), max: 0 }; $('driftTxt').className = 'mut'; $('driftTxt').textContent = 'ปล่อยมือจากแกน… กำลังวัด'; };
+// ทดสอบการสั่น: simulator สั่นจอยตอนชน / FOUL / เตือน PIN · ที่นี่ใช้เช็กว่าจอยกับเบราว์เซอร์นี้สั่นได้
+$('rumble').onclick = () => {
+  const say = (t, c) => { const el = $('rumbleTxt'); el.textContent = t; el.className = c || 'mut'; };
+  const NO = 'เบราว์เซอร์หรือจอยตัวนี้สั่นไม่ได้ (Safari / Firefox และจอย Bluetooth บางรุ่นไม่รองรับ) · ลอง Chrome หรือ Edge แล้วต่อสาย USB · ไม่บังคับ ไม่มีผลกับผลทดสอบ';
+  try {
+    const p = joysOf(getPads())[pick];
+    if (!p) { say(`ยังไม่พบ Joy ${pick + 1} · ต่อจอยแล้วกดปุ่มใดก็ได้ 1 ครั้งก่อน`, 'bad'); return; }
+    const va = p.vibrationActuator, ha = p.hapticActuators && p.hapticActuators[0];
+    const sent = () => say('ส่งคำสั่งสั่นแล้ว ถ้าจอยสั่น = ใช้ได้ (simulator จะสั่นแบบเดียวกัน) · ถ้าไม่สั่น ลองต่อสาย USB หรือใช้ Chrome / Edge', 'ok');
+    if (va && typeof va.playEffect === 'function') {
+      const fx = Array.isArray(va.effects) ? va.effects : [], trigOnly = fx.length ? fx.includes('trigger-rumble') && !fx.includes('dual-rumble') : va.type === 'trigger-rumble';
+      const order = trigOnly ? ['trigger-rumble', 'dual-rumble'] : fx.includes('trigger-rumble') ? ['dual-rumble', 'trigger-rumble'] : ['dual-rumble'];
+      const prm = { startDelay: 0, duration: 500, strongMagnitude: 0.8, weakMagnitude: 0.5, leftTrigger: 0.6, rightTrigger: 0.6 };
+      const play = i => { if (i >= order.length) { say(NO, 'bad'); return; } let pr; try { pr = va.playEffect(order[i], prm); } catch { play(i + 1); return; } Promise.resolve(pr).then(sent, () => play(i + 1)).catch(() => {}); };
+      say('กำลังสั่งสั่น…'); play(0); return;
+    }
+    if (ha && typeof ha.pulse === 'function') { say('กำลังสั่งสั่น…'); Promise.resolve(ha.pulse(0.8, 500)).then(ok => ok === false ? say(NO, 'bad') : sent(), () => say(NO, 'bad')).catch(() => {}); return; }
+    say(NO, 'bad');
+  } catch { say(NO, 'bad'); }
+};
 const dirOf = (x, y) => { const s = new Set(); if (x > 0.9) s.add('R'); if (x < -0.9) s.add('L'); if (y > 0.9) s.add('D'); if (y < -0.9) s.add('U'); return s; };
+let checkHtml = '';
 function check() {
+  const sk = skipList(), skNames = sk.map(btnName), waived = i => !!skipped[i] && !done[i];
   const steps = [
     ['เบราว์เซอร์รองรับ Gamepad API', !!navigator.getGamepads],
     ['พบจอยที่เชื่อมต่ออยู่', !!padId],
     ['รู้จักรุ่นจอย (DualShock 4 / Logitech F310 / F710 / Xbox)', !!padId && !!padKind(padId)],
-    ['Mapping แบบ standard (ปุ่มตรงตำแหน่ง)', mapping === 'standard' || /046d|logitech|dual action/i.test(padId || '')],
-    ['ปุ่มที่ใช้ในเกมกดได้ครบ', ORDER.filter(i => !OPTIONAL.has(i)).every(i => done[i])],
+    ['Mapping แบบ standard (ปุ่มตรงตำแหน่ง)' + (padId && mapping !== 'standard' && isLogi(padId) ? ' · Logitech โหมด D: หน้านี้เรียงปุ่มและ D-pad ให้แล้ว' : ''), mapping === 'standard' || isLogi(padId)],
+    [sk.length ? `ปุ่มที่ใช้ในเกมครบ โดยข้าม ${sk.length} ปุ่ม (${skNames.join(', ')}) · บันทึกไว้ในผลทดสอบ` : 'ปุ่มที่ใช้ในเกมกดได้ครบ', ORDER.filter(i => !OPTIONAL.has(i)).every(i => done[i] || skipped[i])],
     ['แกนซ้ายและขวาไปได้สุดทุกทิศ', lsDir.size === 4 && rsDir.size === 4],
-    ['L2 / R2 กดได้สุด', trMax[0] > 0.9 && trMax[1] > 0.9],
-    ['ไม่มี drift (ค่าตอนปล่อยมือต่ำกว่า 0.10)', drift && drift.res != null && drift.res < 0.1],
+    ['L2 / R2 กดได้สุด' + (waived(6) || waived(7) ? ' (ข้ามไกที่กดข้ามไว้)' : ''), (waived(6) || trMax[0] > 0.9) && (waived(7) || trMax[1] > 0.9)],
+    ['ไม่มี drift (ค่าตอนปล่อยมือต่ำกว่า 0.10)', !!(drift && drift.res != null && drift.res < 0.1)],
   ];
-  $('checklist').innerHTML = steps.map(([t, ok]) => `<li><b class="${ok ? 'ok' : 'mut'}">${ok ? '✓' : '•'}</b><span>${t}</span></li>`).join('');
+  const html = steps.map(([t, ok]) => `<li><b class="${ok ? 'ok' : 'mut'}">${ok ? '✓' : '•'}</b><span>${t}</span></li>`).join('');
   const all = steps.every(s => s[1]), core = steps.slice(0, 2).every(s => s[1]) && steps[4][1];
-  $('result').textContent = all ? 'เชื่อมต่อเรียบร้อย พร้อมซ้อม ✓' : core ? 'ใช้งานได้ แต่ยังทดสอบไม่ครบ' : 'ยังไม่พร้อม';
-  $('result').className = 'status ' + (all ? 'ok' : core ? '' : 'bad');
-  try { if (all && padIdx != null) { const m = JSON.parse(localStorage.getItem('dca-pad-tests') || '{}'), k = padIdx + '|' + padId; if (!m[k]?.ok) { m[k] = { ok: true, slot: pick + 1, ts: Date.now() }; localStorage.setItem('dca-pad-tests', JSON.stringify(m)); pickKey = ''; } } } catch {}
-  try { const prevSave = JSON.parse(localStorage.getItem('dca-pad-test') || 'null'); if (all && (!prevSave || !prevSave.ok || prevSave.id !== padId)) localStorage.setItem('dca-pad-test', JSON.stringify({ ok: true, id: padId, mapping, ts: Date.now() })); } catch {}
+  if (html !== checkHtml) {
+    checkHtml = html; $('checklist').innerHTML = html;
+    $('result').textContent = all ? (sk.length ? `ผ่านแบบข้ามปุ่ม ${sk.length} ปุ่ม ✓` : 'เชื่อมต่อเรียบร้อย พร้อมซ้อม ✓') : core ? 'ใช้งานได้ แต่ยังทดสอบไม่ครบ' : 'ยังไม่พร้อม';
+    $('result').className = 'status ' + (all ? 'ok' : core ? '' : 'bad');
+    $('resultNote').textContent = all && sk.length ? `ปุ่มที่ข้าม (บันทึกไว้ในผลทดสอบ หน้าอื่นจะเห็นว่าผ่านแบบข้ามปุ่ม): ${skNames.join(', ')}` : '';
+  }
+  // บันทึกผล: เทียบกับค่าที่ cache ไว้ เขียนเฉพาะเมื่อผลเปลี่ยน (ไม่อ่าน localStorage ทุกเฟรม)
+  if (all && padIdx != null && padId != null) {
+    const sig = sk.join(), same = r => !!r && r.ok === true && (Array.isArray(r.skipped) ? r.skipped : []).join() === sig;
+    const m = testsMap(), k = testKey ?? padId, lk = padIdx + '|' + padId;
+    if (!same(m[k]) || !same(m[lk])) { const rec = { ok: true, slot: pick + 1, ts: Date.now(), id: padId, mapping, skipped: sk, skippedNames: skNames }; m[k] = rec; m[lk] = rec; lsSet('dca-pad-tests', m); pickKey = ''; }
+    const g = lsGet('dca-pad-test');
+    if (!same(g) || g.id !== padId) lsSet('dca-pad-test', { ok: true, id: padId, mapping, ts: Date.now(), slot: pick + 1, skipped: sk, skippedNames: skNames });
+  }
 }
-const tested = g => { try { return !!JSON.parse(localStorage.getItem('dca-pad-tests') || '{}')[g.index + '|' + g.id]?.ok; } catch { return false; } };
 const duoPrev = {}; let indep = null, duoBuilt = false;
 const KIND_TH = { ps: 'DualShock 4', xb: 'Logitech / Xbox' };
+const setHtml = (el, h) => { if (el && el._h !== h) { el._h = h; el.innerHTML = h; } };
+const setPick = i => { pick = i === 1 ? 1 : 0; prev = []; testKey = null; skipped = skipMem[''] = {}; restart(false); pickKey = ''; };
 function duoBuild() {
   $('duo').innerHTML = [1, 2].map(n => `<div class="joy" id="joy${n}">
     <div class="row" style="justify-content:space-between"><b>Joy ${n} · ${n === 1 ? 'คนขับ' : 'คนยิง'}</b><span class="tag bad" id="j${n}st">ยังไม่เชื่อม</span></div>
@@ -237,24 +348,25 @@ function duoBuild() {
       <div class="small">กดอยู่: <b id="j${n}btn">—</b></div></div>
     <div class="small" id="j${n}test"></div>
     <button class="btn sec" data-go="${n - 1}" style="margin-top:6px">ทดสอบปุ่มละเอียด Joy ${n} ↓</button></div>`).join('');
-  $('duo').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { pick = +b.dataset.go; prev = []; restart(); pickKey = ''; $('detail').scrollIntoView({ behavior: 'smooth' }); });
+  $('duo').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { setPick(+b.dataset.go); $('detail').scrollIntoView({ behavior: 'smooth' }); });
   duoBuilt = true;
 }
-const activeOf = g => { const v = padButtons(g); return v.some(x => x > 0.5) || g.axes.slice(0, 4).some(a => Math.abs(a) > 0.4); };
-function duo(pads, joys) {
+const activeOf = g => padButtons(g).some(x => x > 0.5) || padAxes(g).some(a => Math.abs(a) > 0.4);
+function duo(pads) {
   if (!duoBuilt) duoBuild();
   // ตั้ง Joy ด้วย Options/Start ค้าง + ✕/A หรือ ○/B
-  for (const g of pads) { const v = padButtons(g), pv = duoPrev[g.index] || []; if (v[9] > 0.5) for (const [bi, slot] of [[0, 'p1'], [1, 'p2']]) if (v[bi] > 0.5 && !(pv[bi] > 0.5)) { const r = loadRole(), o = slot === 'p1' ? 'p2' : 'p1'; if (r[o] === g.index) r[o] = null; r[slot] = g.index; saveRole(r); pickKey = ''; } duoPrev[g.index] = v; }
-  joys = joysOf(pads);
+  for (const g of pads) { const v = padButtons(g), pv = duoPrev[g.index] || []; if (v[9] > 0.5) for (const [bi, slot] of [[0, 1], [1, 2]]) if (v[bi] > 0.5 && !(pv[bi] > 0.5)) setRole(slot, g); duoPrev[g.index] = v; }
+  const joys = joysOf(pads);
   [1, 2].forEach(n => {
     const g = joys[n - 1], st = $('j' + n + 'st'), card = $('joy' + n);
-    if (!g) { st.textContent = 'ยังไม่เชื่อม'; st.className = 'tag bad'; $('j' + n + 'name').textContent = n === 2 ? 'ต่อจอยตัวที่ 2 แล้วกดปุ่มใดก็ได้ 1 ครั้ง' : 'ต่อจอยแล้วกดปุ่มใดก็ได้ 1 ครั้ง'; $('j' + n + 'btn').textContent = '—'; $('j' + n + 'test').textContent = ''; card.classList.remove('act'); return; }
-    const k = padKind(g.id), v = padButtons(g), nm = k === 'xb' ? NAMES_XB : NAMES_PS;
+    if (!g) { st.textContent = 'ยังไม่เชื่อม'; st.className = 'tag bad'; $('j' + n + 'name').textContent = n === 2 ? 'ต่อจอยตัวที่ 2 แล้วกดปุ่มใดก็ได้ 1 ครั้ง' : 'ต่อจอยแล้วกดปุ่มใดก็ได้ 1 ครั้ง'; $('j' + n + 'btn').textContent = '—'; setHtml($('j' + n + 'test'), ''); card.classList.remove('act'); return; }
+    const k = padKind(g.id), v = padButtons(g), nm = k === 'xb' ? NAMES_XB : NAMES_PS, a = padAxes(g);
     st.textContent = 'เชื่อมแล้ว'; st.className = 'tag ok';
-    $('j' + n + 'name').textContent = `${KIND_TH[k] || 'จอยทั่วไป'} · ${g.id.replace(/\s*\(.*$/, '').slice(0, 34)} · ช่อง ${g.index}${g.mapping === 'standard' ? '' : ' · mapping ไม่ standard'}`;
-    const ax = i => (g.axes[i] || 0) * 14; $('j' + n + 'l').setAttribute('cx', 25 + ax(0)); $('j' + n + 'l').setAttribute('cy', 25 + ax(1)); $('j' + n + 'r').setAttribute('cx', 95 + ax(2)); $('j' + n + 'r').setAttribute('cy', 25 + ax(3));
-    const held = v.map((x, i) => x > 0.5 ? (nm[i] || i).replace(/ \(.*\)/, '') : null).filter(Boolean); $('j' + n + 'btn').textContent = held.length ? held.join(' ') : '—';
-    $('j' + n + 'test').innerHTML = tested(g) ? '<span class="ok">✓ ทดสอบปุ่มละเอียดผ่านแล้ว</span>' : '<span class="mut">ยังไม่ทดสอบปุ่มละเอียด</span>';
+    $('j' + n + 'name').textContent = `${KIND_TH[k] || 'จอยทั่วไป'} · ${String(g.id || 'ไม่ทราบชื่อ').replace(/\s*\(.*$/, '').slice(0, 34)} · ช่อง ${g.index}${g.mapping === 'standard' ? '' : ' · ⚠ mapping ไม่ standard'}`;
+    $('j' + n + 'l').setAttribute('cx', 25 + a[0] * 14); $('j' + n + 'l').setAttribute('cy', 25 + a[1] * 14); $('j' + n + 'r').setAttribute('cx', 95 + a[2] * 14); $('j' + n + 'r').setAttribute('cy', 25 + a[3] * 14);
+    const held = v.map((x, i) => x > 0.5 ? String(nm[i] ?? i).replace(/ \(.*\)/, '') : null).filter(Boolean); $('j' + n + 'btn').textContent = held.length ? held.join(' ') : '—';
+    const tr = testOf(g, pads);
+    setHtml($('j' + n + 'test'), tr ? `<span class="ok">✓ ทดสอบปุ่มละเอียดผ่านแล้ว${skipTxt(tr)}</span>` : '<span class="mut">ยังไม่ทดสอบปุ่มละเอียด</span>');
     card.classList.toggle('act', activeOf(g));
   });
   // ทดสอบแยกอิสระ: แต่ละขั้น 4 วิ ใช้เฉพาะจอยที่กำหนด อีกตัวต้องไม่ขยับ
@@ -270,47 +382,84 @@ function duo(pads, joys) {
         indep.res.push([`Joy ${indep.step}: ${ok ? 'ทำงานแยกอิสระ ✓' : !indep.self ? 'ไม่เห็นการกดบนจอยนี้ ✗' : `Joy ${3 - indep.step} ขยับตามด้วย ✗ (อาจเป็นจอยตัวเดียวถูกเห็นเป็น 2 ตัว หรือมีคนแตะอีกตัว)`}`, ok]);
         if (indep.step === 1) indep = { ...indep, step: 2, t0: performance.now(), self: false, other: false };
         else { const all = indep.res.every(r => r[1]); $('indepTxt').innerHTML = all ? '<b class="ok">Joy 1 และ Joy 2 ทำงานแยกกันอิสระ พร้อมซ้อม 2 คน ✓</b>' : '<b class="bad">ยังไม่ผ่าน ลองใหม่อีกครั้ง</b>';
-          if (all) try { localStorage.setItem('dca-pad-indep', JSON.stringify({ ok: true, ids: joys.map(g => g.id), ts: Date.now() })); } catch {}
+          if (all) lsSet('dca-pad-indep', { ok: true, ids: joys.map(g => g.id), ts: Date.now() });
           indep.step = 3; }
       }
       $('indepRes').innerHTML = indep ? indep.res.map(([t, ok]) => `<li><b class="${ok ? 'ok' : 'bad'}">${ok ? '✓' : '✗'}</b><span>${t}</span></li>`).join('') : '';
     }
   }
+  return joys;
 }
-$('indepBtn').onclick = () => { const j = joysOf([...(navigator.getGamepads?.() || [])].filter(g => g && g.connected)); if (!j[0] || !j[1]) { $('indepTxt').textContent = 'ต้องต่อจอยให้ครบ 2 ตัวก่อน'; return; } indep = { step: 1, t0: performance.now(), self: false, other: false, res: [] }; $('indepRes').innerHTML = ''; };
-$('swapBtn').onclick = () => { const j = joysOf([...(navigator.getGamepads?.() || [])].filter(g => g && g.connected)); if (!j[0] || !j[1]) { $('indepTxt').textContent = 'ต้องต่อจอยให้ครบ 2 ตัวก่อนถึงจะสลับได้'; return; } saveRole({ p1: j[1].index, p2: j[0].index }); pickKey = ''; $('indepTxt').textContent = 'สลับ Joy 1 ↔ 2 แล้ว (simulator ใช้ค่าเดียวกัน)'; };
-function loop() {
-  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(g => g && g.connected) : [];
-  const joys = joysOf(pads); duo(pads, joys);
-  const key = joys.map(g => g ? g.index + (tested(g) ? 'y' : 'n') : '-').join() + '|' + pick;
-  if (key !== pickKey) { pickKey = key; $('padPick').innerHTML = [0, 1].map(i => `<button class="btn ${i === pick ? '' : 'sec'}" data-pick="${i}">ทดสอบ Joy ${i + 1} ${i === 0 ? '(คนขับ)' : '(คนยิง)'}${joys[i] && tested(joys[i]) ? ' ✓' : joys[i] ? '' : ' · ยังไม่เชื่อม'}</button>`).join('') + '<span class="mut small">ทดสอบให้ผ่านทีละตัว · ✓ = ผ่านแล้ว</span>';
-    $('padPick').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { pick = +b.dataset.pick; prev = []; restart(); }); }
+$('indepBtn').onclick = () => { const j = joysOf(getPads()); if (!j[0] || !j[1]) { $('indepTxt').textContent = 'ต้องต่อจอยให้ครบ 2 ตัวก่อน'; return; } indep = { step: 1, t0: performance.now(), self: false, other: false, res: [] }; $('indepRes').innerHTML = ''; };
+$('swapBtn').onclick = () => { const j = joysOf(getPads()); if (!j[0] || !j[1]) { $('indepTxt').textContent = 'ต้องต่อจอยให้ครบ 2 ตัวก่อนถึงจะสลับได้'; return; } saveRole({ p1: j[1].index, p2: j[0].index, id1: j[1].id || null, id2: j[0].id || null }); pickKey = ''; $('indepTxt').textContent = 'สลับ Joy 1 ↔ 2 แล้ว (simulator ใช้ค่าเดียวกัน)'; };
+const MAP_WARN = {
+  logi: '<b class="bad">⚠ mapping ไม่ใช่ standard</b> · จอย Logitech ตัวนี้น่าจะอยู่โหมด D (DirectInput) · <b>วิธีแก้:</b> เลื่อนสวิตช์ด้านหลังจอยไปที่ <b>X</b> แล้วถอดสาย USB เสียบใหม่ และกดปุ่มบนจอย 1 ครั้ง · ถ้าจำเป็นต้องใช้โหมด D หน้านี้เรียงปุ่ม A / B / X และอ่าน D-pad จากแกน (hat) ให้เอง',
+  ps: '<b class="bad">⚠ mapping ไม่ใช่ standard</b> · ปุ่มและแกนอาจสลับตำแหน่ง · <b>วิธีแก้:</b> เปิดหน้านี้ใน <b>Chrome หรือ Edge</b> แล้วถอดจอยต่อใหม่ (ถอดสาย USB เสียบใหม่ หรือปิด-เปิด Bluetooth) และกดปุ่มบนจอย 1 ครั้ง',
+  other: '<b class="bad">⚠ mapping ไม่ใช่ standard</b> · ปุ่มและแกนอาจสลับตำแหน่ง · <b>วิธีแก้:</b> Logitech ให้เลื่อนสวิตช์ด้านหลังไปที่ <b>X</b> · DualShock 4 ให้ใช้ <b>Chrome หรือ Edge</b> · จากนั้นถอดจอยต่อใหม่ แล้วกดปุ่มบนจอย 1 ครั้ง',
+};
+function frame() {
+  const pads = getPads(), joys = duo(pads);
+  const key = joys.map(g => { if (!g) return '-'; const r = testOf(g, pads); return g.index + ':' + g.id + (r ? 'y' + (r.skipped?.length || 0) : 'n'); }).join() + '|' + pick;
+  if (key !== pickKey) { pickKey = key; syncLegacy(pads);
+    $('padPick').innerHTML = [0, 1].map(i => { const r = joys[i] && testOf(joys[i], pads); return `<button class="btn ${i === pick ? '' : 'sec'}" data-pick="${i}">ทดสอบ Joy ${i + 1} ${i === 0 ? '(คนขับ)' : '(คนยิง)'}${r ? ' ✓' + skipTxt(r) : joys[i] ? '' : ' · ยังไม่เชื่อม'}</button>`; }).join('') + '<span class="mut small">ทดสอบให้ผ่านทีละตัว · ✓ = ผ่านแล้ว</span>';
+    $('padPick').querySelectorAll('[data-pick]').forEach(b => b.onclick = () => setPick(+b.dataset.pick)); }
   const p = joys[pick]; $('slotName').textContent = `· Joy ${pick + 1}`;
   if (p) {
-    everSeen = true; padId = p.id; mapping = p.mapping; padIdx = p.index; if (kindSel === 'auto') applyKind(padKind(p.id) || 'ps'); const bv = padButtons(p);
+    const bv = padButtons(p), tk = padKey(p, pads);
+    // จอยที่กำลังทดสอบเปลี่ยนตัว (สลับ Joy / ต่อจอยอื่น) → เริ่มใหม่ และใช้รายการปุ่มที่ข้ามของจอยตัวนั้น
+    if (tk !== testKey) { const first = testKey === null; testKey = tk; skipped = skipMem[tk] ||= {}; prev = bv.map(x => x > 0.5); if (first) { promptTxt(); chips(); } else restart(false); }
+    everSeen = true; padId = p.id; mapping = p.mapping; padIdx = p.index; if (kindSel === 'auto') applyKind(padKind(p.id) || 'ps');
     $('connStatus').textContent = 'เชื่อมต่อแล้ว ✓'; $('connStatus').className = 'status ok';
-    $('connDetail').textContent = `${p.id} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${p.buttons.length} · แกน ${p.axes.length} · กำลังทดสอบ Joy ${pick + 1}`;
+    $('connDetail').textContent = `${p.id || 'ไม่ทราบชื่อจอย'} · mapping: ${p.mapping || 'ไม่ระบุ'} · ปุ่ม ${(p.buttons || []).length} · แกน ${(p.axes || []).length} · กำลังทดสอบ Joy ${pick + 1}`;
+    const warn = p.mapping === 'standard' ? '' : isLogi(p.id) ? MAP_WARN.logi : padKind(p.id) === 'ps' ? MAP_WARN.ps : MAP_WARN.other;
+    setHtml($('mapWarn'), warn); $('mapWarn').hidden = !warn;
     bv.forEach((bval, i) => {
       const v = bval > 0.5, el = $('b' + i); if (el) el.classList.toggle('on', v);
-      if (v && !prev[i]) { if (seq < ORDER.length && ORDER[seq] === i) { done[i] = true; seq++; promptTxt(); chips(); } else if (ORDER.includes(i) && !done[i] && seq < ORDER.length) { /* ปุ่มอื่นยังไม่ถึงคิว */ } }
+      if (v && !prev[i]) {
+        if (seq < ORDER.length && ORDER[seq] === i) { done[i] = true; promptTxt(); chips(); }
+        else if (skipped[i] && !done[i] && ORDER.includes(i)) { done[i] = true; delete skipped[i]; promptTxt(); chips(); }   // ปุ่มที่ข้ามไว้แต่กดติดจริง → นับว่าผ่าน
+      }
       prev[i] = v;
     });
-    const [lx, ly, rx, ry] = [p.axes[0] || 0, p.axes[1] || 0, p.axes[2] || 0, p.axes[3] || 0];
+    const [lx, ly, rx, ry] = padAxes(p);
     $('ls').setAttribute('cx', 185 + lx * 18); $('ls').setAttribute('cy', 195 + ly * 18); $('rs').setAttribute('cx', 335 + rx * 18); $('rs').setAttribute('cy', 195 + ry * 18);
     dirOf(lx, ly).forEach(d => lsDir.add(d)); dirOf(rx, ry).forEach(d => rsDir.add(d));
-    const l2 = bv[6] ?? 0, r2 = bv[7] ?? 0; trMax = [Math.max(trMax[0], l2), Math.max(trMax[1], r2)];
-    $('axesTxt').textContent = `แกนซ้าย ${lx.toFixed(2)}, ${ly.toFixed(2)} · แกนขวา ${rx.toFixed(2)}, ${ry.toFixed(2)}`; $('trigTxt').textContent = `L2 ${l2.toFixed(2)} · R2 ${r2.toFixed(2)}`;
+    const l2 = num(bv[6]), r2 = num(bv[7]); trMax = [Math.max(trMax[0], l2), Math.max(trMax[1], r2)];
+    $('axesTxt').textContent = `แกนซ้าย ${lx.toFixed(2)}, ${ly.toFixed(2)} · แกนขวา ${rx.toFixed(2)}, ${ry.toFixed(2)}${(p.axes || []).length < 4 ? ' · ⚠ จอยนี้ส่งแกนมาไม่ครบ 4 แกน' : ''}`; $('trigTxt').textContent = `L2 ${l2.toFixed(2)} · R2 ${r2.toFixed(2)}`;
     $('lsTxt').textContent = `${lsDir.size}/4`; $('lsBar').style.width = lsDir.size * 25 + '%'; $('rsTxt').textContent = `${rsDir.size}/4`; $('rsBar').style.width = rsDir.size * 25 + '%';
     $('trTxt').textContent = `L2 สูงสุด ${trMax[0].toFixed(2)} · R2 สูงสุด ${trMax[1].toFixed(2)}`; $('trBar').style.width = Math.min(trMax[0], trMax[1]) * 100 + '%';
     if (drift && drift.res == null) { drift.max = Math.max(drift.max, Math.abs(lx), Math.abs(ly), Math.abs(rx), Math.abs(ry)); const el = (performance.now() - drift.t0) / 1000; if (el >= 3) { drift.res = drift.max; $('driftTxt').textContent = `ค่าสูงสุดตอนปล่อยมือ ${drift.max.toFixed(3)} ${drift.max < 0.1 ? '· ผ่าน ✓' : '· สูงเกิน 0.10 แกนมีอาการ drift'}`; $('driftTxt').className = drift.max < 0.1 ? 'ok' : 'bad'; } else $('driftTxt').textContent = `ปล่อยมือจากแกน… ${(3 - el).toFixed(1)} วิ`; }
   } else {
-    padId = null; mapping = null;
+    padId = null; mapping = null; $('mapWarn').hidden = true;
     $('connStatus').textContent = pads.length ? `Joy ${pick + 1} ยังไม่เชื่อม` : everSeen ? 'จอยหลุดการเชื่อมต่อ ✗' : 'ยังไม่พบจอย'; $('connStatus').className = 'status bad';
-    $('connDetail').textContent = everSeen ? 'ตรวจแบตเตอรี่และ Bluetooth แล้วกดปุ่มบนจอยอีกครั้ง' : 'จับคู่ Bluetooth (Share + PS ค้าง) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง';
+    $('connDetail').textContent = everSeen ? 'ตรวจสาย USB หรือแบตเตอรี่ / Bluetooth แล้วกดปุ่มบนจอยอีกครั้ง' : 'เสียบสาย USB (หรือจับคู่ Bluetooth สำหรับซ้อม: Share + PS ค้าง) แล้วกดปุ่มใดก็ได้บนจอย 1 ครั้ง';
   }
-  promptTxt(); check(); requestAnimationFrame(loop);
+  promptTxt(); check();
 }
-addEventListener('gamepadconnected', () => { everSeen = true; });
+// วนทุกเฟรม: ถ้าเฟรมไหนพัง แสดงข้อความ 1 ครั้งแล้วทำงานต่อ (ต้องเรียก requestAnimationFrame เสมอ)
+let loopErr = null;
+function loop() {
+  try { frame(); }
+  catch (e) { const m = String((e && e.message) || e); if (m !== loopErr) { loopErr = m; try { console.error(e); const el = $('errLine'); if (el) { el.hidden = false; el.textContent = `⚠ หน้าทดสอบเจอข้อผิดพลาด (ยังทำงานต่อ): ${m} · ลองถอดจอยแล้วต่อใหม่ หรือรีเฟรชหน้านี้`; } } catch {} } }
+  finally { requestAnimationFrame(loop); }
+}
+addEventListener('gamepadconnected', () => { everSeen = true; pickKey = ''; });
+addEventListener('gamepaddisconnected', () => { pickKey = ''; });
+// แท็บอื่น (simulator / หน้าบทเรียน) เขียน localStorage → ทิ้งค่าที่ cache ไว้ เช่นสลับ Joy 1 ↔ 2 ใน simulator จะเห็นที่นี่ทันที
+addEventListener('storage', e => { if (e.key == null) { for (const k of Object.keys(lsCache)) delete lsCache[k]; } else delete lsCache[e.key]; if (e.key == null || e.key === 'dca-pad-role' || e.key === 'dca-pad-tests') pickKey = ''; });
+// ปุ่มกลับ: ถ้าหน้านี้ถูกเปิดเป็นแท็บใหม่จากหน้าบทเรียน / simulator ให้ปิดแท็บนี้กลับไปแท็บเดิม (ไม่เปิดแท็บซ้ำ) ปิดไม่ได้ค่อยเปิดลิงก์ในแท็บนี้
+function openedFrom(which) {
+  const op = window.opener; let path = null;
+  if (op) { try { if (op.closed) return false; } catch { return false; } try { path = op.location.pathname; } catch {} if (path == null) return which === 'academy'; }
+  else { if (history.length > 1) return false; try { const u = new URL(document.referrer); if (u.origin === location.origin) path = u.pathname; } catch {} if (path == null) return false; }
+  return (/coach-training/.test(path) ? 'academy' : /gamepad-test/.test(path) ? null : 'sim') === which;
+}
+[['backAcademy', 'academy'], ['backSim', 'sim']].forEach(([id, which]) => { const a = $(id); if (!a) return; a.onclick = e => {
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button) return;
+  if (!openedFrom(which)) return;
+  e.preventDefault(); try { window.opener && window.opener.focus(); } catch {} try { window.close(); } catch {}
+  setTimeout(() => { if (!window.closed) location.href = a.href; }, 300);
+}; });
 applyKind('ps'); chips(); promptTxt(); loop();
 </script>
 </body>

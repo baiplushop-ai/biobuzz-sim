@@ -95,13 +95,20 @@
       <div><span class="k">✕</span>intake <span class="k">○</span>คายลูก <span class="k">Share</span>กล้อง <span class="k">Options</span>เริ่ม/หยุด</div>
       <div class="mut" style="margin-top:4px">คีย์บอร์ด (laptop / PC เล่นได้โดยไม่ต้องมีจอย): WASD หรือ ↑ ↓ เดิน · A / D สไลด์ · Q / E หรือ ← → หมุน · Shift ช้า · Space ยิง POLLEN · N ยิง NECTAR · 1 / 2 วาง POLLEN / NECTAR · F intake · G คาย · C กล้อง · X ซ่อน/แสดงแผงข้าง · Enter เริ่ม/หยุด</div>
       <div class="mut">Human Player ปล่อย NECTAR: H หรือ △ / Y บนจอยตัวไหนก็ได้ (เมื่อตั้งให้กดเอง)</div>
-      <div class="mut">ปุ่มโค้ช: B ประกาศเวลา · P ทาย TIP · Y ยืนยัน · H Human Player ปล่อย NECTAR</div>
+      <div class="mut">ปุ่มโค้ช: B ประกาศเวลา · P ทาย TIP · Y ยืนยัน · V สั่งทีม · H Human Player ปล่อย NECTAR</div>
       <div id="driveHelp"></div>
       <div class="mut">Logitech F310 / F710 / Xbox: A = ✕ · B = ○ · X = □ · Y = △ · LB / RB = L1 / R1 · LT / RT = L2 / R2 · Back = Share · Start = Options</div>
       <div style="margin-top:6px"><b>จอย 2 ตัว (คุมหุ่นตัวเดียวกัน)</b> <select id="padMode" style="font:inherit"><option value="split">แยกกัน: Joy 1 ขับ · Joy 2 ยิง</option><option value="both">ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
       <div class="mut">แบ่งหน้าที่: Joy 1 ใช้ L / R / □ ขับ · Joy 2 (คนยิง) ใช้ R1 L1 R2 L2 ✕ ○ ยิง วาง intake คาย · Share / Options ใช้ได้ทั้งคู่</div>
       <div class="mut">สลับจอย: กด Options ค้าง + ✕ = ตั้งเป็น Joy 1 · Options ค้าง + ○ = Joy 2 (เหมือน Start+A / Start+B ใน Driver Station)</div>
+      <div style="margin-top:6px"><label><input type="checkbox" id="optRumble" checked> จอยสั่นเมื่อโดนชน · ผิดกติกา · เหตุผิดปกติ</label><label><input type="checkbox" id="optSound" checked> เสียงสัญญาณ เริ่ม · จบ AUTO · TELEOP · หมดเวลา</label><button class="sec" id="rumTest" type="button">ทดสอบสั่น</button></div>
       <div id="padTxt" class="mut" style="margin-top:4px">ไม่พบจอย · เล่นด้วยคีย์บอร์ดได้เลย (ต่อจอยแล้วกดปุ่มใดก็ได้เพื่อใช้จอย)</div><div><a href="gamepad-test.html" target="_blank" style="color:var(--yel)">เปิดหน้าทดสอบจอย ↗</a></div>
+    </details>
+    <details id="simNote"><summary style="cursor:pointer;color:var(--mut)">simulator ต่างจากสนามจริงตรงไหน</summary>
+      <div class="mut" style="margin-top:6px"><b>ค่าประมาณ ไม่ใช่กติกา:</b> ความเร็วลูกและมุมยิง · ความเร็ว / อัตราเร่งของหุ่น · ดีเลย์ของ intake · แรงเบียดเมื่อชน · เลือดลด 2% ต่อการชน (กฎฝึกของทีม) · ตำแหน่งชิ้นส่วนสนามวางตามแบบในคู่มือ อาจคลาดจากสนามจริงเล็กน้อย</div>
+      <div class="mut"><b>กฎที่ที่นี่ตรวจให้:</b> G402 ชนหุ่นคู่แข่งในฝั่งเขาช่วง AUTO · G403 ขยับช่วงเปลี่ยน 8 วิ · G404 ยังวิ่งตอนหมดเวลา · G405 ยิงลูกออกนอกสนาม · G407 ถือเกิน 4 ลูก · G408 / G409 · G410 NECTAR ใน FLOWER ก่อนเหลือ 1:00 · G411 จอดกักกองลูก (เกณฑ์ฝึก) · G417 / G418 · G421 PIN เกิน 3 วิ · G426 / G427 Human Player</div>
+      <div class="mut"><b>กฎที่ไม่ได้จำลอง (กรรมการใช้ดุลยพินิจ):</b> G401 · G204 · G415 · G416 · G419 · G420 รวมถึงการพาลูกข้ามฝั่งช่วง AUTO (G402) และการดันลูกออกนอกสนาม (G405) · ในสนามจริง Head REFEREE ตัดสินเป็นที่สุด</div>
+      <div class="mut"><b>Ranking Points:</b> ใช้เกณฑ์งานทั่วไป ตรวจกับ Team Update ล่าสุดก่อนวันแข่ง · ไม่มีเสียงเตือน 0:30 / 0:10 โดยตั้งใจ เพราะการขานเวลาเป็นหน้าที่ของ Drive Coach</div>
     </details>
   </div>
   <div id="ds" class="panel hidden">
@@ -118,15 +125,29 @@
 <div id="overlay"><div class="box" id="ovBox"></div></div>
 <div id="netBar" class="hidden"></div>
 
-<script src="scenarios.js?v=1.9"></script>
+<script>
+// โหลดไม่ขึ้นใน 12 วิ (CDN ของ three.js ถูกบล็อก · WebGL ปิด · เปิดในแอป LINE) = บอกสาเหตุแทนการปล่อยจอว่าง · ถ้าโหลดเสร็จทีหลังกล่องนี้ถูกลบเอง
+function loadFail() {
+  if (window.BIOBUZZ || document.getElementById('loadFail')) return;
+  var d = document.createElement('div'); d.id = 'loadFail';
+  d.style.cssText = 'position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;background:#0e1116;color:#e8ecf2;font:16px/1.7 Sarabun,system-ui,sans-serif;padding:24px;text-align:center';
+  d.innerHTML = '<div style="max-width:580px"><h2 style="color:#f5c518;margin:0 0 8px">โหลด simulator ไม่สำเร็จ</h2><p style="text-align:left">สาเหตุที่พบบ่อย<br>1. เปิดจากแอป LINE / Facebook → กด ⋮ แล้วเลือก “เปิดในเบราว์เซอร์” หรือคัดลอกลิงก์ไปเปิดใน Chrome / Edge บนคอมพิวเตอร์<br>2. อินเทอร์เน็ตช้า หรือเครือข่ายบล็อก cdnjs.cloudflare.com (ที่เก็บ three.js) → ลองเครือข่ายอื่นหรือ hotspot มือถือ<br>3. เบราว์เซอร์ปิด WebGL / การ์ดจอเก่า → ใช้ Chrome หรือ Edge รุ่นล่าสุด</p><button onclick="location.reload()" style="font:inherit;font-weight:700;padding:8px 18px;border-radius:8px;border:0;background:#f5c518;color:#111;cursor:pointer">โหลดใหม่</button> <a href="../coach-training/index.html" style="color:#f5c518;margin-left:10px">← กลับหน้าบทเรียน</a></div>';
+  document.body.appendChild(d);
+}
+setTimeout(loadFail, 12000);
+</script>
+<script src="scenarios.js?v=2.0"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
-<script type="module">
+<script type="module" onerror="loadFail()">
 import * as THREE from 'three';
 
 // =================== ค่าคงที่ (คู่มือ 2026-27) · เมตร ===================
 const SCN_ALL = window.SCENARIOS || {};
 const Q = new URLSearchParams(location.search);
 const SCN_ID = Q.get('s'); const SCN = SCN_ID && SCN_ALL[SCN_ID] ? SCN_ALL[SCN_ID] : null;
+// เปิดจากแอปแชต (LINE / Facebook) หรือเครื่องจอสัมผัสที่ไม่มีเมาส์: ไม่มีคีย์บอร์ด / จอย → แนะนำให้เปิดบนคอมพิวเตอร์
+const IN_APP = /\bLine\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent), TOUCH_ONLY = matchMedia('(pointer:coarse)').matches && !matchMedia('(any-pointer:fine)').matches;
+const devHint = () => IN_APP || TOUCH_ONLY ? `<p class="bad" style="font-weight:700">📱 ${IN_APP ? 'กำลังเปิดจากแอป LINE / Facebook' : 'เครื่องนี้เป็นจอสัมผัส'}: simulator ต้องใช้คีย์บอร์ดหรือจอย → เปิดลิงก์นี้ใน Chrome หรือ Edge บนคอมพิวเตอร์${IN_APP ? ' (ในแอปกด ⋮ แล้วเลือก “เปิดในเบราว์เซอร์”)' : ''}</p>` : '';
 const F = {
   half: 1.7929, wallH: 0.3228, tile: 24 * 0.0254, pollenR: 0.03556, nectarR: 0.04572,
   loading: { red: [-1.7929, -1.5012, -1.1836, -0.6072], blue: [1.5012, 1.7929, 0.6072, 1.1836] },
@@ -143,12 +164,12 @@ const TIP = { official: { pollen: 1, nectar: 1.65, threshold: 7.4 }, simple: { p
 const AUTO_LEN = 30, TRANS_LEN = 8, MATCH_LEN = 158;
 const LZ_Z = { red: -0.8954, blue: 0.8954 };
 const START = { R1: [-F.half + HSW + 0.001, 0.15, -Math.PI / 2], R2: [-F.half + HSW + 0.001, -1.45, -Math.PI / 2], B1: [F.half - HSW - 0.001, -0.15, Math.PI / 2], B2: [F.half - HSW - 0.001, 1.45, Math.PI / 2] };
-const DEFAULT_OPT = { autoStop: true, traj: false, gate: false, health: true, intakeDelay: false, rival: false, simple: false, bots: true, hideClock: false, hideLoad: false, lockCam: null, shove: true, disrupt: false, hpManual: false, noClockRules: false, speed: 1 };
+const DEFAULT_OPT = { autoStop: true, traj: false, gate: false, health: true, intakeDelay: false, rival: false, simple: false, bots: true, hideClock: false, hideLoad: false, lockCam: null, shove: true, disrupt: false, hpManual: false, noClockRules: false, hoard: false, speed: 1 };
 const DEFAULT_AUTO = { R1: [{ goto: 'spot' }, { shoot: 4 }], R2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }], B1: [{ goto: 'spot' }, { shoot: 4 }], B2: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }] };
 const STOP = { vx: 0, vz: 0, w: 0 };
 // ค่าการขับของหุ่นเรา (ตั้งใน Free Control ให้ตรงกับหุ่นจริง และใช้กับทุกสถานการณ์)
 const DEFAULT_DRIVE = { vmax: 1.6, acc: 4.5, wmax: 3.2, strafe: 0.8, curve: 'square', dead: 0.1,
-  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6, intakeTime: 0.5, padMode: 'split', driveMode: 'field', dead1: 0.1, dead2: 0.1, invY1: false, invY2: false }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
+  elev: 67, vmode: 'auto', vmin: 4.9, vmax2: 5.6, vfix: 5.2, lh: 0.36, gateMin: 0.9, gateMax: 1.6, intakeTime: 0.5, padMode: 'split', driveMode: 'field', dead1: 0.1, dead2: 0.1, invY1: false, invY2: false, rumble: true, sound: true }; // ปืน: มุมยิง (องศา), โหมดความเร็ว, ช่วงความเร็วลูก (m/s), ความสูงจุดปล่อย (ม.)
 let DRV = { ...DEFAULT_DRIVE }; try { Object.assign(DRV, JSON.parse(localStorage.getItem('dca-drive-cfg') || '{}')); } catch {}
 if (DRV.dead1 == null) DRV.dead1 = DRV.dead; if (DRV.dead2 == null) DRV.dead2 = DRV.dead;
 const saveDrv = () => { try { localStorage.setItem('dca-drive-cfg', JSON.stringify(DRV)); } catch {} };
@@ -190,7 +211,8 @@ function newState() {
     el: 38, mode: 'teleop', running: false, over: false, balls, robots,
     hives: { red: { up: 1, angle: -H.tilt, tipping: null }, blue: { up: -1, angle: H.tilt, tipping: null } },
     pts: { red: 0, blue: 0 }, fouls: [], calls: [], predict: false, sc: {}, opt: { ...DEFAULT_OPT }, ds: null, dsLog: [], pins: {}, hp: { red: { used: 0 }, blue: { used: 0 } }, events: [], hl: null, startProj: { red: 0, blue: 0 }, end: null, cool: {},
-    stats: { tips: { red: 0, blue: 0 }, autoTips: { red: 0, blue: 0 }, disrupted: { red: 0, blue: 0 }, leave: { red: 0, blue: 0 }, leavePark: { red: 0, blue: 0 }, g409: { red: 0, blue: 0 }, g408: { red: 0, blue: 0 }, shots: 0, hits: 0, blocked: 0, collisions: 0, predOk: 0, predBad: 0, wallHits: 0, flowerPulls: 0, released: { red: [], blue: [] }, placed: [] },
+    uid: Math.random(), cards: {}, settle: null, cmds: [], once: {}, hpq: { red: [], blue: [] },
+    stats: { tips: { red: 0, blue: 0 }, autoTips: { red: 0, blue: 0 }, disrupted: { red: 0, blue: 0 }, leave: { red: 0, blue: 0 }, leavePark: { red: 0, blue: 0 }, g409: { red: 0, blue: 0 }, g408: { red: 0, blue: 0 }, shots: 0, hits: 0, blocked: 0, collisions: 0, predOk: 0, predBad: 0, wallHits: 0, flowerPulls: 0, outBalls: {}, hardHits: {}, endSpeed: {}, released: { red: [], blue: [] }, placed: [] },
     msg: '', msgT: 0, cam: 2,
   };
 }
@@ -225,7 +247,29 @@ const stackTop = st => st.reduce((y, i) => y + 2 * rad(S.balls[i]), 0.01);
 function upCellCenter(c) { const h = S.hives[c], a = h.angle; return { x: H.pivotX[c], y: H.pivotY + Math.abs(Math.sin(a)) * H.cellDist + 0.12, z: h.up * Math.cos(a) * H.cellDist }; }
 
 // FOUL: sev = MINOR (5) / MAJOR (20) / WARN (เตือน 0 แต้ม)
-function foul(all, rule, sev, why, by = null) { const pts = sev === 'MAJOR' ? 20 : sev === 'MINOR' ? 5 : 0; S.fouls.push({ all, rule, sev, pts, why, by, rem: remaining() }); if (all === 'red' || NET.role) say(`${rule}: ${why}${pts ? ` (+${pts} ให้คู่แข่ง)` : ' (เตือน)'}`, 2.8, NET.role ? all : null); }
+// yc = โทษนี้มี YELLOW CARD ด้วย · ใบเหลืองใบที่ 2 ของทีมเดียวกัน = RED CARD (DISQUALIFIED ในแมตช์นั้น)
+function foul(all, rule, sev, why, by = null, yc = false) {
+  const pts = sev === 'MAJOR' ? 20 : sev === 'MINOR' ? 5 : 0; let card = null;
+  if (yc) { const k = by && by !== 'HP' ? by : all; S.cards[k] = (S.cards[k] || 0) + 1; card = S.cards[k] >= 2 ? 'red' : 'yellow'; }
+  S.fouls.push({ all, rule, sev, pts, why, by, rem: remaining(), card });
+  if (all === 'red' || NET.role) say(`${rule}: ${why}${pts ? ` (+${pts} ให้คู่แข่ง)` : ' (เตือน)'}${card === 'red' ? ' · 🟥 ใบแดง = DISQUALIFIED' : card ? ' · 🟨 ใบเหลือง (ครบ 2 ใบ = ใบแดง)' : ''}`, card ? 4 : 2.8, NET.role ? all : null);
+}
+const cardOf = (c, fouls = S.fouls) => fouls.some(f => f.all === c && f.card === 'red') ? 'red' : fouls.some(f => f.all === c && f.card) ? 'yellow' : 'none';
+const CARD_TH = { none: 'ไม่มี', yellow: '🟨 ใบเหลือง', red: '🟥 ใบแดง · DISQUALIFIED' };
+const RP_NOTE = 'RP คิดตามเกณฑ์งานทั่วไป: WIN 3 · TIE 1 · SWARM 1 (LEAVE + PARK ≥ 16 แต้ม) · POLLINATOR 1 (TIP ≥ 4) · POLLINATOR 2 (TIP ≥ 7) · ตรวจเกณฑ์กับ Team Update ล่าสุดก่อนวันแข่ง';
+const rpTxt = p => p.dq ? '<b>0</b> (DISQUALIFIED)' : `<b>${p.total}</b> = WIN/TIE ${p.win} + SWARM ${p.swarm} + POLLINATOR ${p.p1 + p.p2}`;
+// Ranking Points งานทั่วไป: WIN 3 · TIE 1 · SWARM 1 (LEAVE + PARK ≥ 16 แต้ม) · POLLINATOR 1 (TIP ≥ 4) · POLLINATOR 2 (TIP ≥ 7) · เกณฑ์อาจเปลี่ยนตาม Team Update
+function rpCalc(score, tips, lp, card = {}) {
+  const o = {};
+  for (const c of ['red', 'blue']) {
+    const e = c === 'red' ? 'blue' : 'red', dq = card[c] === 'red';
+    const win = score[c] > score[e] ? 3 : score[c] === score[e] ? 1 : 0, swarm = lp[c] >= 16 ? 1 : 0, p1 = tips[c] >= 4 ? 1 : 0, p2 = tips[c] >= 7 ? 1 : 0;
+    o[c] = { win, swarm, p1, p2, dq, total: dq ? 0 : win + swarm + p1 + p2 };
+  }
+  return o;
+}
+const cardsNow = () => ({ red: cardOf('red'), blue: cardOf('blue') });
+const rpNow = () => rpCalc(S.end?.score || { red: total('red'), blue: total('blue') }, S.stats.tips, S.stats.leavePark, cardsNow());
 const foulPts = c => S.fouls.filter(f => f.all !== c).reduce((s, f) => s + f.pts, 0);
 const total = c => S.pts[c] + foulPts(c);
 
@@ -294,6 +338,7 @@ function predictShot(r) { // จำลองวิถีลูกล่วงห
 }
 
 // =================== การกระทำของหุ่น ===================
+const aimOk = r => { const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, f = fwdOf(r); return (f[0] * dx + f[1] * dz) / Math.max(Math.hypot(dx, dz), 1e-3) > 0.8; };  // หันเข้าหา CELL ที่หงายไม่เกิน ~37° = ถือว่าพยายามทำแต้ม
 function launch(r, kind, o = {}) {
   const li = r.load.findIndex(i => S.balls[i].kind === kind);
   if (li < 0) { if (r.human) say(kind === 'pollen' ? 'ไม่มี POLLEN ในหุ่น' : 'ไม่มี NECTAR ในหุ่น'); return false; }
@@ -307,7 +352,7 @@ function launch(r, kind, o = {}) {
     const dx = c.x - sx, dz = c.z - sz, d = Math.hypot(dx, dz); al = ROBOT.elevDeg * Math.PI / 180;
     const lv = aiP(r); v = Math.min(vNeed(d, c.y - sy, al), 9) * (1 + gauss() * lv.vSd); yaw = Math.atan2(dx, dz) + gauss() * lv.yawSd * Math.PI / 180;
   }
-  Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al) + (r.human ? r.vx : 0), vz: Math.cos(yaw) * v * Math.cos(al) + (r.human ? r.vz : 0), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false });
+  Object.assign(b, { where: 'air', owner: null, x: sx, y: sy, z: sz, vx: Math.sin(yaw) * v * Math.cos(al) + (r.human ? r.vx : 0), vz: Math.cos(yaw) * v * Math.cos(al) + (r.human ? r.vz : 0), vy: v * Math.sin(al), target: r.alliance, shooter: r.id, spill: false, pred: false, aimed: !r.human || aimOk(r) });
   if (r.id === 'R1' && S.predict) { b.pred = true; S.predict = false; }
   r.shots = (r.shots || 0) + 1;
   if (r.id === 'R1') { S.stats.shots++; S.events.push({ type: 'shot', el: S.el, rem: remaining() }); }
@@ -378,10 +423,10 @@ function eject(r) { if (r.load.length) ejectBall(r, r.load.at(-1)); }
 // =================== HIVE ===================
 function startTip(c) { const h = S.hives[c]; if (h.tipping) return; h.tipping = { from: h.angle, to: -h.angle, t: 0, revert: false, dumped: false }; }
 function completeTip(c) {
-  S.stats.tips[c]++; S.pts[c] += POINTS.tip; if (phase() === 'auto') S.stats.autoTips[c]++;
+  S.stats.tips[c]++; S.pts[c] += POINTS.tip; if (phase() !== 'teleop') S.stats.autoTips[c]++;  // TIP ที่เสร็จก่อน TELEOP เริ่ม (รวมช่วงเปลี่ยน 8 วิ) นับเป็นของ AUTO
   S.events.push({ type: 'tip', c, rem: remaining(), el: S.el, staged: S.balls.filter(b => b.where === 'staged' && b.color === c).length - (S.stats.tips[c] - 1 - S.hp[c].used) });
   if (c === 'red' || NET.role) say(`HIVE ${TH[c]} TIP! +20 (รวม ${S.stats.tips[c]} ครั้ง)`, 2.4, toR(c));
-  if (!hpMan(c)) release(c, 1, true);
+  if (!hpMan(c)) hpQueue(c, 1);
   SCN?.onTip?.(api, c);
 }
 function dumpCell(c) {
@@ -415,9 +460,13 @@ function release(c, n, auto) {
   }
 }
 
+// Human Player อัตโนมัติ: ปล่อยทีละลูกแบบคนจริง (เห็น TIP แล้ว ~1-1.5 วิ จึงปล่อย · ลูกถัดไปห่างกัน ~1 วิ) ไม่ใช่โผล่พร้อมกันทันที
+function hpQueue(c, n) { const q = S.hpq[c]; let t = Math.max(S.el, q.at(-1) || 0); for (let k = 0; k < n; k++) { t += (q.length ? 0.8 : 1.0) + Math.random() * 0.5; q.push(t); } }
+function stepHpq() { for (const c of ['red', 'blue']) { const q = S.hpq[c]; while (q.length && S.el >= q[0]) { q.shift(); release(c, 1, true); } } }
+
 // =================== การขับ ===================
 function humanCmd(r, inp) {
-  if (S.mode !== 'free' && phase() === 'trans' && (Math.abs(inp.fwd) + Math.abs(inp.strafe) + Math.abs(inp.turn) > 0.3) && S.el > (S.cool.g403 || 0)) { S.cool.g403 = S.el + 2.5; foul(r.alliance, 'G403', 'WARN', 'ช่วงเปลี่ยน AUTO → TELEOP ห้ามขยับหุ่น', r.id); }
+  if (S.mode !== 'free' && phase() === 'trans' && (Math.abs(inp.fwd) + Math.abs(inp.strafe) + Math.abs(inp.turn) > 0.3) && S.el > (r.g403T || 0)) { r.g403T = S.el + 2.5; r.g403N = (r.g403N || 0) + 1; if (r.g403N === 3) foul(r.alliance, 'G403', 'MAJOR', 'ยังโยกจอยซ้ำในช่วงเปลี่ยน = STRATEGIC', r.id, true); else if (r.g403N < 3) foul(r.alliance, 'G403', 'WARN', 'ช่วงเปลี่ยน AUTO → TELEOP ห้ามขยับหุ่น (ทำซ้ำ = MAJOR + ใบเหลือง)', r.id); }
   const drive = S.running && phase() === 'teleop' && !(S.ds && S.ds.state !== 'ok') && !r.dead;
   if (!drive) { r.cmd = { ...STOP }; r.lastFwd = 0; return; }
   const D = drvOf(r), spd = D.vmax * (S.opt.speed || 1) * (inp.slow ? 0.4 : 1), f = fwdOf(r), rt = [Math.cos(r.th), -Math.sin(r.th)];
@@ -437,7 +486,7 @@ function applyCmd(r, dt) {
   if (r.bumpT > 0) r.bumpT -= dt; if (r.shake > 0) r.shake = Math.max(0, r.shake - dt * 2.2);
   r.th = wrap(r.th + r.w * dt); r.x += r.vx * dt; r.z += r.vz * dt; r.clamped = false;
   const sp = speed(r), lw = F.half - HSW;
-  const wallHit = () => { if (r.human && sp > 0.6 && S.el > (S.cool.wall || 0)) { S.cool.wall = S.el + 0.8; S.stats.wallHits++; } };
+  const wallHit = () => { if (r.human && sp > 0.6 && S.el > (r.wallCool || 0)) { r.wallCool = S.el + 0.8; S.stats.wallHits++; r.wallN = (r.wallN || 0) + 1; } };
   if (Math.abs(r.x) > lw) { wallHit(); r.x = Math.sign(r.x) * lw; r.vx = 0; r.clamped = true; }
   if (Math.abs(r.z) > lw) { wallHit(); r.z = Math.sign(r.z) * lw; r.vz = 0; r.clamped = true; }
   for (const sx of [-1, 1]) {
@@ -464,7 +513,7 @@ function stepContacts(dt) {
     S.cool[key] = Math.max(0, (S.cool[key] ?? 0) - dt);
     if (d < m && d > 0.001) {
       const nx = dx / d, nz = dz / d, p = (m - d) / 2; a.x -= nx * p; a.z -= nz * p; b.x += nx * p; b.z += nz * p;
-      const rvx = b.vx - a.vx, rvz = b.vz - a.vz, rel = Math.hypot(rvx, rvz), vn = rvx * nx + rvz * nz, vt = -rvx * nz + rvz * nx;
+      const rvx = b.vx - a.vx, rvz = b.vz - a.vz, rel = Math.hypot(rvx, rvz), vn = rvx * nx + rvz * nz, vt = -rvx * nz + rvz * nx, va = a.vx * nx + a.vz * nz, vb = -(b.vx * nx + b.vz * nz);
       if (S.opt.shove && vn < -0.03) {  // แรงปะทะ: แลกความเร็วตามแนวชน (มวลเท่ากัน เด้งเล็กน้อย) → หุ่นที่โดนชนถูกดันไถลออกไป
         const j = -(1 + 0.25) * vn / 2; a.vx -= nx * j; a.vz -= nz * j; b.vx += nx * j; b.vz += nz * j;
         const kick = clamp(vt * 1.4 + (Math.random() - 0.5) * 1.2 * Math.min(1, -vn), -2.2, 2.2) * Math.min(1, -vn * 2);  // ชนเฉียง = หุ่นถูกบิดหมุน
@@ -474,8 +523,13 @@ function stepContacts(dt) {
       if (S.cool[key] <= 0 && rel > 0.25) {
         S.cool[key] = 0.6; S.stats.collisions++; S.events.push({ type: 'hit', a: a.id, b: b.id, rem: remaining() });
         if (S.opt.health) { a.hp = Math.max(0, a.hp - 2); b.hp = Math.max(0, b.hp - 2); }
-        if (S.opt.shove) { const hard = clamp(rel / 1.4, 0.25, 1); for (const q of [a, b]) { q.bumpT = Math.max(q.bumpT || 0, 0.15 + 0.3 * hard); q.shake = Math.max(q.shake || 0, hard); q.hitN = (q.hitN || 0) + 1; } }
-        for (const [q, o] of [[a, b], [b, a]]) if (q.human) say(`ชน ${o.id}! ${S.opt.health ? 'เลือด −2%' : ''}`, 1.2, toR(q.id));
+        { const hard = clamp(rel / 1.4, 0.25, 1); for (const q of [a, b]) { q.hitN = (q.hitN || 0) + 1; q.hitS = hard; if (S.opt.shove) { q.bumpT = Math.max(q.bumpT || 0, 0.15 + 0.3 * hard); q.shake = Math.max(q.shake || 0, hard); } } }
+        for (const [q, o, vq] of [[a, b, va], [b, a, vb]]) {
+          const hardHit = q.human && q.alliance !== o.alliance && rel > 1.3 && vq > 1.0; if (hardHit) S.stats.hardHits[q.id] = (S.stats.hardHits[q.id] || 0) + 1;
+          if (q.human) say(hardHit ? `ชน ${o.id} แรงมาก! ถ้ากรรมการเห็นว่าจงใจทำให้หุ่นเสียหายหรือล้ม = G419/G420` : `ชน ${o.id}! ${S.opt.health ? 'เลือด −2%' : ''}`, hardHit ? 2.2 : 1.2, toR(q.id));
+          // G402: ช่วง AUTO ห้ามชนหุ่นคู่แข่งในฝั่งของเขา (MAJOR ต่อแมตช์)
+          if (S.mode !== 'free' && phase() === 'auto' && q.alliance !== o.alliance && (q.alliance === 'red' ? q.x > 0.05 : q.x < -0.05) && !S.once['g402' + q.alliance]) { S.once['g402' + q.alliance] = 1; foul(q.alliance, 'G402', 'MAJOR', `ชน ${o.id} ในฝั่งคู่แข่งช่วง AUTO`, q.id); }
+        }
       }
     }
   }
@@ -484,11 +538,29 @@ function stepContacts(dt) {
     const key = a.id + '>' + b.id, p = S.pins[key] ??= { t: 0, fouls: 0, sep: 0 }, d = Math.hypot(b.x - a.x, b.z - a.z);
     const push = (a.cmd.vx * (b.x - a.x) + a.cmd.vz * (b.z - a.z)) / Math.max(d, 1e-3) > 0.15;
     if (d < ROBOT.size * 1.08 && push && (b.clamped || speed(b) < 0.12) && !(atWall(a) && !b.clamped)) {  // ตัวที่อยู่ชิดกำแพงแล้วดันออกมา = กำลังหนี ไม่ใช่ PIN
-      p.t += dt; p.sep = 0; const n = p.t > 3 ? 1 + Math.floor((p.t - 3) / 3) : 0;
+      if (p.t === 0) { Object.assign(p, { ax: a.x, az: a.z, bx: b.x, bz: b.z }); const rev = S.pins[b.id + '>' + a.id]; if (rev) { rev.t = 0; rev.fouls = 0; } }  // PIN ใหม่: จำจุดเริ่ม · ตัวที่ PIN อยู่ถูก PIN กลับ = PIN เดิมจบ (G421 c)
+      p.t += dt; p.sep = 0; p.mv = 0; const n = p.t > 3 ? 1 + Math.floor((p.t - 3) / 3) : 0;
       if (!a.human && p.t > 1.5) { a.mem.escUntil = S.el + 1.0; { const [ex, ez] = awayVec(a, b); a.mem.escDir = Math.atan2(ez, ex); } a.mem.ball = null; a.mem.spot = null; }
       while (p.fouls < n) { p.fouls++; foul(a.alliance, 'G421', 'MAJOR', `PIN ${b.id} เกิน 3 วิ`, a.id); }
     } else if (d > ROBOT.size + 0.61) { p.sep += dt; if (p.sep > 3) { p.t = 0; p.fouls = 0; } }
     else if (p.t > 0) p.sep = Math.max(p.sep, 0.001);
+    if (p.t > 0 && p.sep > 0 && p.ax != null) {  // G421 (b): ตัวใดตัวหนึ่งออกห่างจากจุดที่เริ่ม PIN เกิน 2 ฟุต (61 ซม.) นาน 3 วิ = PIN จบ
+      if (Math.hypot(a.x - p.ax, a.z - p.az) > 0.61 || Math.hypot(b.x - p.bx, b.z - p.bz) > 0.61) { p.mv = (p.mv || 0) + dt; if (p.mv > 3) { p.t = 0; p.fouls = 0; p.mv = 0; } } else p.mv = 0;
+    }
+  }
+}
+// G411 (กรรมการใช้ดุลยพินิจ · ที่นี่ใช้เกณฑ์ฝึก): จอดนิ่งทับกองลูก ≥ 3 ลูก ขณะคู่แข่งอยู่ใกล้ = กักลูก/ขวางไม่ให้คู่แข่งเข้าถึงลูก
+function stepHoard(dt) {
+  if (phase() !== 'teleop') return;
+  for (const r of active()) {
+    if (!r.human || r.dead) continue;
+    const n = S.balls.filter(b => b.where === 'floor' && Math.hypot(b.x - r.x, b.z - r.z) < 0.5).length;
+    const opp = active().some(o => o.alliance !== r.alliance && Math.hypot(o.x - r.x, o.z - r.z) < 1.1);
+    if (speed(r) < 0.15 && n >= 3 && opp) {
+      const t0 = r.hoardT || 0, t = r.hoardT = t0 + dt;
+      if (t0 < 5 && t >= 5) foul(r.alliance, 'G411', 'WARN', 'จอดขวางกองลูกไม่ให้คู่แข่งเก็บ ขยับออก (กรรมการเห็นว่ากักลูก = MAJOR + ใบเหลือง)', r.id);
+      if (t0 < 10 && t >= 10 && !S.once['g411' + r.alliance]) { S.once['g411' + r.alliance] = 1; foul(r.alliance, 'G411', 'MAJOR', 'จอดกักกองลูกนานเกิน 10 วิ', r.id, true); }
+    } else r.hoardT = Math.max(0, (r.hoardT || 0) - dt * 2);
   }
 }
 
@@ -526,6 +598,16 @@ function collideBalls() {
     }
   }
 }
+// ลูกลอยข้ามกำแพงออกนอกสนาม = ออกจากเกม · G405: จงใจยิง/ดันออก = MAJOR ต่อลูก (หลุดออกระหว่างพยายามทำแต้มไม่ผิด)
+function ballOut(b) {
+  const id = b.shooter, sh = !b.spill && S.robots.find(q => q.id === id), aimed = b.aimed !== false;
+  if (b.pred) S.stats.predBad++;
+  Object.assign(b, { where: 'out', vx: 0, vy: 0, vz: 0, spill: false, shooter: null, target: null, pred: false });
+  if (!sh) return; S.stats.outBalls[id] = (S.stats.outBalls[id] || 0) + 1;
+  if (!sh.human) return;
+  if (!aimed && S.mode !== 'free') foul(sh.alliance, 'G405', 'MAJOR', 'ยิงลูกออกนอกสนามโดยไม่ได้เล็ง CELL (จงใจ = MAJOR ต่อลูก)', id);
+  else say(aimed ? 'ลูกออกนอกสนาม (พลาดขณะพยายามทำแต้ม ไม่ผิด G405 แต่เสียลูก)' : 'ลูกออกนอกสนาม · ในแมตช์จริงจงใจยิงออก = G405 MAJOR ต่อลูก', 2.2, toR(id));
+}
 function stepBalls(dt) {
   for (const b of S.balls) if (b.where === 'floor') rollBall(b, dt);
   collideBalls();
@@ -534,7 +616,7 @@ function stepBalls(dt) {
     if (b.where !== 'air') continue;
     const py = b.y; b.vy -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
     const r = rad(b);
-    if (b.y < F.wallH) { const lim = F.half - r; if (Math.abs(b.x) > lim) { b.x = Math.sign(b.x) * lim; b.vx *= -BALL.wall; } if (Math.abs(b.z) > lim) { b.z = Math.sign(b.z) * lim; b.vz *= -BALL.wall; } }
+    if (b.y < F.wallH) { const lim = F.half - r; if (Math.abs(b.x) > F.half + r || Math.abs(b.z) > F.half + r) { ballOut(b); continue; } if (Math.abs(b.x) > lim) { b.x = Math.sign(b.x) * lim; b.vx *= -BALL.wall; } if (Math.abs(b.z) > lim) { b.z = Math.sign(b.z) * lim; b.vz *= -BALL.wall; } }
     if (b.target && underCell(b, py)) { b.vy = -Math.abs(b.vy) * 0.3; b.vx *= 0.4; b.vz *= 0.4; b.target = null; if (b.pred) { S.stats.predBad++; b.pred = false; } if (b.shooter === 'R1' || netHum(b.shooter)) say('ลูกชนใต้ CELL (อยู่ใกล้ HIVE เกินไป)', 1.6, toR(b.shooter)); continue; }
     if (b.spill && b.y < 0.34 && b.y > 0.15) for (const rb of active()) {
       if (Math.abs(b.x - rb.x) < HS && Math.abs(b.z - rb.z) < HS) {
@@ -788,8 +870,8 @@ const api = {
   disconnect() { S.ds = { state: 'lost', t0: S.el, wrong: 0 }; R1().cmd = { ...STOP }; say('Driver Station หลุดการเชื่อมต่อ! โค้ชรีสตาร์ทด่วน', 3); },
   forceTip(c) { startTip(c); },
   startPoseCheck(id) {
-    const r = api.robot(id), res = { preload: r.load.length === 4 && r.load.every(i => S.balls[i].kind === 'pollen'), wall: touchingWall(r), side: r.x + HS <= 0, outLZ: !overlapLZ(r, 'red'), noFlower: F.flowers.every(f => Math.hypot(f.x - r.x, f.z - r.z) > HS + 0.1) };
-    say(['preload', 'wall', 'side', 'outLZ', 'noFlower'].every(k => res[k]) ? 'ตำแหน่งเริ่มถูกกติกา G304' : 'ตำแหน่งเริ่มยังไม่ถูกกติกา ดูผลด้านล่าง', 3); return res;
+    const r = api.robot(id), res = { preload: r.load.length === 4 && r.load.every(i => S.balls[i].kind === 'pollen'), wall: touchingWall(r), side: r.x + HS <= 0, outLZ: !overlapLZ(r, 'red'), noFlower: F.flowers.every(f => Math.hypot(f.x - r.x, f.z - r.z) > HS + 0.1), inField: Math.abs(r.x) <= F.half - HS + 0.02 && Math.abs(r.z) <= F.half - HS + 0.02, still: speed(r) < 0.05 && Math.abs(r.w) < 0.05 };
+    say(['preload', 'wall', 'side', 'outLZ', 'noFlower', 'inField', 'still'].every(k => res[k]) ? 'ตำแหน่งเริ่มถูกกติกา G304' : 'ตำแหน่งเริ่มยังไม่ถูกกติกา ดูผลด้านล่าง', 3); return res;
   },
   releases: c => S.stats.released[c].filter(x => !x.auto),
   tipEvents: c => S.events.filter(e => e.type === 'tip' && e.c === c),
@@ -886,18 +968,87 @@ const markGroup = new THREE.Group(); scene.add(markGroup); // วงแหวน
 let markKey = '';
 function syncMarks() {
   const marks = S.sc.marks || [], key = JSON.stringify(marks.map(m => [m.x, m.z, m.r, m.done, m.cur]));
-  if (key === markKey) return; markKey = key; markGroup.clear();
+  if (key === markKey) return; markKey = key;
+  markGroup.traverse(o => { if (o === markGroup) return; o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); }); markGroup.clear();
   marks.forEach(m => { const ring = new THREE.Mesh(new THREE.RingGeometry((m.r || 0.25) - 0.03, m.r || 0.25, 40), new THREE.MeshBasicMaterial({ color: m.done ? 0x3ec97a : m.cur ? 0xf5c518 : 0x667080, transparent: true, opacity: m.cur ? 0.95 : 0.5, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(m.x, 0.006, m.z); markGroup.add(ring); if (m.label) { const l = makeLabel(m.label, m.cur ? '#f5c518' : '#9aa4b2'); l.position.set(m.x, 0.25, m.z); l.scale.set(0.3, 0.11, 1); markGroup.add(l); } });
 }
 const tmpV = new THREE.Vector3();
-let hitSeen = 0;
-function padRumble(mag, ms) { // สั่นจอยของเครื่องนี้ตอนโดนชน
-  for (const p of [padNow.p1, padNow.p2]) { if (!p) continue; const gp = navigator.getGamepads?.()[p.index], va = gp?.vibrationActuator; try { va?.playEffect?.(va.type || 'dual-rumble', { duration: ms, strongMagnitude: Math.min(1, mag), weakMagnitude: Math.min(1, mag * 0.7) })?.catch?.(() => {}); } catch {} }
+// =================== เสียงสัญญาณ + การสั่นของจอย ===================
+// เสียง: เริ่มแมตช์ · จบ AUTO · TELEOP เริ่ม · หมดเวลา · FOUL · ใบเหลือง/แดง (ไม่มีเสียงเตือน 0:30 / 0:10 เพราะการขานเวลาเป็นหน้าที่ Drive Coach)
+let AC = null;
+const audioWake = () => { try { AC ||= new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch {} };
+addEventListener('pointerdown', audioWake); addEventListener('keydown', audioWake);
+function tone(f, t0, dur, type = 'square', vol = 0.1, f2 = null) {
+  if (!AC || AC.state !== 'running') return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime + t0; o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.linearRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.setValueAtTime(vol, t + Math.max(0.02, dur - 0.04)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+  } catch {}
+}
+const CUE = {
+  start: () => { tone(523, 0, 0.12); tone(659, 0.13, 0.12); tone(784, 0.26, 0.3); },
+  autoEnd: () => tone(440, 0, 0.5, 'sawtooth', 0.09, 330),
+  teleop: () => { tone(784, 0, 0.1); tone(784, 0.14, 0.1); tone(1047, 0.28, 0.35); },
+  end: () => tone(330, 0, 0.9, 'sawtooth', 0.12, 220),
+  foul: () => { tone(196, 0, 0.18); tone(165, 0.2, 0.25); },
+  card: () => { tone(880, 0, 0.12); tone(880, 0.18, 0.12); tone(880, 0.36, 0.3); },
+};
+const cue = k => { if (DRV.sound !== false && !document.hidden) CUE[k]?.(); };
+// การสั่น: pattern = [[แรง 0-1, ms], ...] (แรง 0 = เว้นจังหวะ) · เหตุการณ์ที่สำคัญกว่าแทรกได้ เหตุการณ์ที่เบากว่าไม่ทับของเดิม
+const RUM = {
+  hit: s => [[0.4 + 0.6 * s, 160 + 200 * s]], wall: [[0.55, 120]], block: [[0.3, 60]], warn: [[0.5, 90], [0, 70], [0.5, 90]], minor: [[0.7, 120], [0, 80], [0.7, 120]],
+  major: [[1, 160], [0, 80], [1, 160], [0, 80], [1, 220]], card: [[1, 700]], pin: [[0.6, 100], [0, 60], [0.6, 100], [0, 60], [0.6, 100]], dead: [[1, 900]], low: [[0.35, 500]],
+  disrupt: [[0.8, 110], [0, 70], [0.4, 260]], phase: [[0.5, 250]], end: [[0.9, 600]], net: [[0.3, 80], [0, 120], [0.3, 80]],
+};
+let rumT = [], rumPri = 0, rumEnd = 0;
+function padPulse(mag, ms, pads = [padNow.p1, padNow.p2]) {
+  const m = clamp(mag, 0, 1), all = navigator.getGamepads?.() || [];
+  for (const p of pads) {
+    if (!p) continue; const gp = all[p.index], va = gp?.vibrationActuator;
+    try { if (va?.playEffect) va.playEffect(va.type || 'dual-rumble', { duration: ms, strongMagnitude: m, weakMagnitude: m * 0.7 })?.catch?.(() => {}); else if (va?.pulse) va.pulse(m, ms)?.catch?.(() => {}); else gp?.hapticActuators?.[0]?.pulse?.(m, ms)?.catch?.(() => {}); } catch {}
+  }
+}
+function rumble(pat, pri = 1, force = false) {
+  if ((DRV.rumble === false && !force) || !pat?.length || (NET.role === 'client' && NET.spec)) return;
+  const now = performance.now(); if (now < rumEnd && pri < rumPri) return;
+  rumT.forEach(clearTimeout); rumT = []; rumPri = pri; let t = 0;
+  for (const [m, ms] of pat) { if (m > 0) { if (t === 0) padPulse(m, ms); else rumT.push(setTimeout(padPulse, t, m, ms)); } t += ms; }
+  rumEnd = now + t;
+}
+// เทียบสถานะเฟรมก่อนกับเฟรมนี้ แล้วสั่นจอย/เล่นเสียงของ "เครื่องนี้" (ใช้ได้ทั้งเล่นคนเดียว host และเครื่องที่เข้าร่วมห้อง)
+let fx = null, fxStall = false;
+function fxSnap() {
+  const me = R1(), my = me.alliance; let pin = 0, pinned = 0;
+  for (const [k, v] of Object.entries(S.pins || {})) if (v.t > 0 && v.sep === 0) { const [a, b] = k.split('>'); if (a === me.id) pin = Math.max(pin, v.t); else if (b === me.id) pinned = Math.max(pinned, v.t); }
+  return { uid: S.uid, el: S.el, id: me.id, hitN: me.hitN || 0, wallN: me.wallN || 0, fouls: S.fouls.length, dead: !!me.dead, ds: !!(S.ds && S.ds.state !== 'ok'), hp: me.hp, dis: S.stats.disrupted?.[my] || 0, blocked: S.stats.blocked || 0, pin, pinned, ph: phase(), settle: !!S.settle, run: S.running, over: S.over };
+}
+function fxWatch() {
+  const n = fxSnap(), o = fx; fx = n;
+  if (!o || o.uid !== n.uid) { if (o && n.run && !n.over && S.mode !== 'free') cue('start'); return; }
+  if (n.el < o.el - 0.5 || o.id !== n.id) return;
+  for (const k of ['hitN', 'wallN', 'fouls', 'dis', 'blocked']) n[k] = Math.max(n[k], o[k]);  // ข้อมูลรอบช้าของห้องออนไลน์อาจเก่ากว่ารอบเร็ว
+  const me = R1(), my = me.alliance;
+  if (n.hitN > o.hitN) rumble(RUM.hit(clamp(me.shake || me.hitS || 0.5, 0.25, 1)), 2);
+  else if (n.wallN > o.wallN) rumble(RUM.wall, 1);
+  else if (n.blocked > o.blocked && !NET.role) rumble(RUM.block, 0);
+  if (n.fouls > o.fouls) {
+    const fs = S.fouls.slice(o.fouls).filter(f => f.all === my && (f.by == null || f.by === me.id || f.by === 'HP'));
+    if (fs.length) { const card = fs.some(f => f.card), major = fs.some(f => f.sev === 'MAJOR'), minor = fs.some(f => f.sev === 'MINOR'); rumble(card ? RUM.card : major ? RUM.major : minor ? RUM.minor : RUM.warn, card ? 5 : major ? 4 : 3); cue(card ? 'card' : 'foul'); }
+  }
+  if ((n.dead && !o.dead) || (n.ds && !o.ds)) rumble(RUM.dead, 5);
+  if (n.hp <= 25 && o.hp > 25) rumble(RUM.low, 2);
+  if (n.dis > o.dis) rumble(RUM.disrupt, 3);
+  for (const th of [1.5, 2.5]) if (n.pin >= th && o.pin < th) rumble(RUM.pin, 3);
+  if (n.pinned >= 1.5 && o.pinned < 1.5) rumble(RUM.warn, 2);
+  if (o.ph === 'auto' && n.ph === 'trans') { cue('autoEnd'); rumble(RUM.phase, 2); }
+  if (o.ph === 'trans' && n.ph === 'teleop') { cue('teleop'); rumble(RUM.phase, 2); }
+  if ((n.settle && !o.settle) || (n.over && !o.over && !o.settle && S.mode !== 'free')) { cue('end'); rumble(RUM.end, 4); }
+  const stall = NET.role === 'client' && NET.playing && S.running && NET.age > 1.5; if (stall && !fxStall) rumble(RUM.net, 1); fxStall = stall;
 }
 function sync() {
   S.robots.forEach((r, i) => {
     const g = robotMeshes[i]; g.visible = !r.off; const sk = r.shake > 0 ? r.shake : 0, st = performance.now() / 1000 * 38 + i * 2; g.position.set(r.x + Math.sin(st) * 0.008 * sk, Math.abs(Math.sin(st * 0.7)) * 0.012 * sk, r.z + Math.cos(st * 1.3) * 0.008 * sk); g.rotation.set(Math.sin(st * 0.9) * 0.06 * sk, r.th, Math.cos(st * 1.1) * 0.06 * sk);
-    if (r === R1() && (r.hitN || 0) !== hitSeen) { if ((r.hitN || 0) > hitSeen) padRumble(0.4 + 0.6 * sk, 180 + 220 * sk); hitSeen = r.hitN || 0; }
     g.userData.carried.forEach((m, k) => { const bi = r.load[k]; m.visible = bi != null; if (bi != null) { const b = S.balls[bi]; m.material = b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue); } });
     g.userData.intake.material.color.set(r.intake ? 0x4ad66d : 0x555555); g.userData.body.material = r.dead ? M.dead : M.dark; g.userData.deadLabel.visible = r.dead; g.userData.label.visible = !r.dead;
   });
@@ -940,12 +1091,18 @@ const keys = new Set(), once = new Set();
 addEventListener('keydown', e => { if (e.target.closest?.('input,select,textarea')) return; if (e.repeat) return; keys.add(e.code); once.add(e.code); if (e.code === 'KeyX') document.body.classList.toggle('nopanel'); if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); });
 addEventListener('blur', () => keys.clear());  // สลับหน้าต่างขณะกดปุ่มค้าง = ปล่อยทุกปุ่ม (กันหุ่นวิ่งค้าง)
 addEventListener('keyup', e => keys.delete(e.code));
+// เปลี่ยนค่าในรายการเลือก / แถบเลื่อน / ช่องติ๊ก หรือกดปุ่มบนจอแล้ว: ปล่อย focus คืน ไม่งั้นคีย์บอร์ดขับหุ่นไม่ได้ และ Space / Enter จะไปกดปุ่มเดิมซ้ำ
+document.addEventListener('change', e => { if (e.target.matches?.('select,input[type=range],input[type=checkbox],input[type=radio]')) e.target.blur(); }, true);
+document.addEventListener('click', e => { const b = e.target.closest?.('button,summary'); if (b && !$('overlay').contains(b)) b.blur(); const h = e.target.closest?.('button[data-href]'); if (h) { if (h.dataset.blank) window.open(h.dataset.href, '_blank', 'noopener'); else location.href = h.dataset.href; } });
 // จอย 2 ตัวคุมหุ่นตัวเดียวกัน (แบบ gamepad1 / gamepad2 ของ FTC)
 // split: Joy 1 ขับ (L/R/□) · Joy 2 คนยิง (ยิง วาง intake คาย) · both: ทั้ง 2 จอยทำได้ทุกอย่าง
 // กำหนดจอยเอง: กด Options ค้าง + ✕ = Joy 1, Options ค้าง + ○ = Joy 2 (เหมือน Start+A / Start+B ใน Driver Station)
-const padWas = {}, padHold = {}, padRole = { p1: null, p2: null }; try { Object.assign(padRole, JSON.parse(localStorage.getItem('dca-pad-role') || '{}')); } catch {}
+// dca-pad-role = { p1, p2, id1, id2 } ใช้ร่วมกับหน้าทดสอบจอย · จำทั้งลำดับช่องและรุ่นจอย ถอดเสียบใหม่แล้วช่องเปลี่ยนก็ยังเป็น Joy เดิม
+const padWas = {}, padHold = {}, padRole = { p1: null, p2: null, id1: null, id2: null };
+const loadPadRole = () => { try { const r = JSON.parse(localStorage.getItem('dca-pad-role') || '{}') || {}, n = v => Number.isInteger(v) && v >= 0 ? v : null, s = v => typeof v === 'string' && v ? v : null; Object.assign(padRole, { p1: n(r.p1), p2: n(r.p2), id1: s(r.id1), id2: s(r.id2) }); } catch {} };
+loadPadRole();
 const savePadRole = () => { try { localStorage.setItem('dca-pad-role', JSON.stringify(padRole)); } catch {} }; let padNow = { p1: null, p2: null, split: false };
-const EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'start', 'cam', 'call', 'predict', 'confirm', 'hp'];
+const EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'start', 'cam', 'call', 'predict', 'confirm', 'hp', 'cmd'];
 const emptyInput = () => ({ fwd: 0, strafe: 0, turn: 0, slow: false, ...Object.fromEntries(EDGE.map(k => [k, false])), padName: null });
 const DRIVE_K = ['fwd', 'strafe', 'turn', 'slow'], MECH_K = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject'];
 // รุ่นจอย: PlayStation (DS4) ใช้สัญลักษณ์ ✕○□△ · Logitech F310/F710 และ Xbox ใช้ A B X Y
@@ -954,10 +1111,42 @@ const BTN_NAMES = { ps: ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'Sh
 BTN_NAMES.gen = BTN_NAMES.xb;
 const KIND_TH = { ps: 'DualShock 4', xb: 'Logitech / Xbox', gen: 'จอยทั่วไป' };
 // Logitech โหมด D (DirectInput) บางเบราว์เซอร์ไม่แปลงเป็น standard: ปุ่ม 0 = X, 1 = A, 2 = B → เรียงใหม่ให้เหมือน standard
+// จอยที่เบราว์เซอร์ไม่แปลงเป็น standard: D-pad มาเป็นแกน hat (ค่าเดียว 8 ทิศ) หรือคู่แกน ±1 → แปลงเป็นปุ่ม 12–15 (เหมือนหน้าทดสอบจอย)
+const HAT_DIRS = [[-1, 'U'], [-0.714, 'UR'], [-0.428, 'R'], [-0.142, 'DR'], [0.142, 'D'], [0.428, 'DL'], [0.714, 'L'], [1, 'UL']], hatMem = {};
+function hatDpad(g) {
+  const ax = g.axes || [], st = hatMem[g.index + '|' + g.id] ||= { hat: new Set(), analog: new Set(), rest: new Set() };
+  ax.forEach((a, i) => { if (Number.isFinite(a) && a > 1.1) st.hat.add(i); });
+  if (ax.length >= 10) st.hat.add(9);
+  let found = false, dir = '';
+  for (const i of st.hat) { const a = ax[i]; if (!Number.isFinite(a)) continue; found = true; const m = HAT_DIRS.find(h => Math.abs(a - h[0]) < 0.08); if (m) dir += m[1]; }
+  const pi = st.hat.size ? -1 : ax.length >= 8 ? 6 : ax.length >= 6 ? 4 : -1;
+  if (pi >= 0) {
+    const x = ax[pi], y = ax[pi + 1], dig = v => Number.isFinite(v) && [-1, 0, 1].some(t => Math.abs(v - t) < 0.05);
+    if (!dig(x) || !dig(y)) st.analog.add(pi);
+    else if (Math.abs(x) < 0.05 && Math.abs(y) < 0.05) st.rest.add(pi);
+    if (!st.analog.has(pi) && st.rest.has(pi)) { found = true; if (x < -0.5) dir += 'L'; if (x > 0.5) dir += 'R'; if (y < -0.5) dir += 'U'; if (y > 0.5) dir += 'D'; }
+  }
+  return found ? [dir.includes('U') ? 1 : 0, dir.includes('D') ? 1 : 0, dir.includes('L') ? 1 : 0, dir.includes('R') ? 1 : 0] : null;
+}
+const padNum = v => Number.isFinite(v) ? v : 0;
 function padButtons(pad) {
-  const v = pad.buttons.map(b => b?.value ?? (b?.pressed ? 1 : 0));
-  if (pad.mapping !== 'standard' && /046d|logitech|dual action/i.test(pad.id)) { const o = [...v]; o[0] = v[1]; o[1] = v[2]; o[2] = v[0]; o[3] = v[3]; return o; }
-  return v;
+  const v = [...(pad.buttons || [])].map(b => padNum(typeof b === 'number' ? b : b?.value ?? (b?.pressed ? 1 : 0)));
+  if (pad.mapping === 'standard') return v;
+  let o = v; if (/046d|logitech|dual action/i.test(pad.id)) { o = [...v]; o[0] = v[1] ?? 0; o[1] = v[2] ?? 0; o[2] = v[0] ?? 0; }
+  const d = hatDpad(pad); if (d) { if (o === v) o = [...v]; while (o.length < 12) o.push(0); [12, 13, 14, 15].forEach((b, k) => { o[b] = d[k]; }); }
+  return o;
+}
+// แกน [lx, ly, rx, ry] · จอย HID ดิบ (10 แกนขึ้นไป) แกนขวาแนวตั้งอยู่ที่แกน 5 · ค่า undefined / NaN นับเป็น 0
+const padAxes = g => { const a = g.axes || [], raw = g.mapping !== 'standard' && a.length >= 10; return [padNum(a[0]), padNum(a[1]), padNum(a[2]), padNum(a[raw ? 5 : 3])]; };
+// จับคู่จอยกับ Joy 1 / Joy 2: ช่องและรุ่นตรงกันก่อน → ช่องเปลี่ยนแต่รุ่นเดิม (ถอดเสียบใหม่) → ที่เหลือเรียงตามลำดับที่ต่อ · จอยหลุดไม่ล้างค่าที่ตั้งไว้
+function padSlots(rs) {
+  const got = [null, null]; let dirty = false;
+  for (const n of [1, 2]) { const p = rs.find(p => p.index === padRole['p' + n] && (!padRole['id' + n] || padRole['id' + n] === p.id)); if (p && !got.includes(p)) { got[n - 1] = p; if (!padRole['id' + n]) { padRole['id' + n] = p.id; dirty = true; } } }
+  for (const n of [1, 2]) if (!got[n - 1] && padRole['id' + n]) { const p = rs.find(p => p.id === padRole['id' + n] && !got.includes(p)); if (!p) continue; const o = n === 1 ? 2 : 1; got[n - 1] = p; padRole['p' + n] = p.index; if (padRole['p' + o] === p.index) padRole['p' + o] = null; dirty = true; }
+  if (dirty) savePadRole();
+  const rest = rs.filter(p => !got.includes(p));  // ยังไม่กำหนด = เรียงตามลำดับที่ต่อ · จอยที่ 3 ขึ้นไปไม่ใช้
+  if (!got[0]) got[0] = rest.shift() || null; if (!got[1]) got[1] = rest.shift() || null;
+  return got;
 }
 function readPad(pad) {
   const k = pad.index, bv = padButtons(pad);
@@ -967,23 +1156,22 @@ function readPad(pad) {
   if (opt) { padHold[k] ??= false; if (e[0]) assign = 1; if (e[1]) assign = 2; if (assign) padHold[k] = true; }
   else if (k in padHold) { start = !padHold[k]; delete padHold[k]; }  // Options = เริ่ม/หยุด ตอนปล่อยปุ่ม (ถ้าไม่ได้กดคู่)
   const held = bv.map((x, i) => x > 0.5 ? i : -1).filter(i => i >= 0);
-  return { index: k, id: pad.id, kind: padKind(pad.id), std: pad.mapping === 'standard', assign, start, cam: e[8], ax: [...pad.axes], held, slow: b(2),
+  return { index: k, id: pad.id, kind: padKind(pad.id), std: pad.mapping === 'standard', assign, start, cam: e[8], ax: padAxes(pad), held, slow: b(2),
     shootP: e[5], shootN: e[4], placeN: e[7], placeP: e[6], intakeT: e[0] && !opt, eject: e[1] && !opt, hp: e[3] };
 }
 function readInput() {
   const o = emptyInput(), kd = c => keys.has(c), kp = c => once.has(c);
   o.fwd = (kd('KeyW') || kd('ArrowUp') ? 1 : 0) - (kd('KeyS') || kd('ArrowDown') ? 1 : 0); o.strafe = (kd('KeyD') ? 1 : 0) - (kd('KeyA') ? 1 : 0); o.turn = (kd('KeyE') || kd('ArrowRight') ? 1 : 0) - (kd('KeyQ') || kd('ArrowLeft') ? 1 : 0); o.slow = kd('ShiftLeft') || kd('ShiftRight');
-  Object.assign(o, { shootP: kp('Space'), shootN: kp('KeyN'), placeP: kp('Digit1'), placeN: kp('Digit2'), intakeT: kp('KeyF'), eject: kp('KeyG'), start: kp('Enter'), cam: kp('KeyC'), call: kp('KeyB'), predict: kp('KeyP'), confirm: kp('KeyY'), hp: kp('KeyH') });
-  if (S.mode === 'free' && !NET.role) { if (kp('KeyK')) saveCk(); if (kp('KeyL')) loadCk(); if (kp('KeyR')) resetFree(); }
+  Object.assign(o, { shootP: kp('Space'), shootN: kp('KeyN'), placeP: kp('Digit1'), placeN: kp('Digit2'), intakeT: kp('KeyF'), eject: kp('KeyG'), start: kp('Enter'), cam: kp('KeyC'), call: kp('KeyB'), predict: kp('KeyP'), confirm: kp('KeyY'), hp: kp('KeyH'), cmd: kp('KeyV') });
+  if (S.mode === 'free' && !NET.role && $('overlay').classList.contains('hidden')) { if (kp('KeyK')) saveCk(); if (kp('KeyL')) loadCk(); if (kp('KeyR')) resetFree(); }
   const rs = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).map(readPad);
   for (const p of rs) if (p.assign) {
-    const me = 'p' + p.assign, other = p.assign === 1 ? 'p2' : 'p1';
-    if (padRole[other] === p.index) padRole[other] = null; padRole[me] = p.index; savePadRole();
+    const me = p.assign, ot = me === 1 ? 2 : 1;
+    if (padRole['p' + ot] === p.index && (!padRole['id' + ot] || padRole['id' + ot] === p.id)) padRole['p' + ot] = padRole['id' + ot] = null;
+    padRole['p' + me] = p.index; padRole['id' + me] = p.id; savePadRole();
     say(`🎮 ตั้งเป็น Joy ${p.assign} (${p.assign === 1 ? 'คนขับ' : 'คนยิง'}): ${p.id.slice(0, 30)}`, 2);
   }
-  let p1 = rs.find(p => p.index === padRole.p1), p2 = rs.find(p => p.index === padRole.p2);
-  const rest = rs.filter(p => p !== p1 && p !== p2);  // ยังไม่กำหนด = เรียงตามลำดับที่ต่อ · จอยที่ 3 ขึ้นไปไม่ใช้
-  if (!p1) p1 = rest.shift(); if (!p2) p2 = rest.shift();
+  const [p1, p2] = padSlots(rs);
   const stick = (p, n) => { if (!p) return; const d = DRV['dead' + n] ?? DRV.dead, sh = v => { const a = Math.abs(v || 0); return a < d ? 0 : Math.sign(v) * ((a - d) / (1 - d)); };
     p.fwd = sh(-p.ax[1]) * (DRV['invY' + n] ? -1 : 1); p.strafe = sh(p.ax[0]); p.turn = sh(p.ax[2]); p.slot = n; };
   stick(p1, 1); stick(p2, 2);
@@ -1015,9 +1203,11 @@ function tick0(dt, inp) {
   if (inp.start) togglePause();
   if (inp.cam && S.opt.lockCam == null) { S.cam = (S.cam + 1) % 3; sayMe('กล้อง: ' + CAM_TH[S.cam], 1); }
   if (!S.running) { S.msgT -= dt; if (NET.role === 'host') for (const id in NET.inputs) for (const k of EDGE) NET.inputs[id][k] = false; return; }
+  if (S.settle) return stepSettle(dt, inp);
   if (inp.call) { S.calls.push(remaining()); sayMe(`📣 ประกาศเวลา ${fmt(remaining())}`, 1.2); }
   if (inp.predict) { S.predict = true; sayMe('🎯 ทาย: ลูกต่อไปจะ TIP', 1.4); }
   if (inp.confirm) SCN?.onConfirm?.(api);
+  if (inp.cmd && SCN?.coach?.includes('cmd')) { S.cmds.push({ el: S.el, rem: remaining() }); sayMe(`📣 สั่ง: ${SCN.cmdSay || 'สั่งทีม'} · ${fmt(remaining())}`, 1.4); SCN.onCmd?.(api); }
   actFor(r, inp);
   if (NET.role === 'host') for (const rb of S.robots) if (rb !== r && rb.net) { const ip = inpOf(rb, inp); actFor(rb, ip); for (const k of EDGE) ip[k] = false; }
   SAYTO = null;
@@ -1027,17 +1217,34 @@ function tick0(dt, inp) {
   if (S.mode !== 'free' && prevEl < AUTO_LEN + TRANS_LEN && S.el >= AUTO_LEN + TRANS_LEN) say('TELEOP เริ่ม! คนขับควบคุมได้แล้ว', 2);
   if (S.mode !== 'free' && prevRem > 60 && remaining() <= 60) {
     say('เหลือ 1:00 · FLOWER เปิด · Human Player ปล่อย NECTAR ที่เหลือได้ทั้งหมด', 3);
-    for (const c of ['red', 'blue']) if (!hpMan(c)) release(c, 5, true);
+    for (const c of ['red', 'blue']) if (!hpMan(c)) hpQueue(c, 5);
   }
   for (const rb of active()) { if (rb.human) { if (phase() === 'auto' && S.mode !== 'free') runTasks(rb); else humanCmd(rb, inpOf(rb, inp)); } else aiStep(rb); applyCmd(rb, dt); }
-  stepContacts(dt); stepBalls(dt); stepHives(dt);
+  stepContacts(dt); stepBalls(dt); stepHives(dt); stepHpq(); if (S.opt.hoard) stepHoard(dt);
   for (const rb of active()) { SAYTO = toR(rb.id); pickup(rb, dt); } SAYTO = null;
-  for (const rb of active()) if (rb.load.length > ROBOT.capacity && rb.mem.over != null && S.el - rb.mem.over > 2 && !rb.mem.overMajor) { rb.mem.overMajor = true; foul(rb.alliance, 'G407', 'MAJOR', 'ถือ 5 ลูกนานเกิน (ไม่ใช่ชั่วขณะ) = STRATEGIC + ใบเหลือง', rb.id); }
+  for (const rb of active()) if (rb.load.length > ROBOT.capacity && rb.mem.over != null && S.el - rb.mem.over > 2 && !rb.mem.overMajor) { rb.mem.overMajor = true; foul(rb.alliance, 'G407', 'MAJOR', 'ถือ 5 ลูกนานเกิน (ไม่ใช่ชั่วขณะ) = STRATEGIC', rb.id, true); }
   for (const rb of active()) if (rb.load.length <= ROBOT.capacity) { rb.mem.over = null; rb.mem.overMajor = false; }
   SCN?.tick?.(api, dt);
-  if (S.mode !== 'free' && remaining() <= 0) endMatch();
+  if (S.mode !== 'free' && remaining() <= 0) startSettle();
   else if (SCN?.end?.(api)) endMatch();
   S.msgT -= dt;
+}
+// หมดเวลา (0:00): หุ่นถูกตัดกำลัง แล้วรอให้ลูก/HIVE/หุ่นหยุดนิ่งก่อนนับคะแนน (ลูกที่ลอยอยู่ยังนับ) · G404 หุ่นต้องนิ่งหลังหมดเวลา
+function startSettle() {
+  S.settle = { t: 0 }; say('หมดเวลา! วางจอย · รอทุกอย่างหยุดนิ่งแล้วนับคะแนน', 2.5, null);
+  for (const rb of active()) { const v = speed(rb); S.stats.endSpeed[rb.id] = +v.toFixed(2); if (rb.human && v > 0.4 && (rb.g404 = true)) foul(rb.alliance, 'G404', 'WARN', 'หมดเวลาแล้วหุ่นยังวิ่งอยู่ ต้องจอดให้นิ่งก่อน 0:00 (จงใจขยับต่อ = MAJOR + ใบเหลือง)', rb.id); }
+}
+function stepSettle(dt, inp) {
+  const st = S.settle; st.t += dt; S.el += dt;
+  for (const rb of active()) {
+    if (rb.human && st.t > 0.5 && !rb.g404) { const ip = inpOf(rb, inp); if (Math.abs(ip.fwd) + Math.abs(ip.strafe) + Math.abs(ip.turn) > 0.5) { rb.g404 = true; foul(rb.alliance, 'G404', 'WARN', 'หมดเวลาแล้วยังโยกจอย · กด Stop แล้ววางจอย', rb.id); } }
+    rb.cmd = { ...STOP }; applyCmd(rb, dt);
+  }
+  stepContacts(dt); stepBalls(dt); stepHives(dt);
+  if (NET.role === 'host') for (const id in NET.inputs) for (const k of EDGE) NET.inputs[id][k] = false;
+  const busy = S.balls.some(b => b.where === 'air' || (b.where === 'floor' && Math.hypot(b.vx, b.vz) > 0.05)) || S.hives.red.tipping || S.hives.blue.tipping || active().some(r => speed(r) > 0.02 || Math.abs(r.w) > 0.05);
+  S.msgT -= dt;
+  if (st.t > 3 || (st.t > 0.6 && !busy)) endMatch();
 }
 function fmt(s) { if (s >= 900) return '∞'; s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 
@@ -1046,6 +1253,7 @@ function applyOpts(o) { S.opt = { ...DEFAULT_OPT, ...o }; S.cam = S.opt.lockCam 
 function startScenario(plan) {
   S = newState(); applyOpts(SCN.opt || {}); S.mode = 'scenario';
   S.el = SCN.startEl != null ? SCN.startEl : (SCN.phase === 'auto' || SCN.phase === 'full') ? 0 : MATCH_LEN - (SCN.start ?? 120);
+  S.el0 = S.el;
   if (SCN.plans) for (const id of ['R1', 'R2']) { const opts = SCN.plans[id]; api.robot(id).ai.autoTasks = clone(opts[plan?.[id] ?? 0].tasks); }
   SCN.setup(api);
   S.startProj = projected(); S.robots.forEach(r => r.cycleStart = S.el);
@@ -1054,10 +1262,10 @@ function startScenario(plan) {
 function startMatch(kind, plan) {
   S = newState(); applyOpts({}); S.mode = kind === 'free' ? 'free' : 'match';
   S.bot = { opp: MCFG.opp, ally: MCFG.ally }; if (kind !== 'free') S.opt.hpManual = MCFG.hp === 'manual';
-  S.el = kind === 'full' ? 0 : MATCH_LEN - 120;
+  S.el = kind === 'full' ? 0 : MATCH_LEN - 120; S.el0 = S.el;
   if (kind === 'full' && plan) for (const id of ['R1', 'R2']) api.robot(id).ai.autoTasks = clone(SCN_ALL['3.5']?.plans?.[id]?.[plan[id] ?? 0]?.tasks || DEFAULT_AUTO[id]);
   if (kind === 'free') { Object.assign(S.opt, { bots: false, gate: false, traj: true, intakeDelay: true, rival: true }, loadFreeOpt()); S.robots.slice(1).forEach(rb => api.bench(rb.id)); applyFreeBots(); }
-  else S.opt.intakeDelay = true;  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
+  else Object.assign(S.opt, { intakeDelay: true, hoard: true });  // สนามเต็มแบบแข่งจริง หุ่นเราอยู่ตำแหน่งเริ่มพร้อม pre-load 4 ลูก
   S.running = true; ov(false); renderPanels(); say(kind === 'free' ? 'Free Control: ยิงได้ทุกที่ · เก็บลูกมีดีเลย์ · ระวัง B1 เข้ามาเบียดแย่งลูก (ปรับได้ที่แผงขวา)' : kind === 'full' ? 'แมตช์เต็ม: AUTO 30 วิเริ่ม' : 'TELEOP 2:00 เริ่ม!', 2);
 }
 function togglePause() { if (NET.role === 'client') return; if (S.over) { NET.role ? netBack() : SCN ? showIntro() : showMenu(); return; } if (!$('overlay').classList.contains('hidden')) return; S.running = !S.running; say(S.running ? 'เล่นต่อ' : 'หยุดชั่วคราว (กด Options/Enter เพื่อเล่นต่อ)', 1.5); }
@@ -1066,13 +1274,18 @@ function endMatch() {
   if (S.over || NET.role === 'client') return; S.running = false; S.over = true;
   const a = assess(true); S.end = { score: { red: total('red'), blue: total('blue') }, park: a.park, owners: a.owners, bottoms: a.bottoms, det: a.det };
   const ok = evalObj(), allOk = ok.length > 0 && ok.every(Boolean);
-  if (SCN) sendResult({ id: SCN_ID, title: SCN.title, ok, allOk, ts: Date.now(), score: S.end.score });
+  if (SCN) { const mf = S.fouls.filter(f => f.all === MY()), nf = s => mf.filter(f => f.sev === s).length, rp = rpNow();
+    sendResult({ id: SCN_ID, title: SCN.title, ok, allOk, ts: Date.now(), score: S.end.score, fouls: { minor: nf('MINOR'), major: nf('MAJOR'), warn: nf('WARN') }, cards: cardsNow(), dur: Math.max(0, Math.round(S.el - (S.el0 || 0))), rp: { red: rp.red.total, blue: rp.blue.total } }); }
   if (NET.role === 'host') netEnd();
   showResult(ok, allOk);
 }
 function sendResult(r) {
-  try { const all = JSON.parse(localStorage.getItem('dca-sim-results') || '{}'), p = all[r.id] || {}; all[r.id] = { last: r, best: r.allOk ? r : (p.best || null), passes: (p.passes || 0) + (r.allOk ? 1 : 0), streak: r.allOk ? (p.streak || 0) + 1 : 0 }; localStorage.setItem('dca-sim-results', JSON.stringify(all)); } catch {}
-  try { window.opener?.postMessage({ type: 'dca-sim-result', result: r }, '*'); } catch {}
+  // ผลต่อบทฝึก: last / best / passes / streak + tries (จำนวนครั้งที่ลอง) + hist (10 ครั้งล่าสุด ใหม่สุดอยู่หน้า) ให้โค้ชดูพัฒนาการ
+  try { const all = JSON.parse(localStorage.getItem('dca-sim-results') || '{}'), p = all[r.id] || {}, { title, ...h } = r;
+    all[r.id] = { last: r, best: r.allOk ? r : (p.best || null), passes: (p.passes || 0) + (r.allOk ? 1 : 0), streak: r.allOk ? (p.streak || 0) + 1 : 0,
+      tries: (p.tries || (p.last ? Math.max(1, p.passes || 0) : 0)) + 1, hist: [h, ...(Array.isArray(p.hist) ? p.hist : [])].slice(0, 10) };
+    localStorage.setItem('dca-sim-results', JSON.stringify(all)); } catch {}
+  try { window.opener?.postMessage({ type: 'dca-sim-result', result: r }, location.origin === 'null' ? '*' : location.origin); } catch {}
 }
 
 // =================== Overlay ===================
@@ -1083,18 +1296,18 @@ function plansHtml(P) { return P ? ['R1', 'R2'].map(id => `<div class="plan"><b>
 const readPlan = () => ({ R1: +(document.querySelector('input[name=planR1]:checked')?.value || 0), R2: +(document.querySelector('input[name=planR2]:checked')?.value || 0) });
 const ROLE_TH = { coach: 'Drive Coach', driver: 'Driver', operator: 'Operator', hp: 'Human Player' };
 function showIntro() {
-  ov(true, `<div class="mut">สถานการณ์ฝึก ${esc(SCN_ID)}${SCN.role ? ' · บทบาท ' + ROLE_TH[SCN.role] : ''}</div><h2>${esc(SCN.title)}</h2><p>${esc(SCN.brief)}</p>
+  ov(true, `<div class="mut">สถานการณ์ฝึก ${esc(SCN_ID)}${SCN.role ? ' · บทบาท ' + ROLE_TH[SCN.role] : ''}</div><h2>${esc(SCN.title)}</h2>${devHint()}<p>${esc(SCN.brief)}</p>
     <h4>เป้าหมาย (ต้องผ่านทุกข้อในรอบเดียว)</h4>${SCN.obj.map(o => `<div class="obj"><b>•</b><span>${esc(o.t)}</span></div>`).join('')}
     ${plansHtml(SCN.plans)}
     <p class="mut">ต่อจอย DualShock 4 แล้วกดปุ่มใดก็ได้ 1 ครั้ง หรือใช้คีย์บอร์ด (ดู "ปุ่มควบคุม" ในแผงขวา)</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="go">เริ่มสถานการณ์</button><a href="index.html"><button class="sec">เมนู simulator</button></a></div>`);
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="go">เริ่มสถานการณ์</button><button class="sec" data-href="index.html">เมนู simulator</button></div>`);
   $('go').onclick = () => startScenario(readPlan());
 }
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D</h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><a href="gamepad-test.html"><button class="sec">🎮 ทดสอบจอย</button></a></div>
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.0</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
     ${Object.entries(groups).filter(([, l]) => l.length).map(([k, l]) => `<h4>สถานการณ์ฝึก · ${ROLE_TH[k]}</h4><div class="grid">${l.join('')}</div>`).join('')}
@@ -1111,7 +1324,8 @@ function showMenu() {
 }
 function showResult(ok, allOk) {
   if (NET.role) return showNetResult();
-  const sc = S.end.score, acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0;
+  const sc = S.end.score, acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0, rp = rpNow(), cd = cardsNow(), isM = S.mode === 'match';
+  const flT = f => `${esc(f.rule)}${f.sev === 'WARN' ? ' เตือน' : ' +' + f.pts}${f.card === 'red' ? ' 🟥' : f.card ? ' 🟨' : ''}`;
   const objHtml = SCN ? `<h4>เป้าหมาย</h4>${SCN.obj.map((o, i) => `<div class="obj"><b class="${ok[i] ? 'ok' : 'bad'}">${ok[i] ? '✓' : '✗'}</b><span>${esc(o.t)}</span></div>`).join('')}
     <p style="font-size:16px;font-weight:700" class="${allOk ? 'ok' : 'bad'}">${allOk ? 'ผ่านสถานการณ์นี้แล้ว ผลถูกส่งกลับไปที่หน้าบทเรียน' : 'ยังไม่ผ่าน ลองใหม่อีกครั้ง'}</p>` : '';
   ov(true, `<h2>${SCN ? esc(SCN.title) : 'จบแมตช์'}</h2>
@@ -1119,9 +1333,13 @@ function showResult(ok, allOk) {
     <table><tr><td>TIP แดง</td><td>${S.stats.tips.red} (AUTO ${S.stats.autoTips.red})</td></tr>${S.end.det.filter(d => d[2] === 'red').map(d => `<tr><td>${esc(d[0])}</td><td>${d[1]}</td></tr>`).join('')}
     <tr><td>LEAVE + PARK แดง</td><td>${S.stats.leavePark.red}</td></tr><tr><td>R1 ยิง / เข้า</td><td>${S.stats.shots} / ${S.stats.hits} (${acc}%)</td></tr>
     ${S.bot && S.mode !== 'free' && !SCN ? `<tr><td>ระดับบอท</td><td>คู่แข่ง ${BOT_LV[S.bot.opp].th} · พันธมิตร ${BOT_LV[S.bot.ally].th} · Human Player ${S.opt.hpManual ? 'กดเอง' : 'อัตโนมัติ'}</td></tr>` : ''}
-    <tr><td>ชนหุ่น</td><td>${S.stats.collisions} ครั้ง · เลือด R1 ${R1().hp}%</td></tr><tr><td>FOUL ของแดง</td><td>${S.fouls.filter(f => f.all === 'red').map(f => f.rule).join(', ') || 'ไม่มี'}</td></tr>
+    <tr><td>ชนหุ่น</td><td>${S.stats.collisions} ครั้ง · เลือด R1 ${R1().hp}%</td></tr><tr><td>FOUL ของแดง</td><td>${S.fouls.filter(f => f.all === 'red').map(flT).join(', ') || 'ไม่มี'}</td></tr>
+    ${isM ? `<tr><td>FOUL ของน้ำเงิน</td><td>${S.fouls.filter(f => f.all === 'blue').map(flT).join(', ') || 'ไม่มี'}</td></tr>` : ''}
+    ${isM || cd.red !== 'none' || cd.blue !== 'none' ? `<tr><td>ใบเหลือง / ใบแดง</td><td>แดง: ${CARD_TH[cd.red]} · น้ำเงิน: ${CARD_TH[cd.blue]}</td></tr>` : ''}
+    ${isM ? `<tr><td>Ranking Points แดง</td><td>${rpTxt(rp.red)}</td></tr><tr><td>Ranking Points น้ำเงิน</td><td>${rpTxt(rp.blue)}</td></tr>` : ''}
     ${R1().cycles.length ? `<tr><td>เวลา cycle (วิ)</td><td>${R1().cycles.join(' · ')}</td></tr>` : ''}</table>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="again">ลองใหม่</button><a href="../coach-training/index.html"><button class="sec">กลับหน้าบทเรียน</button></a>${SCN ? '<a href="index.html"><button class="sec">เมนู simulator</button></a>' : ''}</div>`);
+    ${isM ? `<p class="mut" style="font-size:12px">${RP_NOTE}${S.el0 > 1 ? ' · แมตช์ TELEOP อย่างเดียวไม่มีแต้ม LEAVE จึงได้ SWARM ไม่ถึง (PARK 2 ตัว = 10 แต้ม) ถ้าจะฝึกเก็บ SWARM ให้เล่นแมตช์เต็ม' : ''}</p>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="again">ลองใหม่</button><button class="sec" data-href="../coach-training/index.html">กลับหน้าบทเรียน</button>${SCN ? '<button class="sec" data-href="index.html">เมนู simulator</button>' : ''}</div>`);
   $('again').onclick = () => SCN ? showIntro() : showMenu();
 }
 
@@ -1133,8 +1351,13 @@ const NET_DEF = { kind: 'tele', hp: 'manual', bot: 'normal', intakeDelay: true, 
 const PRESET = { 2: ['human', 'bot', 'human', 'bot'], 3: ['human', 'human', 'human', 'bot'], 4: ['human', 'human', 'human', 'human'] };
 const NET_EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'hp'];
 const PEER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js', LOCALNET = Q.get('net') === 'local';
-const loadPeer = () => window.Peer ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'); s.src = PEER_SRC; s.onload = () => ok(); s.onerror = () => no(new Error('โหลดตัวเชื่อมต่อ (PeerJS) ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่')); document.head.appendChild(s); });
-async function tpHost(code, onConn) {
+const loadPeer = () => window.Peer ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'), bad = () => { s.remove(); no(new Error('โหลดตัวเชื่อมต่อ (PeerJS) ไม่ได้ · ตรวจอินเทอร์เน็ต หรือเครือข่ายอาจบล็อก cdnjs.cloudflare.com แล้วลองใหม่')); }, t = setTimeout(bad, 12000); s.src = PEER_SRC; s.onload = () => { clearTimeout(t); ok(); }; s.onerror = () => { clearTimeout(t); bad(); }; document.head.appendChild(s); });
+const NET_MAX = 8;  // เครื่องที่เชื่อมต่อกับ host ได้พร้อมกัน (ผู้เล่น + ผู้ชม) · มากกว่านี้ host ส่งภาพสนามไม่ทัน
+const P2P_HINT = 'Wi-Fi โรงเรียน / ไฟร์วอลล์อาจบล็อกการเชื่อมต่อตรงระหว่างเครื่อง (P2P) → ให้ทุกเครื่องต่อ Wi-Fi วงเดียวกัน หรือใช้ hotspot มือถือ';
+const PEER_ERR = { 'peer-unavailable': 'ไม่พบห้องรหัสนี้ (ตรวจรหัส · host ต้องเปิดหน้าห้องค้างไว้)', network: 'ต่อเซิร์ฟเวอร์จับคู่ห้องไม่ได้ (เน็ตหลุด หรือเครือข่ายบล็อก) ลองใหม่ หรือเปลี่ยนเครือข่าย', 'server-error': 'เซิร์ฟเวอร์จับคู่ห้องขัดข้อง รอสักครู่แล้วลองใหม่', 'socket-error': 'การเชื่อมต่อกับเซิร์ฟเวอร์จับคู่ห้องขัดข้อง (เครือข่ายอาจบล็อก WebSocket) ลองเครือข่ายอื่น', 'socket-closed': 'การเชื่อมต่อกับเซิร์ฟเวอร์จับคู่ห้องถูกปิด ลองใหม่อีกครั้ง',
+  'browser-incompatible': 'เบราว์เซอร์นี้เล่นออนไลน์ไม่ได้ (ไม่รองรับ WebRTC) ใช้ Chrome หรือ Edge บนคอมพิวเตอร์', webrtc: 'เชื่อมต่อระหว่างเครื่องไม่สำเร็จ · ' + P2P_HINT, 'ssl-unavailable': 'เชื่อมต่อแบบปลอดภัย (SSL) ไม่ได้ ลองเครือข่ายอื่น', 'unavailable-id': 'รหัสห้องนี้ถูกใช้อยู่ ลองสร้างใหม่', timeout: 'สร้างห้องไม่ได้ภายใน 12 วิ · ตรวจอินเทอร์เน็ต หรือเครือข่ายอาจบล็อกเซิร์ฟเวอร์จับคู่ห้อง ลองใหม่ หรือใช้ hotspot มือถือ' };
+const peerErr = e => PEER_ERR[e?.type] || (e?.type ? 'เชื่อมต่อไม่ได้: ' + e.type : e?.message || String(e));
+async function tpHost(code, onConn, onWarn) {
   if (LOCALNET) {
     const ch = new BroadcastChannel('biobuzz-' + code), cs = {};
     ch.onmessage = e => { const { from, to, d } = e.data; if (to !== 'H') return; let c = cs[from];
@@ -1144,11 +1367,13 @@ async function tpHost(code, onConn) {
   }
   await loadPeer();
   return new Promise((ok, no) => {
-    const p = new Peer('biobuzz-' + code); let open = false;
-    p.on('open', () => { open = true; ok({ close: () => p.destroy() }); });
-    p.on('error', e => { if (!open) { p.destroy(); no(e); } });
-    p.on('disconnected', () => { try { p.reconnect(); } catch {} });
-    p.on('connection', c => { const w = { id: c.peer, send: o => { if (c.open) c.send(o); }, close: () => c.close() }; c.on('open', () => onConn(w)); c.on('data', d => w.ondata?.(d)); c.on('close', () => w.onclose?.()); c.on('error', () => w.onclose?.()); });
+    const p = new Peer('biobuzz-' + code); let open = false, closed = false, warnAt = 0;
+    const t = setTimeout(() => { if (!open) { closed = true; p.destroy(); no({ type: 'timeout' }); } }, 12000);  // เซิร์ฟเวอร์จับคู่ห้องไม่ตอบ = ไม่ค้างที่ “กำลังสร้างห้อง…”
+    const warn = m => { const now = Date.now(); if (now - warnAt > 20000) { warnAt = now; onWarn?.(m); } };
+    p.on('open', () => { if (closed) return; open = true; clearTimeout(t); ok({ close: () => { closed = true; p.destroy(); } }); });
+    p.on('error', e => { if (closed) return; if (!open) { closed = true; clearTimeout(t); p.destroy(); no(e); } else if (e.type !== 'peer-unavailable') warn('⚠ ' + peerErr(e)); });
+    p.on('disconnected', () => { if (closed || !open) return; warn('⚠ หลุดจากเซิร์ฟเวอร์จับคู่ห้อง กำลังต่อใหม่… คนที่อยู่ในห้องแล้วเล่นต่อได้ แต่คนใหม่จะเข้าห้องไม่ได้ชั่วคราว'); setTimeout(() => { if (!closed && !p.destroyed && p.disconnected) try { p.reconnect(); } catch {} }, 2000); });
+    p.on('connection', c => { const w = { id: c.peer, send: o => { if (c.open) c.send(o); }, close: () => c.close(), buf: () => c.dataChannel?.bufferedAmount || 0 }; c.on('open', () => onConn(w)); c.on('data', d => w.ondata?.(d)); c.on('close', () => w.onclose?.()); c.on('error', () => w.onclose?.()); });
   });
 }
 async function tpJoin(code) {
@@ -1162,14 +1387,16 @@ async function tpJoin(code) {
   return new Promise((ok, no) => {
     const p = new Peer(); let done = false;
     const fail = m => { if (done) return; done = true; clearTimeout(t); p.destroy(); no(new Error(m)); };
-    const t = setTimeout(() => fail('เชื่อมต่อห้องไม่ได้ (หมดเวลา) ตรวจรหัสห้องและอินเทอร์เน็ต'), 15000);
-    p.on('error', e => fail(e.type === 'peer-unavailable' ? 'ไม่พบห้องรหัสนี้ (host ต้องเปิดหน้าห้องค้างไว้)' : 'เชื่อมต่อไม่ได้: ' + (e.type || e)));
-    p.on('open', () => { const c = p.connect('biobuzz-' + code, { reliable: false }), w = { id: p.id, send: o => { if (c.open) c.send(o); }, close: () => p.destroy(),
+    let sig = false;  // ต่อเซิร์ฟเวอร์จับคู่ได้แล้วแต่ต่อถึง host ไม่ได้ = มักเป็นเครือข่ายบล็อก P2P ไม่ใช่รหัสผิด
+    const t = setTimeout(() => fail(sig ? 'พบห้องแล้วแต่เชื่อมต่อถึงเครื่อง host ไม่ได้ภายใน 15 วิ · ' + P2P_HINT : 'เชื่อมต่อห้องไม่ได้ภายใน 15 วิ · ตรวจอินเทอร์เน็ตแล้วลองใหม่'), 15000);
+    p.on('error', e => fail(peerErr(e)));
+    p.on('open', () => { sig = true; const c = p.connect('biobuzz-' + code, { reliable: false }), w = { id: p.id, send: o => { if (c.open) c.send(o); }, close: () => p.destroy(),
         relay: async () => { await new Promise(r => setTimeout(r, 1500)); try { const st = await c.peerConnection.getStats(); let rel = false; st.forEach(v => { if (v.type === 'candidate-pair' && v.state === 'succeeded' && v.nominated !== false) for (const id of [v.localCandidateId, v.remoteCandidateId]) if (st.get(id)?.candidateType === 'relay') rel = true; }); return rel; } catch { return false; } } };
       c.on('open', () => { done = true; clearTimeout(t); ok(w); }); c.on('data', d => w.ondata?.(d)); c.on('close', () => w.onclose?.()); c.on('error', () => w.onclose?.()); });
   });
 }
-const netCast = m => { for (const id in NET.peers) NET.peers[id].conn.send(m); };
+// เครื่องที่เน็ตช้าจนข้อมูลค้างส่ง: ข้ามภาพสนามเฟรมนั้น (เฟรมถัดไปมีตำแหน่งใหม่กว่าอยู่แล้ว) ไม่ให้คิวพอกจนหน่วงทั้งห้อง
+const netCast = m => { for (const id in NET.peers) { const c = NET.peers[id].conn; if (m.t === 'f' && !m.B && (c.buf?.() || 0) > 262144) continue; c.send(m); } };
 const DRV_LIM = { vmax: [0.8, 2.4], acc: [1.5, 9], wmax: [1.5, 6], strafe: [0.4, 1], dead: [0, 0.25], elev: [40, 85], vmin: [2, 9], vmax2: [2, 9], vfix: [2, 9], lh: [0.15, 0.6], gateMin: [0.3, 2.5], gateMax: [0.5, 3], intakeTime: [0, 1.5], dead1: [0.02, 0.25], dead2: [0.02, 0.25] };
 const netDrv = d => ({ ...DEFAULT_DRIVE, ...Object.fromEntries(Object.keys(DEFAULT_DRIVE).filter(k => d && typeof d[k] === typeof DEFAULT_DRIVE[k] && (typeof d[k] !== 'number' || (Number.isFinite(d[k]) && DRV_LIM[k]))).map(k => [k, typeof d[k] === 'number' ? clamp(d[k], ...DRV_LIM[k]) : typeof d[k] === 'string' ? d[k].slice(0, 12) : d[k]])) });
 const netSan = o => {  // ข้อมูลจากเครื่องอื่น: ตัดอักขระ HTML ออกจากข้อความทุกตัวก่อนนำไปใช้
@@ -1183,8 +1410,8 @@ async function netCreate(name) {
   let room = null, tp = null;
   for (let k = 0; k < 4 && !room; k++) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
-    try { tp = await tpHost(code, c => { c.ondata = d => netHostMsg(c, d); c.onclose = () => netDrop(c.id); }); room = { code, cfg: { ...NET_DEF }, slots: PRESET[2].map(t => ({ type: t, who: null, name: '' })) }; }
-    catch (e) { if (e.type !== 'unavailable-id') throw new Error(e.message || 'สร้างห้องไม่ได้: ' + (e.type || e)); }
+    try { tp = await tpHost(code, c => { c.ondata = d => netHostMsg(c, d); c.onclose = () => netDrop(c.id); }, m => { if (NET.role !== 'host') return; netLog(m); sayMe(m, 6); if (!NET.playing && !NET.res) showLobby(); }); room = { code, cfg: { ...NET_DEF }, slots: PRESET[2].map(t => ({ type: t, who: null, name: '' })) }; }
+    catch (e) { if (e.type !== 'unavailable-id') throw new Error(peerErr(e)); }
   }
   if (!room) throw new Error('สร้างห้องไม่ได้ ลองใหม่อีกครั้ง');
   Object.assign(NET, { role: 'host', id: 'H', name, tp, room, peers: {}, playing: false, res: false, inputs: {}, says: [], seq: 0, lseq: 0 }); netBgTicker();
@@ -1195,10 +1422,19 @@ function netHostMsg(c, d) {
   d = netSan(d);
   if (d.t === 'hello') {
     if (NET.peers[c.id]) return;  // hello ซ้ำจากเครื่องเดิม = ไม่จองที่นั่งเพิ่ม
+    if (Object.keys(NET.peers).length >= NET_MAX) { c.send({ t: 'full' }); setTimeout(() => { try { c.close(); } catch {} }, 400); return; }
     const p = NET.peers[c.id] = { conn: c, name: String(d.name || 'ผู้เล่น').slice(0, 16), drv: netDrv(d.drv), inN: 0 };
     const s = !NET.playing && NET.room.slots.find(s => s.type === 'human' && !s.who); if (s) { s.who = c.id; s.name = p.name; }
-    netLog(`${p.name} เข้าห้อง${s ? ' · นั่ง ' + SLOT_TH[SLOT_ID[NET.room.slots.indexOf(s)]] : NET.playing ? ' (ระหว่างแมตช์ · รอรอบถัดไป)' : ' (ยังไม่มีตำแหน่ง)'}`);
+    // กลับเข้าห้องระหว่างแมตช์ด้วยชื่อเดิม (เน็ตหลุด / เผลอปิดแท็บ) = รับหุ่นตัวเดิมคืนจาก Bot
+    const rb = NET.playing && !S.over && S.robots.find(r => !r.net && !r.human && r.pname === p.name + ' → Bot'), ri = rb ? S.robots.indexOf(rb) : -1;
+    if (rb) {
+      const rs = NET.room.slots[ri]; if (rs && rs.type === 'human' && !rs.who) { rs.who = c.id; rs.name = p.name; }
+      Object.assign(rb, { net: c.id, human: true, drv: p.drv, pname: p.name, cmd: { ...STOP } }); rb.ai.mode = 'human'; NET.inputs[rb.id] = emptyInput();
+      const m = `${SLOT_TH[rb.id]} (${p.name}) กลับเข้ามาขับต่อ`; say(m, 3, null); NET.says.push([m, 3, null]);
+    }
+    netLog(`${p.name} เข้าห้อง${s ? ' · นั่ง ' + SLOT_TH[SLOT_ID[NET.room.slots.indexOf(s)]] : rb ? ' · กลับมาขับ ' + SLOT_TH[rb.id] + ' ต่อ' : NET.playing ? ' (ระหว่างแมตช์ · รอรอบถัดไป)' : ' (ยังไม่มีตำแหน่ง)'}`);
     netLobbyPush();
+    if (rb) c.send({ t: 'start', n: NET.seq, S, me: ri });
   } else if (d.t === 'pick' && !NET.playing) {
     const p = NET.peers[c.id], s = NET.room.slots[d.slot]; if (!p) return;
     if (d.slot === -1 || (s && s.type === 'human' && (!s.who || s.who === c.id))) { NET.room.slots.forEach(x => { if (x.who === c.id) { x.who = null; x.name = ''; } }); if (s) { s.who = c.id; s.name = p.name; } netLog(`${p.name} ${s ? 'เลือกนั่ง ' + SLOT_TH[SLOT_ID[d.slot]] : 'ลุกจากที่นั่ง (เป็นผู้ชม)'}`); }
@@ -1222,7 +1458,7 @@ function netDrop(id) {
 function netStartMatch() {
   const R = NET.room, c = R.cfg;
   S = newState(); applyOpts({}); S.mode = c.kind === 'free' ? 'free' : 'match'; S.bot = { opp: c.bot, ally: c.bot };
-  Object.assign(S.opt, { hpManual: c.hp === 'manual', intakeDelay: !!c.intakeDelay, shove: !!c.shove, health: !!c.health, gate: false, rival: false });
+  Object.assign(S.opt, { hpManual: c.hp === 'manual', intakeDelay: !!c.intakeDelay, shove: !!c.shove, health: !!c.health, gate: false, rival: false, hoard: c.kind !== 'free' });
   S.el = c.kind === 'full' ? 0 : MATCH_LEN - 120;
   Object.assign(NET, { inputs: {}, says: [], sig: '', bp: [], tF: 0, tS: 0, playing: true, res: false, saved: false, lastRec: null, spec: false, t0: Date.now() });
   netLog(`เริ่มแมตช์ · ${NKIND_TH[c.kind]} · ${R.slots.map((s, i) => s.type === 'none' ? '' : `${SLOT_TH[SLOT_ID[i]]} ${s.type === 'human' && s.who ? s.name : 'Bot'}`).filter(Boolean).join(' · ')}`); netLobbyPush();
@@ -1242,7 +1478,7 @@ const rd = v => Math.round(v * 1000) / 1000;
 function netFast() {
   const sig = S.balls.map(b => b.where + (b.where === 'cell' ? b.hive : b.where === 'flower' ? b.flower + '.' + b.order : b.where === 'carried' ? b.owner : '')).join('|'), full = sig !== NET.sig; NET.sig = sig;
   const H2 = S.hives, m = { t: 'f', n: ++NET.seq, el: S.el, run: S.running, h: [H2.red.angle, H2.blue.angle, H2.red.up, H2.blue.up],
-    r: S.robots.map(r => [rd(r.x), rd(r.z), rd(r.th), rd(r.vx), rd(r.vz), rd(r.w), rd(r.shake || 0), r.hitN || 0, rd(r.pickP || 0), r.intake ? 1 : 0, r.hp, r.dead ? 1 : 0, r.off ? 1 : 0, r.load]) };
+    r: S.robots.map(r => [rd(r.x), rd(r.z), rd(r.th), rd(r.vx), rd(r.vz), rd(r.w), rd(r.shake || 0), r.hitN || 0, rd(r.pickP || 0), r.intake ? 1 : 0, r.hp, r.dead ? 1 : 0, r.off ? 1 : 0, r.load, r.wallN || 0]) };
   const p = []; S.balls.forEach((b, i) => { const k = b.x * 7 + b.z * 13 + b.y * 3 + (b.vx || 0) * 17 + (b.vz || 0) * 19; if (k !== NET.bp[i]) { NET.bp[i] = k; p.push([i, rd(b.x), rd(b.y), rd(b.z), rd(b.vx || 0), rd(b.vy || 0), rd(b.vz || 0)]); } });
   if (full) m.B = S.balls; else if (p.length) m.p = p;
   if (NET.says.length) { m.m = NET.says; NET.says = []; }
@@ -1282,8 +1518,10 @@ function netClientMsg(d) {
   d = netSan(d);
   if (d.t === 'lobby') { if (d.n <= NET.lN) return; NET.lN = d.n; NET.room = d.room; NET.id = d.you; NET.busy = !!d.playing; if (NET.wait) { NET.wait(); NET.wait = null; } if (!NET.playing && !NET.res) showLobby(); }
   else if (d.t === 'bye') netLeave('host ปิดห้องแล้ว', 'hostleft');
+  else if (d.t === 'full') netLeave(`ห้องนี้เต็มแล้ว (เชื่อมต่อได้สูงสุด ${NET_MAX} เครื่อง)`);
   else if (d.t === 'po') { const p = performance.now() - d.c; NET.ping = NET.ping ? NET.ping * 0.7 + p * 0.3 : p; }
   else if (d.t === 'start') {
+    if (NET.wait) { NET.wait(); NET.wait = null; }
     S = d.S; Object.assign(NET, { res: false, busy: false, lastR: null, tgt: null, fN: d.n, sN: d.n, bN: d.n, bq: [], age: 0, pred: false, spec: !(d.me >= 0), playing: true, saved: false, lastRec: null, t0: Date.now() }); ME = NET.spec ? 0 : d.me;
     S.msg = ''; S.msgT = 0; ov(false); renderPanels(); say(NET.spec ? 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)' : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
   }
@@ -1304,7 +1542,7 @@ function netRobots(keep) {  // ค่าที่เปลี่ยนเร็�
   (NET.lastR || []).forEach((a, i) => { const r = S.robots[i]; if (!r) return;
     if (keep?.[i]) [r.x, r.z, r.th, r.vx, r.vz, r.w] = keep[i];
     if (!(i === ME && NET.pred)) { r.vx = a[3]; r.vz = a[4]; r.w = a[5]; }
-    r.shake = a[6]; r.hitN = a[7]; r.pickP = a[8]; r.intake = !!a[9]; r.hp = a[10]; r.dead = !!a[11]; r.off = !!a[12]; r.load = a[13]; });
+    r.shake = a[6]; r.hitN = a[7]; r.pickP = a[8]; r.intake = !!a[9]; r.hp = a[10]; r.dead = !!a[11]; r.off = !!a[12]; r.load = a[13]; r.wallN = a[14] || 0; });
 }
 function netApplySlow(d) {
   if (d.n <= NET.sN) return; NET.sN = d.n;
@@ -1342,7 +1580,9 @@ function netLeave(why, code) {
   const role = NET.role; if (!role) return;
   const wn = NET.waitNo; NET.wait = NET.waitNo = null;  // ยังรอเข้าห้องอยู่ = ยกเลิกการรอ
   if (NET.playing) netHist(code || (why ? 'lost' : 'left'));
-  try { if (role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else { NET.conn.onclose = null; NET.conn.close(); } } catch {}
+  // host: ส่ง “ปิดห้อง” ให้ถึงทุกเครื่องก่อน แล้วค่อยปิดช่องสัญญาณ (ปิดทันที ข้อความอาจไปไม่ถึง เครื่องอื่นจะเห็นเป็น “เน็ตหลุด”)
+  try { if (role === 'host') { netCast({ t: 'bye' }); const tp = NET.tp; setTimeout(() => { try { tp?.close(); } catch {} }, 300); } else { NET.conn.onclose = null; NET.conn.close(); } } catch {}
+  if (bgW) { bgW.terminate(); bgW = null; }
   Object.assign(NET, { role: null, room: null, playing: false, peers: {}, conn: null, tp: null, inputs: {}, says: [], spec: false, res: false, busy: false, lastR: null, tgt: null, pred: false, saved: false, lastRec: null }); ME = 0;
   NET.stat = null; S = newState(); renderPanels(); showMenu(); netBar(); if (why) $('ovBox').insertAdjacentHTML('afterbegin', `<p class="bad" style="font-weight:700">${esc(why)}</p>`);
   wn?.(new Error(why || 'ออกจากห้องแล้ว'));
@@ -1355,7 +1595,7 @@ const recClean = r => ({ ts: nN(r.ts), dur: nN(r.dur), code: nT(r.code, 8), role
   cfg: { kind: nT(r.cfg?.kind, 10), hp: nT(r.cfg?.hp, 10), bot: nT(r.cfg?.bot, 10), intakeDelay: !!r.cfg?.intakeDelay, shove: !!r.cfg?.shove, health: !!r.cfg?.health },
   score: nRB(r.score), tips: nRB(r.tips), autoTips: nRB(r.autoTips), leavePark: nRB(r.leavePark),
   det: nA(r.det).slice(0, 20).map(d => [nT(d?.[0], 60), nN(d?.[1]), nT(d?.[2], 5)]),
-  fouls: nA(r.fouls).slice(0, 80).map(f => ({ all: nT(f?.all, 5), rule: nT(f?.rule, 8), sev: nT(f?.sev, 6), pts: nN(f?.pts), why: nT(f?.why, 80), by: nT(f?.by, 4), rem: nN(f?.rem) })),
+  fouls: nA(r.fouls).slice(0, 80).map(f => ({ all: nT(f?.all, 5), rule: nT(f?.rule, 8), sev: nT(f?.sev, 6), pts: nN(f?.pts), why: nT(f?.why, 80), by: nT(f?.by, 4), rem: nN(f?.rem), card: f?.card === 'red' ? 'red' : f?.card ? 'yellow' : null })),
   robots: nA(r.robots).filter(x => SLOT_ID.includes(x?.id)).slice(0, 4).map(x => ({ id: x.id, off: !!x.off, human: !!x.human, name: nT(x.name, 24), shots: nN(x.shots), hits: nN(x.hits), nCyc: nN(x.nCyc), cyc: nN(x.cyc), hp: nN(x.hp) })),
   log: nA(r.log).slice(-40).map(e => ({ ts: nN(e?.ts), t: nT(e?.t, 160) })) });
 const histLoad = () => { try { const a = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(a) ? a.filter(r => r && r.score && r.cfg && Array.isArray(r.robots)).map(recClean) : []; } catch { return []; } };
@@ -1365,7 +1605,7 @@ function netRec(why) {  // สรุปแมตช์ออนไลน์ 1 �
   return recClean({ ts: t0, dur: Math.round((Date.now() - t0) / 1000), code: R.code, role: NET.role, name: NET.name || '', slot: me ? me.id : null, why, cfg: { ...R.cfg },
     score: S.end?.score || { red: total('red'), blue: total('blue') }, tips: { ...S.stats.tips }, autoTips: { ...S.stats.autoTips }, leavePark: { ...S.stats.leavePark },
     det: (S.end?.det || []).map(d => [d[0], d[1], d[2]]),
-    fouls: S.fouls.map(f => ({ all: f.all, rule: f.rule, sev: f.sev, pts: f.pts, why: f.why, by: f.by, rem: Math.round(f.rem) })),
+    fouls: S.fouls.map(f => ({ all: f.all, rule: f.rule, sev: f.sev, pts: f.pts, why: f.why, by: f.by, rem: Math.round(f.rem), card: f.card || null })),
     robots: S.robots.map(r => ({ id: r.id, off: !!r.off, human: !!r.human, name: r.pname || 'Bot', shots: r.shots || 0, hits: r.hits || 0, nCyc: r.cycles.length, cyc: r.cycles.length ? +(r.cycles.reduce((a, b) => a + b, 0) / r.cycles.length).toFixed(1) : 0, hp: r.hp })),
     log: (R.log || []).filter(e => e.ts >= t0 - 500) });
 }
@@ -1385,7 +1625,9 @@ function recRes(rec) {
 function recHtml(rec) {
   const c = rec.cfg, [rt, rc] = recRes(rec), BL = '#6aa2ff', td = 'style="text-align:center;font-weight:700;color:', fl = a => (rec.fouls || []).filter(f => f.all === a);
   const row = (k, r, b) => `<tr><td>${k}</td><td ${td}var(--red)">${r}</td><td ${td}${BL}">${b}</td></tr>`;
-  const flTxt = a => fl(a).map(f => `${esc(f.rule)}${f.sev === 'WARN' ? ' เตือน' : ' +' + f.pts}`).join(', ') || 'ไม่มี', flPts = a => fl(a).reduce((s, f) => s + (f.pts || 0), 0);
+  const flTxt = a => fl(a).map(f => `${esc(f.rule)}${f.sev === 'WARN' ? ' เตือน' : ' +' + f.pts}${f.card === 'red' ? ' 🟥' : f.card ? ' 🟨' : ''}`).join(', ') || 'ไม่มี', flPts = a => fl(a).reduce((s, f) => s + (f.pts || 0), 0);
+  const cd = { red: cardOf('red', rec.fouls || []), blue: cardOf('blue', rec.fouls || []) }, rp = rec.why === 'end' && c.kind !== 'free' ? rpCalc(rec.score, rec.tips, rec.leavePark, cd) : null;
+  const rpC = p => p.dq ? '0 · DISQUALIFIED' : `${p.total}<br><span class="mut" style="font-weight:400;font-size:11px">WIN/TIE ${p.win} · SWARM ${p.swarm} · POLLINATOR ${p.p1 + p.p2}</span>`;
   const det = a => (rec.det || []).filter(d => d[2] === a).map(d => `${esc(d[0])} <b>+${d[1]}</b>`).join('<br>') || '<span class="mut">—</span>';
   const bots = rec.robots.map(r => { const col = r.id[0] === 'R' ? 'var(--red)' : BL;
     return r.off ? `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b></td><td colspan="4" class="mut" style="text-align:left;font-weight:400">ไม่ลงสนาม</td></tr>`
@@ -1396,7 +1638,9 @@ function recHtml(rec) {
     <table><tr class="mut"><td></td><td style="text-align:center">RED</td><td style="text-align:center">BLUE</td></tr>
       ${row('TIP (ช่วง AUTO)', `${rec.tips.red} (${rec.autoTips.red})`, `${rec.tips.blue} (${rec.autoTips.blue})`)}${row('LEAVE + PARK', rec.leavePark.red, rec.leavePark.blue)}
       ${row('คะแนนที่ได้จาก FOUL ของอีกฝ่าย', flPts('blue'), flPts('red'))}${row('FOUL ที่ทำ', flTxt('red'), flTxt('blue'))}
+      ${cd.red !== 'none' || cd.blue !== 'none' ? row('ใบเหลือง / ใบแดง', CARD_TH[cd.red], CARD_TH[cd.blue]) : ''}${rp ? row('Ranking Points', rpC(rp.red), rpC(rp.blue)) : ''}
       ${rec.det?.length ? row('คะแนนตอนจบแมตช์', det('red'), det('blue')) : ''}</table>
+    ${rp ? `<p class="mut" style="font-size:12px">${RP_NOTE}${c.kind === 'tele' ? ' · แมตช์ TELEOP อย่างเดียวไม่มีแต้ม LEAVE' : ''}</p>` : ''}
     <table><tr class="mut"><td>หุ่น</td><td style="text-align:left">ผู้ขับ</td><td style="text-align:center">ยิง / เข้า CELL</td><td style="text-align:center">cycle เฉลี่ย</td><td>เลือด</td></tr>${bots}</table>
     ${rec.log?.length ? `<h4>เหตุการณ์ในห้อง</h4><div class="mut" style="font-size:12px;line-height:1.5">${rec.log.map(e => `${fmtClock(e.ts)} · ${esc(e.t)}`).join('<br>')}</div>` : ''}`;
 }
@@ -1450,8 +1694,12 @@ function netPreset(n) {  // เลือกจำนวนผู้เล่น 
   for (const p of seated) { const s = ns[p.i].type === 'human' && !ns[p.i].who ? ns[p.i] : ns.find(x => x.type === 'human' && !x.who); if (s) { s.who = p.who; s.name = p.name; } }
   NET.room.slots = ns; netLobbyPush();
 }
+let lobbyPend = false;
 function showLobby() {
   const R = NET.room; if (!NET.role || !R) return;
+  // กำลังเปิดรายการเลือกอยู่ (dropdown) แล้วมีคนเข้า / ออกห้อง: รอให้เลือกเสร็จก่อนค่อยวาดหน้าใหม่ ไม่ให้รายการหุบเอง
+  const ae = document.activeElement;
+  if (ae?.tagName === 'SELECT' && $('ovBox').contains(ae)) { if (!lobbyPend) { lobbyPend = true; ae.addEventListener('blur', () => { lobbyPend = false; setTimeout(showLobby, 0); }, { once: true }); } return; }
   const host = NET.role === 'host', c = R.cfg, me = NET.id, dis = host ? '' : 'disabled';
   const sel = (id, cur, o) => `<select id="${id}" ${dis}>${Object.entries(o).map(([v, t]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const chk = (k, t) => `<label><input type="checkbox" data-cfg="${k}" ${c[k] ? 'checked' : ''} ${dis}> ${t}</label>`;
@@ -1514,11 +1762,13 @@ function netBar() {  // status bar บนสุดของจอ: สถาน�
 }
 function netPing() {  // เวลาไป-กลับของสัญญาณถึง host (เครื่องที่เข้าร่วม) · เตือนเมื่อการเชื่อมต่อต้องอ้อมผ่านเซิร์ฟเวอร์ relay
   const el = $('nbPing'); if (!el) return;
+  if (NET.role === 'client' && NET.playing && S.running && NET.age > 1.5) { el.style.color = '#ff7b6b'; el.textContent = `⚠ ไม่ได้รับสัญญาณจาก host ${Math.floor(NET.age)} วิ${NET.age > 8 ? ' · ถ้าไม่กลับมาให้ออกแล้วเข้าห้องใหม่ด้วยชื่อเดิม' : ''}`; return; }
   if (NET.role !== 'client' || !NET.ping) { el.textContent = ''; return; }
   const p = Math.round(NET.ping); el.style.color = p < 80 ? 'var(--grn)' : p < 180 ? 'var(--yel)' : '#ff7b6b';
   el.textContent = `ping ${p} ms${NET.relay ? ' · ⚠ ผ่าน relay (หน่วงสูง)' : ''}`;
 }
 addEventListener('pageshow', e => { if (e.persisted && NET.dead) location.reload(); });
+addEventListener('beforeunload', e => { if ((NET.role && NET.playing && !S.over) || (NET.role === 'host' && Object.keys(NET.peers).length)) { e.preventDefault(); e.returnValue = ''; } });  // กันเผลอปิดแท็บ / รีเฟรชระหว่างแข่ง (host ปิด = ห้องปิดทุกเครื่อง)
 addEventListener('pagehide', () => { if (NET.role) NET.dead = true; if (NET.role && NET.playing) netHist('closed'); try { if (NET.role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else if (NET.role === 'client') NET.conn.close(); } catch {} });
 
 // =================== Free Control ===================
@@ -1541,7 +1791,7 @@ function renderPanels() {
   sb.innerHTML = SCN ? `<h4>สถานการณ์ ${esc(SCN_ID)}</h4><b>${esc(SCN.title)}</b><div id="objLive" style="margin-top:4px"></div>` : NET.role ? `<h4>แมตช์ออนไลน์ · ห้อง ${esc(NET.room?.code || '')}</h4><div class="mut" style="font-size:12px">${NKIND_TH[NET.room?.cfg.kind] || ''}</div>` : `<h4>${S.mode === 'free' ? 'Free Control' : 'แมตช์'}</h4>`;
   { const r = R1(), a = TH[r.alliance]; $('myHdr').textContent = `หุ่นของเรา (${SLOT_TH[r.id] || r.id})`; $('hiveHdr').textContent = `HIVE ${a} · CELL ที่หงาย`; $('tipLbl').textContent = `TIP ${a}`; $('foulHdr').textContent = `FOUL / คำเตือน ของ${a}`; }
   const btns = [...(SCN?.coach || []), ...(S.mode === 'free' || S.opt.hpManual ? ['hp'] : [])].filter((v, i, a) => a.indexOf(v) === i);
-  const BL = { call: ['📣 ประกาศเวลา (B)', 'KeyB'], predict: ['🎯 ทาย: ลูกนี้ TIP (P)', 'KeyP'], confirm: ['✅ ยืนยันตำแหน่ง (Y)', 'KeyY'], hp: [`${MY() === 'red' ? '🟥' : '🟦'} Human Player ปล่อย NECTAR (H)<br><b id="hpLeft" style="font-size:13px"></b>`, 'KeyH'] };
+  const BL = { call: ['📣 ประกาศเวลา (B)', 'KeyB'], predict: ['🎯 ทาย: ลูกนี้ TIP (P)', 'KeyP'], confirm: ['✅ ยืนยันตำแหน่ง (Y)', 'KeyY'], cmd: [esc(SCN?.cmdLabel || '📣 สั่งทีม') + ' (V)', 'KeyV'], hp: [`${MY() === 'red' ? '🟥' : '🟦'} Human Player ปล่อย NECTAR (H)<br><b id="hpLeft" style="font-size:13px"></b>`, 'KeyH'] };
   cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
   cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
   const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
@@ -1588,7 +1838,7 @@ document.querySelectorAll('#ds button').forEach(b => b.onclick = () => {
 function hud(inp) {
   const r = R1(), ph = phase(), rem = remaining();
   $('clock').textContent = S.opt.hideClock && S.running ? '— : —' : S.mode === 'free' ? '∞' : ph === 'auto' ? fmt(AUTO_LEN - S.el) : ph === 'trans' ? fmt(AUTO_LEN + TRANS_LEN - S.el) : fmt(rem);
-  $('phase').textContent = S.mode === 'free' ? (NET.role ? 'ซ้อมออนไลน์' : 'Free Control') : S.over ? 'จบ' : !S.running ? 'หยุด' : ph === 'auto' ? 'AUTO' : ph === 'trans' ? 'ช่วงเปลี่ยน · ห้ามขยับ' : rem <= 60 ? 'TELEOP · FLOWER เปิด' : 'TELEOP';
+  $('phase').textContent = S.mode === 'free' ? (NET.role ? 'ซ้อมออนไลน์' : 'Free Control') : S.over ? 'จบ' : S.settle ? 'หมดเวลา · รอทุกอย่างหยุดนิ่ง' : !S.running ? 'หยุด' : ph === 'auto' ? 'AUTO' : ph === 'trans' ? 'ช่วงเปลี่ยน · ห้ามขยับ' : rem <= 60 ? 'TELEOP · FLOWER เปิด' : 'TELEOP';
   $('sRed').textContent = total('red'); $('sBlue').textContent = total('blue');
   const p = projected(); $('projTxt').textContent = S.mode === 'free' ? '' : `ถ้าจบตอนนี้: แดง ${p.red} – น้ำเงิน ${p.blue}`;
   $('hpTxt').textContent = r.hp + '%'; $('hp').style.width = r.hp + '%'; $('hp').style.background = r.hp > 50 ? 'var(--grn)' : r.hp > 25 ? 'var(--yel)' : 'var(--red)';
@@ -1605,7 +1855,7 @@ function hud(inp) {
   $('credit').textContent = S.opt.hpManual || S.mode === 'free' ? `กด H / △ ปล่อยเอง · สิทธิ์ปล่อยตอนนี้ ${cr}` : 'ปล่อยอัตโนมัติหลัง TIP และที่ 1:00';
   const hl = document.getElementById('hpLeft'); if (hl) hl.textContent = `เหลือ ${left} ลูก` + (S.mode === 'free' ? '' : ` · สิทธิ์ ${cr}`);
   $('pickBar').style.display = S.opt.intakeDelay ? '' : 'none'; $('pick').style.width = Math.round((r.pickP || 0) * 100) + '%';
-  const fr = S.fouls.filter(f => f.all === my); $('fouls').innerHTML = fr.length ? fr.slice(-5).map(f => `${esc(f.rule)} ${f.sev === 'WARN' ? 'เตือน' : '+' + (+f.pts || 0)} · ${fmt(+f.rem || 0)}`).join('<br>') : '<span class="mut">ไม่มี</span>';
+  const fr = S.fouls.filter(f => f.all === my); $('fouls').innerHTML = fr.length ? fr.slice(-5).map(f => `${esc(f.rule)} ${f.sev === 'WARN' ? 'เตือน' : '+' + (+f.pts || 0)}${f.card === 'red' ? ' 🟥' : f.card ? ' 🟨' : ''} · ${fmt(+f.rem || 0)}`).join('<br>') : '<span class="mut">ไม่มี</span>';
   padHud(inp);
   const ol = $('objLive'); if (ol && SCN) { const ok = S.mode === 'scenario' ? evalObj() : SCN.obj.map(() => false); ol.innerHTML = SCN.obj.map((o, i) => { const s = ok[i] ? ['✓', 'ok'] : o.live ? ['✗', 'bad'] : ['…', 'mut']; return `<div class="obj"><b class="${s[1]}">${s[0]}</b><span>${esc(o.t)}</span></div>`; }).join('') + (SCN.status && S.mode === 'scenario' ? `<div class="mut" style="margin-top:4px">${esc((() => { try { return SCN.status(api) || ''; } catch { return ''; } })())}</div>` : ''); }
   const cc = $('coachClock'); if (cc) cc.textContent = `นาฬิกาโค้ช: ${S.mode === 'free' ? '∞' : ph === 'teleop' ? fmt(rem) : ph === 'auto' ? 'AUTO ' + fmt(AUTO_LEN - S.el) : 'เปลี่ยนช่วง'} · ประกาศแล้ว ${S.calls.length} ครั้ง`;
@@ -1616,14 +1866,24 @@ function hud(inp) {
 
 const padRoleTxt = (n, kind) => { const B = BTN_NAMES[kind] || BTN_NAMES.ps; return n === 1 ? `คนขับ: L เดิน/สไลด์ · R หมุน · ${B[2]} ช้า` : `คนยิง: ${B[5]}/${B[4]} ยิง · ${B[7]}/${B[6]} วาง · ${B[0]} intake · ${B[1]} คาย`; };
 let padOpen = false;
-function padTested(p) { try { const m = JSON.parse(localStorage.getItem('dca-pad-tests') || '{}'); return m[p.index + '|' + p.id]?.ok; } catch { return false; } }
+let padTests = null;  // ผลจากหน้าทดสอบจอย (dca-pad-tests) อ่านครั้งเดียวแล้วจำ · ล้างเมื่อหน้าทดสอบบันทึกใหม่หรือกลับมาที่แท็บนี้
+function padTested(p) {
+  if (!p) return false;
+  if (!padTests) { try { padTests = JSON.parse(localStorage.getItem('dca-pad-tests') || '{}') || {}; } catch { padTests = {}; } }
+  // key ใหม่ = รุ่นจอย (ตัวที่ 2 ของรุ่นเดียวกัน = "<id>#2") · key เก่า = "<ช่อง>|<id>"
+  const same = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected && g.id === p.id).sort((a, b) => a.index - b.index), n = same.findIndex(g => g.index === p.index);
+  return !!(padTests[n > 0 ? p.id + '#' + (n + 1) : p.id]?.ok || padTests[p.index + '|' + p.id]?.ok
+    || (same.length <= 1 && Object.keys(padTests).some(k => /^\d+\|/.test(k) && k.slice(k.indexOf('|') + 1) === p.id && padTests[k]?.ok)));
+}
+addEventListener('storage', e => { if (e.key === 'dca-pad-role') loadPadRole(); if (e.key === 'dca-pad-role' || e.key === 'dca-pad-tests' || e.key === null) padTests = null; });
+addEventListener('focus', () => { padTests = null; });
 function padPanel() {
   const slot = n => `<div class="padSlot" style="border:1px solid var(--line,#444);border-radius:8px;padding:6px;margin-top:6px">
     <div><b>Joy ${n}</b> <span class="mut" id="padRoleTxt${n}"></span></div>
     <div id="padLive${n}" class="mut" style="font-size:12px;min-height:30px">ยังไม่เชื่อมต่อ</div>
     <div style="margin-top:4px">Deadzone แกน <b id="dv_dead${n}">${DRV['dead' + n]}</b></div><input type="range" data-drv="dead${n}" min="0.02" max="0.25" step="0.01" value="${DRV['dead' + n]}">
     <label style="display:block"><input type="checkbox" data-inv="${n}" ${DRV['invY' + n] ? 'checked' : ''}> กลับทิศแกนเดินหน้า/ถอย</label>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><button class="sec" data-rumble="${n}">สั่นจอยนี้ (ดูว่าตัวไหน)</button><a href="gamepad-test.html?pad=${n}" target="_blank"><button class="sec">ทดสอบ Joy ${n} ↗</button></a></div></div>`;
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><button class="sec" data-rumble="${n}">สั่นจอยนี้ (ดูว่าตัวไหน)</button><button class="sec" data-href="gamepad-test.html?pad=${n}" data-blank="1">ทดสอบ Joy ${n} ↗</button></div></div>`;
   return `<details id="padBox" ${padOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าและทดสอบจอย 2 ตัว (คนขับ / คนยิง)</summary>
     <div style="margin-top:4px">การแบ่งหน้าที่ <select id="padMode2" style="font:inherit"><option value="split" ${DRV.padMode !== 'both' ? 'selected' : ''}>แยกกัน: Joy 1 ขับ · Joy 2 ยิง</option><option value="both" ${DRV.padMode === 'both' ? 'selected' : ''}>ทั้ง 2 จอยทำได้ทุกปุ่ม</option></select></div>
     ${slot(1)}${slot(2)}
@@ -1637,14 +1897,14 @@ function setPadMode(v) { DRV.padMode = v; saveDrv(); const a = $('padMode'), b =
 function rumblePad(n) {
   const p = padNow['p' + n], g = p && navigator.getGamepads?.()[p.index], va = g?.vibrationActuator;
   if (!p) return say(`ยังไม่พบ Joy ${n}`, 1.5);
-  if (!va) return say(`Joy ${n}: เบราว์เซอร์นี้สั่นจอยไม่ได้ กดปุ่มบนจอยแล้วดูว่าช่องไหนขึ้นแทน`, 2.5);
-  va.playEffect(va.type || 'dual-rumble', { duration: 600, strongMagnitude: 0.9, weakMagnitude: 0.6 }).catch(() => {}); say(`สั่น Joy ${n} แล้ว`, 1.5);
+  if (!va && !g?.hapticActuators?.length) return say(`Joy ${n}: จอย/เบราว์เซอร์นี้สั่นไม่ได้ (ลอง Chrome หรือ Edge) กดปุ่มบนจอยแล้วดูว่าช่องไหนขึ้นแทน`, 2.5);
+  padPulse(0.9, 600, [p]); say(`สั่น Joy ${n} แล้ว`, 1.5);
 }
 function padPanelWire(q) {
   if (!q('padBox')) return;
   q('padBox').ontoggle = e => { padOpen = e.target.open; };
   q('padMode2').onchange = e => setPadMode(e.target.value);
-  q('padSwap').onclick = () => { const a = padNow.p1, b = padNow.p2; if (!a || !b) return say('ต้องต่อจอย 2 ตัวก่อนถึงจะสลับได้', 2); padRole.p1 = b.index; padRole.p2 = a.index; savePadRole(); say('สลับ Joy 1 ↔ 2 แล้ว', 1.5); };
+  q('padSwap').onclick = () => { const a = padNow.p1, b = padNow.p2; if (!a || !b) return say('ต้องต่อจอย 2 ตัวก่อนถึงจะสลับได้', 2); Object.assign(padRole, { p1: b.index, id1: b.id, p2: a.index, id2: a.id }); savePadRole(); say('สลับ Joy 1 ↔ 2 แล้ว', 1.5); };
   document.querySelectorAll('#padBox [data-rumble]').forEach(b => b.onclick = () => rumblePad(+b.dataset.rumble));
   document.querySelectorAll('#padBox [data-inv]').forEach(c => c.onchange = () => { DRV['invY' + c.dataset.inv] = c.checked; saveDrv(); });
 }
@@ -1655,7 +1915,7 @@ function padLive() {
     rt.textContent = !p ? '' : padNow.split ? padRoleTxt(n, p.kind) : padNow.p1 && padNow.p2 ? 'ทุกปุ่ม' : 'ตัวเดียว ทุกปุ่ม';
     if (!p) { el.className = 'mut'; el.textContent = n === 2 ? 'ยังไม่เชื่อมต่อ · ต่อจอยตัวที่ 2 แล้วกดปุ่มใดก็ได้' : 'ยังไม่เชื่อมต่อ'; continue; }
     const f = v => (v >= 0 ? '+' : '') + (v || 0).toFixed(2);
-    el.className = ''; el.innerHTML = `${esc(p.id.replace(/\s*\(.*$/, '').slice(0, 30))} · ${KIND_TH[p.kind]}${p.std ? '' : ' (mapping ไม่ใช่ standard)'} · ช่อง ${p.index} ${padTested(p) ? '<b class="ok">· ทดสอบผ่าน ✓</b>' : '<span class="mut">· ยังไม่ทดสอบ</span>'}<br>L ${f(p.ax[0])}, ${f(p.ax[1])} · R ${f(p.ax[2])}, ${f(p.ax[3])} · กด: <b>${p.held.length ? p.held.map(i => (BTN_NAMES[p.kind] || BTN_NAMES.ps)[i] || i).join(' ') : '—'}</b>`;
+    el.className = ''; el.innerHTML = `${esc(p.id.replace(/\s*\(.*$/, '').slice(0, 30))} · ${KIND_TH[p.kind]}${p.std ? '' : ' <span style="color:var(--yel)">(mapping ไม่ใช่ standard · ถ้าปุ่มไม่ตรง เปิดหน้าทดสอบจอย หรือสลับ Logitech เป็นโหมด X)</span>'} · ช่อง ${p.index} ${padTested(p) ? '<b class="ok">· ทดสอบผ่าน ✓</b>' : '<span class="mut">· ยังไม่ทดสอบ</span>'}<br>L ${f(p.ax[0])}, ${f(p.ax[1])} · R ${f(p.ax[2])}, ${f(p.ax[3])} · กด: <b>${p.held.length ? p.held.map(i => (BTN_NAMES[p.kind] || BTN_NAMES.ps)[i] || i).join(' ') : '—'}</b>`;
   }
 }
 function padHud(inp) {
@@ -1669,13 +1929,22 @@ function padHud(inp) {
 // =================== ลูป ===================
 let last = performance.now(), acc = 0, hudT = 1;
 function simFrame(now) {  // เดินสนาม + รับส่งข้อมูลออนไลน์ (ไม่วาดภาพ) · host ที่สลับแท็บเรียกตัวนี้จาก Worker
-  const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now; acc += dt;
+  const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now; acc = Math.min(acc + dt, 0.25);
   if (NET.role === 'client') { const inp = readInput(); netClientFrame(acc, inp); acc = 0; hudT += dt; if (hudT > 0.1) { hudT = 0; hud(inp); } }
   else if (acc >= DT) { const inp = readInput(); let first = true; while (acc >= DT) { tick(DT, first ? inp : { ...inp, ...Object.fromEntries(EDGE.map(k => [k, false])) }); first = false; acc -= DT; } hudT += dt; if (hudT > 0.1) { hudT = 0; hud(inp); } }
   if (NET.role === 'host') netHostFrame(now);
   return dt;
 }
-function frame(now) { const dt = simFrame(now); sync(); updateCamera(dt); renderer.render(scene, camera); autoQuality(now); requestAnimationFrame(frame); }
+let frameErr = 0;
+function frame(now) {  // ข้อผิดพลาดในเฟรมเดียวต้องไม่ทำให้ทั้งจอค้าง: จับไว้ แจ้งผู้ใช้ แล้วเดินเฟรมถัดไปเสมอ
+  try { const dt = simFrame(now); fxWatch(); sync(); updateCamera(dt); renderer.render(scene, camera); autoQuality(now); }
+  catch (e) { if (frameErr++ < 5) console.error(e); if (frameErr === 1 || frameErr % 600 === 0) sayMe('โปรแกรมขัดข้อง: ' + String(e?.message || e).slice(0, 80) + ' · ถ้าจอค้างให้รีเฟรชหน้า', 6); $('msg').textContent = S.msg; $('msg').style.opacity = 1; }
+  requestAnimationFrame(frame);
+}
+{ const rb = $('optRumble'), sb = $('optSound'); rb.checked = DRV.rumble !== false; sb.checked = DRV.sound !== false;
+  rb.onchange = () => { DRV.rumble = rb.checked; saveDrv(); if (rb.checked) rumble(RUM.minor, 9); };
+  sb.onchange = () => { DRV.sound = sb.checked; saveDrv(); if (sb.checked) cue('teleop'); };
+  $('rumTest').onclick = () => { if (!padNow.p1 && !padNow.p2) return sayMe('ยังไม่พบจอย · กดปุ่มใดก็ได้บนจอยก่อน', 2.5); rumble(RUM.major, 9, true); sayMe('สั่นแล้ว · ถ้าไม่รู้สึก: จอยรุ่นนี้หรือเบราว์เซอร์นี้ไม่รองรับการสั่น (ใช้ Chrome / Edge)', 3.5); }; }
 $('fsBtn').onclick = e => { e.preventDefault(); try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch {} };
 // laptop ที่การ์ดจอเบา: ถ้าเฟรมเรตเฉลี่ยต่ำกว่า ~33 fps ต่อเนื่อง ลดความละเอียดภาพลงทีละขั้น (2 → 1 → 0.75) เพื่อให้ขับลื่น
 let pxr = Math.min(devicePixelRatio, 2), fqN = 0, fqT = 0, fqLast = 0;
@@ -1685,13 +1954,20 @@ function autoQuality(now) {
   const avg = fqT / fqN; fqN = fqT = 0;
   if (avg > 30 && pxr > 0.75) { pxr = pxr > 1 ? 1 : 0.75; renderer.setPixelRatio(pxr); renderer.setSize(innerWidth, innerHeight); }
 }
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setPixelRatio(Math.min(pxr, devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight); });  // ย้ายจอ / ซูมหน้าเว็บ = devicePixelRatio เปลี่ยน
+renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); sayMe('การ์ดจอหยุดทำงานชั่วคราว (WebGL context lost) · รอสักครู่ ถ้าภาพไม่กลับมาให้โหลดหน้าใหม่', 8); });
+renderer.domElement.addEventListener('webglcontextrestored', () => sayMe('ภาพกลับมาแล้ว', 2));
 addEventListener('gamepadconnected', e => { const n = [...(navigator.getGamepads?.() || [])].filter(g => g && g.connected).length; say(`พบจอยตัวที่ ${Math.min(n, 2)}: ${e.gamepad.id.slice(0, 32)}` + (n >= 2 ? (DRV.padMode === 'both' ? ' · ทั้ง 2 จอยคุมได้ทุกปุ่ม' : ' · Joy 1 ขับ / Joy 2 ยิง') : ''), 3); });
-addEventListener('gamepaddisconnected', e => { for (const r of ['p1', 'p2']) if (padRole[r] === e.gamepad.index) padRole[r] = null; savePadRole(); say('จอยหลุด: ' + e.gamepad.id.slice(0, 32), 3); });
+addEventListener('gamepaddisconnected', e => {  // ไม่ล้าง Joy 1 / Joy 2 ที่ตั้งไว้: เสียบกลับแล้วได้หน้าที่เดิม · ล้างสถานะปุ่มค้างของช่องนั้น
+  const k = e.gamepad.index; for (const id in padWas) if (id.startsWith(k + ':')) delete padWas[id]; delete padHold[k];
+  say('จอยหลุด: ' + e.gamepad.id.slice(0, 32) + ' · เสียบกลับแล้วใช้ต่อได้เลย', 3);
+});
 $('driveHelp').innerHTML = driveSel('driveMode'); $('driveMode').onchange = e => setDriveMode(e.target.value);
 $('padMode').value = DRV.padMode || 'split'; $('padMode').onchange = e => setPadMode(e.target.value);
 window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()), simFrame, net: { get NET() { return NET; }, get ME() { return ME; }, create: netCreate, join: netJoin, start: netStartMatch, preset: netPreset, leave: netLeave, back: netBack, hostMsg: netHostMsg, lobbyPush: netLobbyPush, showOnline, showLobby, showHistory, histLoad, rec: netRec } };
 renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else if (Q.get('mode') === 'online') showOnline(); else if (/^\d{6}$/.test(Q.get('room') || '')) showOnline(Q.get('room')); else showMenu();
+if (SCN_ID && !SCN) $('ovBox').insertAdjacentHTML('afterbegin', `<p class="bad" style="font-weight:700">ไม่พบสถานการณ์ “${esc(SCN_ID)}” (ลิงก์เก่าหรือพิมพ์ผิด) · เลือกจากรายการด้านล่าง</p>`);
+document.getElementById('loadFail')?.remove();
 sync(); hud(emptyInput()); requestAnimationFrame(frame);
 </script>
 </body>

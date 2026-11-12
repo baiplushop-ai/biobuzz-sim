@@ -35,6 +35,13 @@ function hpTiming(api, win = 5) {
 }
 const hpStatus = api => { const S = api.S, rem = api.remaining(), credit = rem <= 60 ? 'ทั้งหมด' : Math.max(0, S.stats.tips.red - S.hp.red.used); const occ = ['R1', 'R2'].some(id => !api.robot(id).off && api.overlapLZ(id, 'red')); return `สิทธิ์ปล่อยตอนนี้: ${credit} · LOADING ZONE แดง: ${occ ? 'มีหุ่นอยู่ ⚠' : 'ว่าง'} · เหลือในมือ ${api.stagedLeft('red')}`; };
 function hpCommon(api) { api.ai('R1', { mode: 'offense' }); api.ai('R2', { mode: 'offense' }); }
+// ปุ่ม "สั่งทีม" ของโค้ช (V): นับว่าสั่งทันก่อนหุ่น a กับ b ชนกันกี่ครั้ง (สั่งก่อนชนไม่เกิน win วิ)
+function warnCalls(S, a, b, win = 4) {
+  const hits = S.events.filter(e => e.type === 'hit' && ((e.a === a && e.b === b) || (e.a === b && e.b === a)));
+  return { hits: hits.length, ok: hits.filter(h => S.cmds.some(c => c.rem >= h.rem && c.rem <= h.rem + win)).length, n: S.cmds.length };
+}
+const LZ_RED = [-1.647, -0.895];  // กลาง LOADING ZONE แดง
+const nearLZ = (api, id) => { const r = api.robot(id); return !r.off && !api.overlapLZ(id, 'red') && Math.hypot(r.x - LZ_RED[0], r.z - LZ_RED[1]) <= 1.3; };
 
 window.SCENARIOS = {
 // ---------------- Drive Coach ----------------
@@ -104,6 +111,7 @@ window.SCENARIOS = {
     { t: 'แตะกำแพง และหุ่นอยู่ในฝั่งแดงทั้งตัว', ok: S => !!S.sc.check?.wall && !!S.sc.check?.side },
     { t: 'อยู่นอก LOADING ZONE', ok: S => !!S.sc.check?.outLZ },
     { t: 'ไม่แตะ FLOWER', ok: S => !!S.sc.check?.noFlower },
+    { t: 'หุ่นอยู่ในสนามทั้งตัว และจอดนิ่งตอนยืนยัน', ok: S => !!S.sc.check?.inField && !!S.sc.check?.still },
     { t: 'ยืนยันตำแหน่งภายใน 60 วิ', ok: S => !!S.sc.check },
   ],
 },
@@ -118,6 +126,31 @@ window.SCENARIOS = {
     { t: 'AUTO TIP อย่างน้อย 1 ครั้ง', ok: S => S.stats.autoTips.red >= 1 },
     { t: 'R1 กับ R2 ไม่ชนกัน', ok: (S, api) => api.hits('R1', 'R2') === 0, live: true },
     { t: 'ไม่มี TIP ที่ถูกขัดจนไม่สำเร็จ', ok: S => S.stats.disrupted.red === 0, live: true },
+  ],
+},
+'3.6': {
+  title: 'AUTO ไม่รบกวนฝั่งคู่แข่ง (G402)',
+  brief: 'เลือกแผน AUTO ให้ R1 และ R2 แล้วดูผล 30 วิ ช่วง AUTO ห้ามรบกวนฝั่งคู่แข่ง เช่น ควบคุมลูกในฝั่งเขา หรือชนหุ่นเขาในฝั่งเขา (G402 = MAJOR FOUL · ถ้ากรรมการเห็นว่าจงใจ + YELLOW CARD) และ Drive Team ห้ามแตะจอยระหว่าง AUTO (G401) แนวของทีม: ทั้งสองหุ่นอยู่ในฝั่งแดงตลอด AUTO แล้วทำแต้มจาก LEAVE กับ TIP แผนแรกในรายการไม่ใช่แผนที่ถูกเสมอไป',
+  phase: 'auto', opt: { disrupt: true },
+  plans: {
+    R1: [
+      { label: 'ยิง pre-load แล้วข้ามไปเก็บลูกฝั่งน้ำเงิน', tasks: [{ goto: 'spot' }, { shoot: 4 }, { goto: [-1.2, 0.8], timeout: 6 }, { goto: [1.2, 0.95], timeout: 14 }] },
+      { label: 'ยิง pre-load แล้วเก็บลูกในฝั่งแดง', tasks: [{ goto: 'spot' }, { shoot: 4 }, { goto: [-0.9, -0.6] }] },
+      { label: 'ไม่ยิง: วิ่งไปขวางจุดยิงของคู่แข่ง', tasks: [{ goto: [1.3, -1.0], timeout: 14 }] },
+    ],
+    R2: [
+      { label: 'ยิงทันที แล้ววิ่งข้ามเส้นกลางไปรอลูก', tasks: [{ goto: 'spot' }, { shoot: 4, ignoreTip: true }, { goto: [0.6, 0.9], timeout: 12 }] },
+      { label: 'รอ HIVE นิ่งแล้วยิง จบที่ LOADING ZONE แบบไม่แตะกำแพง', tasks: [{ wait: 1 }, { goto: 'spot' }, { shoot: 4 }, { goto: 'lzAuto' }] },
+    ],
+  },
+  setup() {},
+  tick(api) { const S = api.S; if (S.el < 30 && ['R1', 'R2'].some(id => api.robot(id).x > -0.22)) S.sc.crossed = true; },
+  end: api => api.S.el >= 30,
+  obj: [
+    { t: 'R1 และ R2 อยู่ในฝั่งแดงตลอด AUTO (แนวของทีม: ไม่ล้ำเส้นกลาง)', ok: S => !S.sc.crossed, live: true },
+    { t: 'ไม่โดน G402 (ชนหุ่นคู่แข่งในฝั่งเขาช่วง AUTO)', ok: (S, api) => api.foulCount('red', 'G402') === 0, live: true },
+    { t: 'LEAVE ครบทั้งสองหุ่นแดง', ok: S => S.stats.leave.red >= 2 },
+    { t: 'AUTO TIP อย่างน้อย 1 ครั้ง', ok: S => S.stats.autoTips.red >= 1 },
   ],
 },
 '4.1': {
@@ -137,8 +170,8 @@ window.SCENARIOS = {
 },
 '4.2': {
   title: 'หลัง TIP: สลับฝั่ง',
-  brief: 'CELL หงายขาดอีก 1 ลูกจะ TIP หุ่นถือ POLLEN 4 ลูกอยู่ที่จุดยิงแล้ว หลังพลิก CELL ที่หงายใหม่อยู่อีกฝั่งของ HIVE โค้ชต้องสั่ง "สลับ" ทันที และห้ามจอดรอใต้ HIVE เพื่อรับลูกที่ร่วงลงมา (G409)',
-  start: 40, opt: { bots: false },
+  brief: 'CELL หงายขาดอีก 1 ลูกจะ TIP หุ่นถือ POLLEN 4 ลูกอยู่ที่จุดยิงแล้ว หลังพลิก CELL ที่หงายใหม่อยู่อีกฝั่งของ HIVE โค้ชต้องสั่ง "สลับ" ทันที และห้ามจอดรอใต้ HIVE เพื่อรับลูกที่ร่วงลงมา (G409) เมื่อ HIVE พลิกเสร็จ ให้โค้ชกด V หรือปุ่ม "สั่งสลับ" ทันที',
+  start: 40, opt: { bots: false }, coach: ['cmd'], cmdLabel: '📣 สั่ง "สลับ"', cmdSay: 'สลับ!',
   setup(api) {
     ['B1', 'B2'].forEach(api.bench); api.ai('R2', { mode: 'idle' });
     api.cell('red', 2, 3); api.pos('R1', RED_SPOT[0], RED_SPOT[1]); api.faceCell('R1');
@@ -148,6 +181,7 @@ window.SCENARIOS = {
     { t: 'ทำ TIP แรกได้', ok: (S, api) => api.tips('red') >= 1 },
     { t: 'ยิงเข้า CELL ใหม่อย่างน้อย 3 ลูก ภายใน 15 วิหลัง TIP', ok: S => (S.sc.afterTip ?? 0) >= 3 },
     { t: 'ไม่รับลูกที่ร่วงจาก HIVE (G409)', ok: S => S.stats.g409.red === 0, live: true },
+    { t: 'โค้ชสั่ง "สลับ" ภายใน 3 วิหลัง TIP (กดก่อน TIP ไม่เกิน 1 ครั้ง)', ok: S => S.sc.tipEl != null && S.cmds.some(c => c.el >= S.sc.tipEl && c.el <= S.sc.tipEl + 3) && S.cmds.filter(c => c.el < S.sc.tipEl).length <= 1 },
   ],
   onTip(api, c) { if (c === 'red' && api.S.sc.tipEl == null) { api.S.sc.tipEl = api.S.el; api.S.sc.afterTip = 0; } },
   onCellHit(api, b) { const sc = api.S.sc; if (b.hive === 'red' && sc.tipEl != null && api.S.el - sc.tipEl <= 15) sc.afterTip++; },
@@ -183,11 +217,13 @@ window.SCENARIOS = {
 },
 '5.1': {
   title: 'PIN และการปะทะ',
-  brief: 'หุ่น B1 ของคู่แข่งจะพุ่งเข้าชนหุ่นเราเป็นระยะ หุ่นชนกัน 1 ครั้งเลือดลด 2% ถ้าหุ่นเราดันคู่แข่งติดกำแพงหรือสิ่งกีดขวางเกิน 3 วิ จะโดน PIN FOUL (G421) โค้ชต้องเรียก "ระวัง" ก่อนชน และสั่ง "ถอย" ถ้าเริ่มติดกัน',
-  start: 120,
+  brief: 'หุ่น B1 ของคู่แข่งจะพุ่งเข้าชนหุ่นเราเป็นระยะ หุ่นชนกัน 1 ครั้งเลือดลด 2% (กฎฝึกของทีม ไม่ใช่กติกา) ถ้าหุ่นเราดันคู่แข่งติดกำแพงหรือสิ่งกีดขวางเกิน 3 วิ จะโดน PIN FOUL (G421) โค้ชต้องเรียก "ระวัง" ก่อนชน และสั่ง "ถอย" ถ้าเริ่มติดกัน ทุกครั้งที่เห็น B1 พุ่งเข้ามา ให้กด V หรือปุ่ม "สั่งระวัง" ก่อนหุ่นชนกัน',
+  start: 120, coach: ['cmd'], cmdLabel: '📣 สั่ง "ระวัง"', cmdSay: 'ระวัง!',
   setup(api) { api.ai('B1', { mode: 'bump', target: 'R1' }); },
+  status: api => { const w = warnCalls(api.S, 'R1', 'B1'); return `B1 ชน ${w.hits} ครั้ง · สั่ง "ระวัง" ทัน ${w.ok} ครั้ง · กดสั่งไป ${w.n} ครั้ง`; },
   obj: [
     { t: 'เลือด R1 เหลืออย่างน้อย 90%', ok: S => S.robots[0].hp >= 90, live: true },
+    { t: 'โค้ชสั่ง "ระวัง" ก่อนชนไม่เกิน 4 วิ อย่างน้อยครึ่งหนึ่งของการชน และไม่กดมั่ว', ok: S => { const w = warnCalls(S, 'R1', 'B1'); return w.hits ? w.ok * 2 >= w.hits && w.n <= Math.max(6, w.hits * 3) : w.n <= 3; } },
     { t: 'ไม่โดน PIN FOUL (G421)', ok: (S, api) => api.foulCount('red', 'G421') === 0, live: true },
     { t: 'TIP อย่างน้อย 2 ครั้ง', ok: (S, api) => api.tips('red') >= 2 },
   ],
@@ -228,8 +264,8 @@ window.SCENARIOS = {
 },
 '5.6': {
   title: 'HIVE กำลังพลิก',
-  brief: 'ในสถานการณ์นี้ หุ่นยิงได้แม้ HIVE กำลังพลิก แต่ถ้าลูกเข้า CELL ระหว่างพลิก อาจทำให้ TIP ไม่สำเร็จ CELL ขาดอีก 1 ลูก โค้ชต้องเรียก "หยุดยิง… รอนิ่ง… สลับ" ทุกครั้ง',
-  start: 120, opt: { disrupt: true, bots: false },
+  brief: 'ในสถานการณ์นี้ หุ่นยิงได้แม้ HIVE กำลังพลิก แต่ถ้าลูกเข้า CELL ระหว่างพลิก อาจทำให้ TIP ไม่สำเร็จ CELL ขาดอีก 1 ลูก โค้ชต้องเรียก "หยุดยิง… รอนิ่ง… สลับ" ทุกครั้ง และกด V หรือปุ่ม "สั่งหยุดยิง" ตอนลูกที่ทำให้ TIP เข้า CELL (HIVE เริ่มพลิก)',
+  start: 120, opt: { disrupt: true, bots: false }, coach: ['cmd'], cmdLabel: '📣 สั่ง "หยุดยิง"', cmdSay: 'หยุดยิง!',
   setup(api) {
     ['B1', 'B2'].forEach(api.bench); api.ai('R2', { mode: 'idle' });
     api.cell('red', 7, 0); api.pos('R1', RED_SPOT[0], RED_SPOT[1]); api.faceCell('R1');
@@ -238,6 +274,7 @@ window.SCENARIOS = {
   end: api => api.tips('red') >= 3,
   obj: [
     { t: 'TIP สำเร็จ 3 ครั้ง', ok: (S, api) => api.tips('red') >= 3 },
+    { t: 'โค้ชสั่ง "หยุดยิง" ตอน HIVE เริ่มพลิก อย่างน้อย 2 ครั้ง (กดรวมไม่เกิน 9 ครั้ง)', ok: (S, api) => api.tipEvents('red').filter(e => S.cmds.some(c => c.el >= e.el - 2.5 && c.el <= e.el + 0.5)).length >= 2 && S.cmds.length <= 9 },
     { t: 'ไม่มี TIP ที่ถูกขัดจนไม่สำเร็จ', ok: S => S.stats.disrupted.red === 0, live: true },
   ],
 },
@@ -331,7 +368,7 @@ window.SCENARIOS = {
 },
 'D1.5': {
   role: 'driver', title: 'หยุดก่อนยิง (ไม่มีล็อกยิง)',
-  brief: 'กดยิงได้ทุกที่ ไม่มีการล็อก ลูกจะเข้าหรือไม่เข้าตามวิถีจริง ฝึกนิสัยยิงให้ถูก: อยู่ในวงแหวนจุดยิง (ห่าง CELL ที่หงาย 0.9–1.6 ม.) หันตรง CELL ไม่เกิน 10° และหยุดนิ่งสนิทก่อนกด ถ้ากดยิงตอนยังไม่พร้อมจะนับเป็นความผิดพลาด ยิงเข้า 8 ลูก จากอย่างน้อย 2 จุด',
+  brief: 'กดยิงได้ทุกที่ ไม่มีการล็อก ลูกจะเข้าหรือไม่เข้าตามวิถีจริง ฝึกตามกฎฝึกของทีม (กติกา FTC ไม่ได้บังคับ): อยู่ในวงแหวนจุดยิง (ห่าง CELL ที่หงาย 0.9–1.6 ม.) หันตรง CELL ไม่เกิน 10° และหยุดนิ่งสนิทก่อนกด ถ้ากดยิงตอนยังไม่พร้อมจะนับเป็นความผิดพลาด ยิงเข้า 8 ลูก จากอย่างน้อย 2 จุด',
   start: 120, opt: { bots: false },
   setup(api) { ['B1', 'B2'].forEach(api.bench); api.ai('R2', { mode: 'idle' }); api.parkNow('R2'); api.scatter(16, RED_HALF); },
   status: api => `ยิงเข้า ${api.S.stats.hits}/8 · กดยิงตอนไม่พร้อม ${api.S.stats.blocked + (api.S.stats.warnShots || 0)} ครั้ง`,
@@ -356,12 +393,12 @@ window.SCENARIOS = {
 },
 'D2.5': {
   role: 'driver', title: 'จาก AUTO เข้า TELEOP',
-  brief: 'เริ่มตอน AUTO เหลือ 8 วิ หุ่นวิ่งเองตามโปรแกรม ห้ามแตะจอยจนถึง TELEOP (ช่วงเปลี่ยน 8 วิ G403) พอ TELEOP เริ่ม ให้รีบเก็บลูกแล้วยิงลูกแรกภายใน 15 วิ',
+  brief: 'เริ่มตอน AUTO เหลือ 8 วิ หุ่นวิ่งเองตามโปรแกรม ระหว่าง AUTO ห้ามแตะจอย (G401) และช่วงเปลี่ยน 8 วิ หุ่นต้องไม่ขยับ (G403: เตือน · ทำซ้ำหรือจงใจ = MAJOR + YELLOW CARD) พอ TELEOP เริ่ม ให้รีบเก็บลูกแล้วยิงลูกแรกภายใน 15 วิ',
   startEl: 22, phase: 'auto', opt: {},
   setup(api) {},
   end: api => api.S.el >= 78,
   obj: [
-    { t: 'ไม่ขยับจอยช่วงเปลี่ยน (G403)', ok: (S, api) => api.foulCount('red', 'G403') === 0, live: true },
+    { t: 'หุ่นไม่ขยับช่วงเปลี่ยน 8 วิ (G403)', ok: (S, api) => api.foulCount('red', 'G403') === 0, live: true },
     { t: 'ยิงลูกแรกใน TELEOP ภายใน 15 วิ', ok: S => S.events.some(e => e.type === 'shot' && e.el >= 38 && e.el <= 53) },
     { t: 'TIP อย่างน้อย 1 ครั้งใน TELEOP 40 วิแรก', ok: (S, api) => api.tipEvents('red').some(e => e.el >= 38) },
   ],
@@ -377,6 +414,31 @@ window.SCENARIOS = {
     { t: 'ยิงเข้า CELL 8 ลูก', ok: S => S.stats.hits >= 8 },
     { t: 'ไม่ควบคุม NECTAR คู่แข่ง (G408)', ok: S => S.stats.g408.red === 0, live: true },
     { t: 'ไม่ชนโครง HIVE แรง (G417)', ok: (S, api) => api.foulCount('red', 'G417') === 0, live: true },
+  ],
+},
+'D3.2': {
+  role: 'driver', title: 'PARK และหยุดนิ่งตอน 0:00 (G404)',
+  brief: 'เหลือ 20 วิสุดท้าย หุ่นถือ POLLEN 2 ลูกอยู่กลางฝั่งแดง ตัดสินใจเองว่าจะยิงก่อนหรือกลับเลย แล้วพาหุ่นเข้า LOADING ZONE ฝั่งแดงเพื่อ PARK ให้ทัน เมื่อนาฬิกาถึง 0:00 หุ่นต้องหยุดนิ่งและห้ามโยกจอยต่อ (G404: เตือน · ถ้ากรรมการเห็นว่าจงใจ = MAJOR + YELLOW CARD) หลังหมดเวลา simulator จะรอให้หุ่นและลูกหยุดก่อนนับแต้ม',
+  start: 20, opt: { bots: false },
+  setup(api) { ['B1', 'B2'].forEach(api.bench); api.parkNow('R2'); api.pos('R1', -0.8, 0.95, -Math.PI / 2); api.carry('R1', ['pollen', 'pollen']); },
+  status: api => { const r = api.robot('R1'); return `ความเร็ว R1 ${Math.hypot(r.vx, r.vz).toFixed(1)} ม./วิ · ${api.overlapLZ('R1', 'red') ? 'อยู่ใน LOADING ZONE แล้ว' : 'ยังไม่ถึง LOADING ZONE'}`; },
+  obj: [
+    { t: 'R1 PARK ใน LOADING ZONE ตอนจบแมตช์', ok: S => !!S.end?.park?.R1 },
+    { t: 'หุ่นหยุดนิ่งตอน 0:00 (ความเร็วไม่เกิน 0.1 ม./วิ)', ok: S => (S.stats.endSpeed?.R1 ?? 9) <= 0.1 },
+    { t: 'ไม่โดนเตือน G404 (ไม่วิ่งและไม่โยกจอยหลังหมดเวลา)', ok: (S, api) => api.foulCount('red', 'G404') === 0, live: true },
+  ],
+},
+'D3.3': {
+  role: 'driver', title: 'ไม่ถือเกิน 4 ลูก (G407)',
+  brief: 'หุ่นในบทนี้ไม่มีระบบหยุด intake เองเมื่อครบ 4 ลูก ถ้าเปิด intake ค้างไว้ ลูกที่ 5 จะเข้าหุ่นได้ ถือเกิน 4 ลูกผิด G407 (ถือค้างหรือทำซ้ำ = MAJOR FOUL + YELLOW CARD) ดูจำนวนลูกที่แผงซ้าย ครบ 4 แล้วปิด intake หรือเลี่ยงลูก ถ้าลูกที่ 5 เข้ามาให้กด ○ คายทันที ยิงเข้า CELL ให้ได้ 8 ลูก',
+  start: 120, opt: { autoStop: false, bots: false },
+  setup(api) { ['B1', 'B2'].forEach(api.bench); api.parkNow('R2'); api.carry('R1', ['pollen', 'pollen', 'pollen']); api.scatter(22, RED_HALF); },
+  status: api => `ยิงเข้า ${api.S.stats.hits}/8 · ลูกในหุ่น ${api.robot('R1').load.length}/4`,
+  end: api => api.S.stats.hits >= 8,
+  obj: [
+    { t: 'ยิงเข้า CELL 8 ลูก', ok: S => S.stats.hits >= 8 },
+    { t: 'ไม่ถือ 5 ลูกค้างจนโดน MAJOR FOUL (G407)', ok: S => !S.fouls.some(f => f.all === 'red' && f.rule === 'G407' && f.sev === 'MAJOR'), live: true },
+    { t: 'ลูกที่ 5 เข้าหุ่นไม่เกิน 1 ครั้ง', ok: S => S.fouls.filter(f => f.all === 'red' && f.rule === 'G407' && f.sev === 'WARN').length <= 1, live: true },
   ],
 },
 'D5.1': {
@@ -420,9 +482,27 @@ window.SCENARIOS = {
     { t: 'ยิงจากจุดยิงอย่างน้อย 2 จุด', ok: S => S.robots[0].shotSpots.length >= 2 },
   ],
 },
+'O1.3': {
+  role: 'operator', title: 'ปิด intake ผ่าน NECTAR คู่แข่ง (G408)',
+  brief: 'POLLEN กับ NECTAR สีน้ำเงินของคู่แข่งวางสลับกันเป็นแถว intake ของบทนี้ดูดติดทันทีที่ลูกแตะ ถ้าขับผ่าน NECTAR น้ำเงินโดยเปิด intake ไว้ ลูกจะเข้าหุ่น = ควบคุม NECTAR ของคู่แข่ง (G408) ให้กดปิด intake ก่อนผ่าน แล้วเปิดใหม่เพื่อเก็บ POLLEN ลูกถัดไป หรือเข้าหา POLLEN จากด้านที่ไม่มี NECTAR เก็บ POLLEN ให้ได้ 8 ลูกใน 60 วิ ลูกที่เก็บจะถูกนับแล้วหายไปจากหุ่น ถ้าเผลอเก็บ NECTAR น้ำเงิน ให้กด ○ คายทันที',
+  start: 60, opt: { bots: false, intakeDelay: false, noClockRules: true },
+  setup(api) {
+    api.resetBalls(); BENCH_ALL(api); api.carry('R1', []); api.pos('R1', -1.5, 0, -Math.PI / 2);
+    for (let k = 0; k < 11; k++) api.floor(k % 2 ? 'nectar' : 'pollen', k % 2 ? 'blue' : 'yellow', -0.95, -1.25 + k * 0.25);
+    [[-1.4, -1.0], [-1.4, -0.5], [-1.4, 0.5], [-1.4, 1.0]].forEach(p => api.floor('pollen', 'yellow', p[0], p[1]));
+    api.S.sc.n = 0;
+  },
+  onPickup(api, r, bi) { if (r.id === 'R1' && api.S.balls[bi].kind === 'pollen') { api.S.sc.n++; api.vanish(bi); } },
+  status: api => `เก็บ POLLEN ${api.S.sc.n}/8 · เก็บ NECTAR คู่แข่ง ${api.S.stats.g408.red} ครั้ง · intake ${api.robot('R1').intake ? 'เปิด' : 'ปิด'}`,
+  end: api => api.S.sc.n >= 8,
+  obj: [
+    { t: 'เก็บ POLLEN 8 ลูกภายใน 60 วิ', ok: S => S.sc.n >= 8 },
+    { t: 'ไม่ควบคุม NECTAR คู่แข่งเลย (G408)', ok: S => S.stats.g408.red === 0, live: true },
+  ],
+},
 'O2.1': {
   role: 'operator', title: 'โดนเบียดแล้วยังคุมหุ่นได้',
-  brief: 'หุ่นน้ำเงิน B1 จะเข้ามาชนและเบียดเป็นระยะ โดนชนแล้วหุ่นเราจะไถล หมุน และสั่น เหมือนของจริง หน้าที่ของ Operator คือรอให้หุ่นนิ่งก่อนค่อยยิง อย่ากดตอนกำลังโดนเบียด ยิงเข้าให้ได้ 6 ลูก รักษาเลือดไว้ ≥ 60% และอย่าเบียดคู่แข่งติดกำแพงเกิน 3 วิ (PIN G421)',
+  brief: 'หุ่นน้ำเงิน B1 จะเข้ามาชนและเบียดเป็นระยะ โดนชนแล้วหุ่นเราจะไถล หมุน และสั่น เหมือนของจริง หน้าที่ของ Operator คือรอให้หุ่นนิ่งก่อนค่อยยิง อย่ากดตอนกำลังโดนเบียด ยิงเข้าให้ได้ 6 ลูก รักษาเลือดไว้ ≥ 60% (เลือดเป็นกฎฝึกของทีม) และอย่าเบียดคู่แข่งติดกำแพงเกิน 3 วิ (PIN G421)',
   start: 120, opt: { bots: false, intakeDelay: true, shove: true, health: true },
   setup(api) { api.bench('B2'); api.parkNow('R2'); api.carry('R1', ['pollen', 'pollen']); api.scatter(16, RED_HALF); api.pos('B1', -0.2, 0.2, -Math.PI / 2); api.carry('B1', []); api.ai('B1', { mode: 'contest', target: 'R1' }); },
   status: api => { const S = api.S; return `ยิงเข้า ${S.stats.hits}/6 · โดนชน ${S.stats.collisions} ครั้ง · เลือด ${S.robots[0].hp}%`; },
@@ -435,8 +515,8 @@ window.SCENARIOS = {
 },
 'O2.2': {
   role: 'operator', title: 'แย่งลูกกับคู่แข่ง',
-  brief: 'POLLEN 16 ลูกกองอยู่กลางสนามฝั่งแดง หุ่นน้ำเงิน B1 จะวิ่งเข้ามาแย่งลูกที่เรากำลังจะเก็บ และเบียดเราออกจากกอง เก็บให้ได้อย่างน้อย 8 ลูก และมากกว่า B1 ภายใน 75 วิ ลูกที่เก็บจะถูกนับแล้วหายไป เทคนิค: เอาตัวหุ่นบังลูก แล้วประคองให้ intake ดูดจนติด',
-  start: 75, opt: { bots: false, intakeDelay: true, shove: true, noClockRules: true },
+  brief: 'POLLEN 16 ลูกกองอยู่กลางสนามฝั่งแดง หุ่นน้ำเงิน B1 จะวิ่งเข้ามาแย่งลูกที่เรากำลังจะเก็บ และเบียดเราออกจากกอง เก็บให้ได้อย่างน้อย 8 ลูก และมากกว่า B1 ภายใน 75 วิ ลูกที่เก็บจะถูกนับแล้วหายไป เทคนิค: เข้าถึงลูกก่อนคู่แข่ง ประคองให้ intake ดูดจนติด แล้วขยับไปลูกถัดไปทันที ห้ามจอดทับกองลูกเพื่อกันไม่ให้คู่แข่งเก็บ (G411 = MAJOR FOUL + YELLOW CARD)',
+  start: 75, opt: { bots: false, intakeDelay: true, shove: true, noClockRules: true, hoard: true },
   setup(api) {
     api.resetBalls(); api.bench('R2'); api.bench('B2'); api.carry('R1', []);
     api.scatter(16, { xMin: -1.25, xMax: -0.45, zMin: -0.8, zMax: 0.8 });
@@ -450,11 +530,29 @@ window.SCENARIOS = {
     { t: 'เก็บ POLLEN อย่างน้อย 8 ลูก', ok: S => S.sc.n >= 8 },
     { t: 'เก็บได้มากกว่า B1', ok: S => S.sc.n > S.sc.opp, live: true },
     { t: 'ไม่โดน PIN (G421)', ok: (S, api) => api.foulCount('red', 'G421') === 0, live: true },
+    { t: 'ไม่จอดกักกองลูก (G411)', ok: (S, api) => api.foulCount('red', 'G411') === 0, live: true },
+  ],
+},
+'O2.3': {
+  role: 'operator', title: 'เกมรับถูกกติกา: ประกบจุดยิง',
+  brief: 'หุ่นน้ำเงิน B1 เก็บ POLLEN แล้วกลับไปยิงที่จุดยิงของตัวเองซ้ำ ๆ ถ้าปล่อยไว้ 75 วิ B1 จะยิงเข้าประมาณ 22 ลูก หน้าที่ของเราคือพาหุ่นไปยืนในจุดยิงหรือขวางทางเดิน ให้ B1 ยิงเข้าได้ไม่เกิน 13 ลูก โดยไม่ผิดกติกา: ห้ามดันเขาติดกำแพงหรือ HIVE เกิน 3 วิ (PIN G421 ต้องถอยออกห่าง 2 ฟุต) ห้ามจอดทับกองลูกเพื่อกันไม่ให้เขาเก็บ (G411) และห้ามพุ่งชนแรง (G419 / G420 กรรมการใช้ดุลยพินิจ)',
+  start: 75, opt: { bots: false, intakeDelay: true, shove: true, hoard: true },
+  setup(api) {
+    api.bench('R2'); api.bench('B2'); api.carry('R1', []); api.pos('R1', -0.5, -0.9, -Math.PI / 2);
+    api.ai('B1', { mode: 'offense', parkAt: 0 }); api.S.sc.opp = 0;
+  },
+  onCellHit(api, b) { if (b.shooter === 'B1' && b.hive === 'blue') api.S.sc.opp++; },
+  status: api => `B1 ยิงเข้า ${api.S.sc.opp}/13 · ชนแรง ${api.S.stats.hardHits.R1 || 0} ครั้ง`,
+  obj: [
+    { t: 'B1 ยิงเข้า CELL ไม่เกิน 13 ลูกใน 75 วิ', ok: S => !!S.end && S.sc.opp <= 13 },
+    { t: 'ไม่โดน PIN (G421)', ok: (S, api) => api.foulCount('red', 'G421') === 0, live: true },
+    { t: 'ไม่จอดกักกองลูก (G411)', ok: (S, api) => api.foulCount('red', 'G411') === 0, live: true },
+    { t: 'ไม่พุ่งชนคู่แข่งแรง (เสี่ยง G419 / G420)', ok: S => (S.stats.hardHits.R1 || 0) === 0, live: true },
   ],
 },
 'O3.1': {
   role: 'operator', title: 'สอบ Operator: TELEOP 2:00 มีคู่แข่งตามเบียด',
-  brief: 'TELEOP เต็ม 2:00 หุ่น AI ครบ 3 ตัว โดย B1 ตามเบียดและแย่งลูกเราตลอดแมตช์ intake มีดีเลย์ ยิงไม่มีล็อก โดนชนแล้วหุ่นไถล Operator ต้องจัดการลูกในหุ่น (ไม่เกิน 4 ลูก) เลือกจังหวะยิงตอนหุ่นนิ่ง และกลับไป PARK ให้ทัน',
+  brief: 'TELEOP เต็ม 2:00 หุ่น AI ครบ 3 ตัว โดย B1 ตามเบียดและแย่งลูกเราตลอดแมตช์ intake มีดีเลย์ ยิงไม่มีล็อก โดนชนแล้วหุ่นไถล (เลือดเป็นกฎฝึกของทีม) Operator ต้องจัดการลูกในหุ่น (ไม่เกิน 4 ลูก) เลือกจังหวะยิงตอนหุ่นนิ่ง และกลับไป PARK ให้ทัน',
   start: 120, opt: { intakeDelay: true, shove: true, health: true },
   setup(api) { api.ai('B1', { mode: 'contest', target: 'R1' }); },
   status: api => { const s = api.S.stats; return `TIP แดง ${s.tips.red} · R1 ยิงเข้า ${api.S.robots[0].hits || 0}/${api.S.robots[0].shots || 0} · เลือด ${api.S.robots[0].hp}%`; },
@@ -468,7 +566,7 @@ window.SCENARIOS = {
 // ---------------- Human Player ----------------
 'H2.1': {
   role: 'hp', title: 'ปล่อย NECTAR ตามจังหวะ TIP',
-  brief: 'คุณคือ Human Player ฝั่งแดง หุ่นทั้งสองตัวขับโดย AI ทุกครั้งที่ HIVE แดง TIP คุณได้สิทธิ์ปล่อย NECTAR 1 ลูก (G426) กด H หรือปุ่ม "ปล่อย NECTAR" ภายใน 5 วิหลัง TIP ห้ามปล่อยก่อนได้สิทธิ์ และห้ามปล่อยตอนหุ่นอยู่ตรงจุดวางลูกใน LOADING ZONE (G427) สถานการณ์จบเมื่อเหลือ 1:02',
+  brief: 'คุณคือ Human Player ฝั่งแดง หุ่นทั้งสองตัวขับโดย AI ทุกครั้งที่ HIVE แดง TIP คุณได้สิทธิ์ปล่อย NECTAR 1 ลูก (G426) กด H หรือปุ่ม "ปล่อย NECTAR" ภายใน 5 วิหลัง TIP (5 วิเป็นเป้าฝึกของทีม กติกาไม่ได้กำหนดเวลา) ห้ามปล่อยก่อนได้สิทธิ์ และห้ามปล่อยตอนหุ่นอยู่ตรงจุดวางลูกใน LOADING ZONE (G427) สถานการณ์จบเมื่อเหลือ 1:02',
   start: 120, opt: { hpManual: true, lockCam: 2 }, coach: ['hp'],
   setup(api) { hpCommon(api); api.cell('red', 2, 3); api.S.sc.lastTip = api.S.el; },
   onTip(api, c) { if (c === 'red') api.S.sc.lastTip = api.S.el; },
@@ -483,7 +581,7 @@ window.SCENARIOS = {
 },
 'H2.2': {
   role: 'hp', title: 'ช่วง 1:00: ปล่อยที่เหลือทั้งหมด',
-  brief: 'เริ่มตอนเหลือ 1:15 คุณยังถือ NECTAR 4 ลูกและไม่มีสิทธิ์ค้าง เมื่อนาฬิกาถึง 1:00 ปล่อยได้ทั้งหมด ต้องปล่อยครบ 4 ลูกภายใน 5 วิหลัง 1:00 ห้ามปล่อยก่อนเวลา และดูให้ LOADING ZONE ว่างก่อนปล่อยทุกลูก',
+  brief: 'เริ่มตอนเหลือ 1:15 คุณยังถือ NECTAR 4 ลูกและไม่มีสิทธิ์ค้าง เมื่อนาฬิกาถึง 1:00 ปล่อยได้ทั้งหมด ต้องปล่อยครบ 4 ลูกภายใน 5 วิหลัง 1:00 (เป้าฝึกของทีม) ห้ามปล่อยก่อนเวลา และดูให้ LOADING ZONE ว่างก่อนปล่อยทุกลูก',
   start: 75, opt: { hpManual: true, lockCam: 2 }, coach: ['hp'],
   setup(api) { hpCommon(api); api.staged('red', 4); api.cell('red', 0, 3); },
   tick(api) { const S = api.S; if (S.sc.left55 == null && api.remaining() <= 55) S.sc.left55 = api.stagedLeft('red'); },
@@ -509,9 +607,28 @@ window.SCENARIOS = {
     { t: 'ไม่ปล่อยก่อนได้สิทธิ์ (G426)', ok: (S, api) => api.foulCount('red', 'G426') === 0, live: true },
   ],
 },
+'H3.2': {
+  role: 'hp', title: 'เก็บสิทธิ์ไว้ หรือปล่อยเลย',
+  brief: 'มีสิทธิ์แล้วไม่จำเป็นต้องปล่อยทันที HIVE แดงจะ TIP ทุกประมาณ 12 วิ และหุ่น R1 วิ่งเข้าออกแถว LOADING ZONE ให้ปล่อย NECTAR เฉพาะตอนที่ LOADING ZONE ว่าง และมีหุ่นแดงอยู่ใกล้พอจะมารับ (ไม่เกิน 1.3 ม. ดูแถบสถานะ) ถ้ายังไม่เข้าเงื่อนไขให้เก็บสิทธิ์ไว้ก่อน ห้ามปล่อยเกินสิทธิ์ (G426) และห้ามปล่อยใส่หุ่น (G427) ปล่อยให้ได้อย่างน้อย 3 ลูกก่อนเหลือ 1:02 เงื่อนไข "มีหุ่นอยู่ใกล้" เป็นเป้าฝึกของทีม ไม่ใช่กติกา',
+  start: 120, opt: { hpManual: true, lockCam: 2 }, coach: ['hp'],
+  setup(api) { api.ai('R1', { mode: 'traffic' }); api.ai('R2', { mode: 'offense' }); Object.assign(api.S.sc, { nextTip: api.S.el + 6, nRel: 0, good: 0, bad: 0 }); },
+  tick(api) {
+    const S = api.S, sc = S.sc; if (S.el >= sc.nextTip && api.remaining() > 66) { api.forceTip('red'); sc.nextTip = S.el + 12; }
+    const n = api.releases('red').length;
+    if (n > sc.nRel) { const ok = !['R1', 'R2'].some(id => !api.robot(id).off && api.overlapLZ(id, 'red')) && ['R1', 'R2'].some(id => nearLZ(api, id)); if (ok) sc.good += n - sc.nRel; else { sc.bad += n - sc.nRel; api.say('ปล่อยตอนยังไม่มีหุ่นแดงมารับ หรือ LOADING ZONE ไม่ว่าง', 2); } sc.nRel = n; }
+  },
+  status: api => `${hpStatus(api)} · หุ่นแดงใกล้พอมารับ: ${['R1', 'R2'].some(id => nearLZ(api, id)) ? 'ใช่ ✓' : 'ยัง'} · ปล่อยถูกจังหวะ ${api.S.sc.good} · ผิดจังหวะ ${api.S.sc.bad}`,
+  end: api => api.remaining() <= 62,
+  obj: [
+    { t: 'ปล่อย NECTAR ถูกจังหวะอย่างน้อย 3 ลูก (LOADING ZONE ว่าง และมีหุ่นแดงอยู่ใกล้)', ok: S => S.sc.good >= 3 },
+    { t: 'ปล่อยผิดจังหวะไม่เกิน 1 ลูก', ok: S => S.sc.bad <= 1, live: true },
+    { t: 'ไม่ปล่อยเกินสิทธิ์ (G426)', ok: (S, api) => api.foulCount('red', 'G426') === 0, live: true },
+    { t: 'ไม่ปล่อยใส่หุ่นใน LOADING ZONE (G427)', ok: (S, api) => api.foulCount('red', 'G427') === 0, live: true },
+  ],
+},
 'H4.1': {
   role: 'hp', title: 'สอบ Human Player: แมตช์เต็ม',
-  brief: 'แมตช์เต็ม 2:30 หุ่นทุกตัวขับโดย AI คุณเป็น Human Player ฝั่งแดงคนเดียว ปล่อย NECTAR ภายใน 5 วิหลังทุก TIP ปล่อยที่เหลือทั้งหมดทันทีเมื่อเหลือ 1:00 และห้ามโดน FOUL จาก Human Player',
+  brief: 'แมตช์เต็ม 2:30 หุ่นทุกตัวขับโดย AI คุณเป็น Human Player ฝั่งแดงคนเดียว ปล่อย NECTAR ภายใน 5 วิหลังทุก TIP (เป้าฝึกของทีม) ปล่อยที่เหลือทั้งหมดทันทีเมื่อเหลือ 1:00 และห้ามโดน FOUL จาก Human Player',
   phase: 'full', opt: { hpManual: true, lockCam: 2 }, coach: ['hp'],
   setup(api) { hpCommon(api); },
   tick(api) { const S = api.S; if (S.sc.left55 == null && S.el > 38 && api.remaining() <= 55) S.sc.left55 = api.stagedLeft('red'); },
