@@ -145,7 +145,7 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.6"></script>
+<script src="scenarios.js?v=2.7"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1317,7 +1317,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.6</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.7</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1649,7 +1649,7 @@ const recClean = r => ({ ts: nN(r.ts), dur: nN(r.dur), code: nT(r.code, 8), role
   score: nRB(r.score), tips: nRB(r.tips), autoTips: nRB(r.autoTips), leavePark: nRB(r.leavePark),
   det: nA(r.det).slice(0, 20).map(d => [nT(d?.[0], 60), nN(d?.[1]), nT(d?.[2], 5)]),
   fouls: nA(r.fouls).slice(0, 80).map(f => ({ all: nT(f?.all, 5), rule: nT(f?.rule, 8), sev: nT(f?.sev, 6), pts: nN(f?.pts), why: nT(f?.why, 80), by: nT(f?.by, 4), rem: nN(f?.rem), card: f?.card === 'red' ? 'red' : f?.card ? 'yellow' : null })),
-  robots: nA(r.robots).filter(x => SLOT_ID.includes(x?.id)).slice(0, 4).map(x => ({ id: x.id, off: !!x.off, human: !!x.human, name: nT(x.name, 24), shots: nN(x.shots), hits: nN(x.hits), nCyc: nN(x.nCyc), cyc: nN(x.cyc), hp: nN(x.hp) })),
+  robots: nA(r.robots).filter(x => SLOT_ID.includes(x?.id)).slice(0, 4).map(x => ({ id: x.id, off: !!x.off, human: !!x.human, name: nT(x.name, 24), shots: nN(x.shots), hits: nN(x.hits), nCyc: nN(x.nCyc), cyc: nN(x.cyc), hp: nN(x.hp), ping: x.ping === 'H' ? 'H' : x.ping && typeof x.ping === 'object' ? { a: nN(x.ping.a), mx: nN(x.ping.mx), miss: nN(x.ping.miss), n: nN(x.ping.n), relay: !!x.ping.relay } : null })),
   log: nA(r.log).slice(-40).map(e => ({ ts: nN(e?.ts), t: nT(e?.t, 160) })) });
 const histLoad = () => { try { const a = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(a) ? a.filter(r => r && r.score && r.cfg && Array.isArray(r.robots)).map(recClean) : []; } catch { return []; } };
 const netLog = t => { const R = NET.room; if (!R) return; (R.log ||= []).push({ ts: Date.now(), t }); if (R.log.length > 40) R.log.shift(); };
@@ -1659,7 +1659,7 @@ function netRec(why) {  // สรุปแมตช์ออนไลน์ 1 �
     score: S.end?.score || { red: total('red'), blue: total('blue') }, tips: { ...S.stats.tips }, autoTips: { ...S.stats.autoTips }, leavePark: { ...S.stats.leavePark },
     det: (S.end?.det || []).map(d => [d[0], d[1], d[2]]),
     fouls: S.fouls.map(f => ({ all: f.all, rule: f.rule, sev: f.sev, pts: f.pts, why: f.why, by: f.by, rem: Math.round(f.rem), card: f.card || null })),
-    robots: S.robots.map(r => ({ id: r.id, off: !!r.off, human: !!r.human, name: r.pname || 'Bot', shots: r.shots || 0, hits: r.hits || 0, nCyc: r.cycles.length, cyc: r.cycles.length ? +(r.cycles.reduce((a, b) => a + b, 0) / r.cycles.length).toFixed(1) : 0, hp: r.hp })),
+    robots: S.robots.map(r => ({ id: r.id, off: !!r.off, human: !!r.human, name: r.pname || 'Bot', shots: r.shots || 0, hits: r.hits || 0, nCyc: r.cycles.length, cyc: r.cycles.length ? +(r.cycles.reduce((a, b) => a + b, 0) / r.cycles.length).toFixed(1) : 0, hp: r.hp, ping: r.pingS?.host ? 'H' : r.pingS && (r.pingS.n || r.pingS.miss) ? { a: r.pingS.n ? Math.round(r.pingS.sum / r.pingS.n) : 0, mx: Math.round(r.pingS.mx), miss: r.pingS.miss, n: r.pingS.n, relay: !!r.pingS.relay } : null })),
     log: (R.log || []).filter(e => e.ts >= t0 - 500) });
 }
 function netHist(why) {  // บันทึกลงประวัติ 1 ครั้งต่อแมตช์
@@ -1682,9 +1682,16 @@ function recHtml(rec) {
   const cd = { red: cardOf('red', rec.fouls || []), blue: cardOf('blue', rec.fouls || []) }, rp = rec.why === 'end' && c.kind !== 'free' ? rpCalc(rec.score, rec.tips, rec.leavePark, cd) : null;
   const rpC = p => p.dq ? '0 · DISQUALIFIED' : `${p.total}<br><span class="mut" style="font-weight:400;font-size:11px">WIN/TIE ${p.win} · SWARM ${p.swarm} · POLLINATOR ${p.p1 + p.p2}</span>`;
   const det = a => (rec.det || []).filter(d => d[2] === a).map(d => `${esc(d[0])} <b>+${d[1]}</b>`).join('<br>') || '<span class="mut">—</span>';
+  const pingTd = p => {  // ping เฉลี่ยถึงเครื่องแม่ตลอดแมตช์ · สูงสุด · วินาทีที่ไม่ตอบ → สรุปว่าเน็ตเป็นอย่างไร
+    if (p === 'H') return '<td style="text-align:left;font-weight:400" class="mut">🏠 เครื่องแม่</td>';
+    if (!p) return '<td style="text-align:left" class="mut">—</td>';
+    const bad = p.miss >= 3 || p.a >= 180, col = bad ? '#ff7b6b' : p.miss || p.a >= 80 ? 'var(--yel)' : 'var(--grn)';
+    const say = p.miss >= 3 ? `หลุด / ไม่ตอบ ${p.miss} วิ` : p.a >= 180 ? 'เน็ตช้า' : p.a >= 80 ? 'เริ่มช้า' : p.miss ? `ดี · สะดุด ${p.miss} วิ` : p.mx >= 180 ? 'ดี · กระตุกบางช่วง' : 'เน็ตดี';
+    return `<td style="text-align:left;white-space:nowrap"><span class="pb" style="width:56px;margin:0 6px 0 0"><i style="width:${p.n ? clamp(100 - (p.a - 30) / 3, 8, 100) : 4}%;background:${col}"></i></span><b style="color:${col}">${p.n ? p.a + ' ms' : '—'}</b> <span style="color:${col};font-weight:400;font-size:12px">${say}</span><br><span class="mut" style="font-weight:400;font-size:11px">สูงสุด ${p.mx} ms${p.relay ? ' · relay' : ''}</span></td>`;
+  };
   const bots = rec.robots.map(r => { const col = r.id[0] === 'R' ? 'var(--red)' : BL;
-    return r.off ? `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b></td><td colspan="4" class="mut" style="text-align:left;font-weight:400">ไม่ลงสนาม</td></tr>`
-      : `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b>${r.id === rec.slot ? ' ★' : ''}</td><td style="text-align:left">${r.human ? '🧑 ' : '🤖 '}${esc(r.name)}</td><td style="text-align:center">${r.shots} / ${r.hits}${r.shots ? ` (${Math.round(r.hits / r.shots * 100)}%)` : ''}</td><td style="text-align:center">${r.nCyc ? `${r.cyc} วิ × ${r.nCyc}` : '—'}</td><td>${r.hp}%</td></tr>`; }).join('');
+    return r.off ? `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b></td><td colspan="5" class="mut" style="text-align:left;font-weight:400">ไม่ลงสนาม</td></tr>`
+      : `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b>${r.id === rec.slot ? ' ★' : ''}</td><td style="text-align:left">${r.human ? '🧑 ' : '🤖 '}${esc(r.name)}</td><td style="text-align:center">${r.shots} / ${r.hits}${r.shots ? ` (${Math.round(r.hits / r.shots * 100)}%)` : ''}</td><td style="text-align:center">${r.nCyc ? `${r.cyc} วิ × ${r.nCyc}` : '—'}</td><td>${r.hp}%</td>${pingTd(r.ping)}</tr>`; }).join('');
   return `<h3 style="margin:6px 0"><span style="color:var(--red)">RED ${rec.score.red}</span> – <span style="color:${BL}">BLUE ${rec.score.blue}</span> · <span class="${rc}">${rt}</span></h3>
     <p>${fmtDate(rec.ts)} · ห้อง <b>${esc(rec.code)}</b> · ${esc(rec.name)} ${rec.slot ? `ขับ <b>${SLOT_TH[rec.slot]}</b>` : '(ผู้ชม)'}${rec.role === 'host' ? ' · เป็น host' : ''} · เล่น ${Math.floor(rec.dur / 60)}:${String(rec.dur % 60).padStart(2, '0')} นาที · ${WHY_TH[rec.why] || ''}</p>
     <p class="mut" style="font-size:12px">กติกา: ${NKIND_TH[c.kind] || esc(c.kind)} · Human Player ${c.hp === 'manual' ? 'กดปล่อยเอง' : 'อัตโนมัติ'} · Bot ระดับ ${BOT_LV[c.bot]?.th || esc(c.bot)} · เก็บลูกมีดีเลย์ ${c.intakeDelay ? 'เปิด' : 'ปิด'} · ชนแล้วถูกเบียด ${c.shove ? 'เปิด' : 'ปิด'} · เลือดลดเมื่อชน ${c.health ? 'เปิด' : 'ปิด'}</p>
@@ -1694,7 +1701,7 @@ function recHtml(rec) {
       ${cd.red !== 'none' || cd.blue !== 'none' ? row('ใบเหลือง / ใบแดง', CARD_TH[cd.red], CARD_TH[cd.blue]) : ''}${rp ? row('Ranking Points', rpC(rp.red), rpC(rp.blue)) : ''}
       ${rec.det?.length ? row('คะแนนตอนจบแมตช์', det('red'), det('blue')) : ''}</table>
     ${rp ? `<p class="mut" style="font-size:12px">${RP_NOTE}${c.kind === 'tele' ? ' · แมตช์ TELEOP อย่างเดียวไม่มีแต้ม LEAVE' : ''}</p>` : ''}
-    <table><tr class="mut"><td>หุ่น</td><td style="text-align:left">ผู้ขับ</td><td style="text-align:center">ยิง / เข้า CELL</td><td style="text-align:center">cycle เฉลี่ย</td><td>เลือด</td></tr>${bots}</table>
+    <table><tr class="mut"><td>หุ่น</td><td style="text-align:left">ผู้ขับ</td><td style="text-align:center">ยิง / เข้า CELL</td><td style="text-align:center">cycle เฉลี่ย</td><td>เลือด</td><td style="text-align:left" title="เวลาไป-กลับของสัญญาณถึงเครื่องแม่ (host) เฉลี่ยตลอดแมตช์ · เขียว &lt; 80 ms ดี · เหลือง 80–180 เริ่มช้า · แดง &gt; 180 ช้า">ping เฉลี่ย (เน็ต)</td></tr>${bots}</table>
     ${rec.log?.length ? `<h4>เหตุการณ์ในห้อง</h4><div class="mut" style="font-size:12px;line-height:1.5">${rec.log.map(e => `${fmtClock(e.ts)} · ${esc(e.t)}`).join('<br>')}</div>` : ''}`;
 }
 function showNetResult() {
@@ -1848,6 +1855,13 @@ function netPingTick() {
     const now = performance.now(), m = { H: [0, NET.name, 0, 0] };
     for (const id in NET.peers) { const p = NET.peers[id]; p.conn.send({ t: 'hp', c: now }); m[id] = [p.ping == null ? -1 : Math.round(p.ping), p.name, p.relay ? 1 : 0, now - p.pAt > 3500 ? 1 : 0]; }
     NET.pings = m; NET.pingAt = Date.now();
+    if (NET.playing && !S.over && S.running) for (const rb of S.robots) {  // สรุป ping ต่อคนในหน้าจบแมตช์
+      if (!rb.human && !rb.pingS) continue;
+      const ps = rb.pingS ||= rb.net ? { n: 0, sum: 0, mx: 0, miss: 0, relay: 0, last: 0 } : { host: 1 }; if (ps.host || !rb.net) continue;
+      const p = NET.peers[rb.net]; if (!p) continue;
+      // นับเฉพาะคำตอบใหม่ (ไม่ใช้ค่าเก่าซ้ำ) · เงียบเกิน 2 วิ = นับเป็นวินาทีที่ไม่ตอบ
+      if (p.pAt > ps.last && p.ping != null) { ps.last = p.pAt; ps.n++; ps.sum += p.ping; ps.mx = Math.max(ps.mx, p.ping); if (p.relay) ps.relay = 1; } else if (now - p.pAt > 2000) ps.miss++;
+    }
     for (const id in NET.peers) NET.peers[id].conn.send({ t: 'pm', m });
   }
   pingPaint();
