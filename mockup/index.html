@@ -41,6 +41,10 @@
   .foul { font-size:12px; color:#ffb4a8 }
   #overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); overflow:auto; padding:16px }
   #overlay .box { background:#151a22; border:1px solid var(--line); border-radius:14px; padding:20px 24px; max-width:640px; width:100%; max-height:100%; overflow:auto }
+  #overlay .box.lobby { max-width:min(1240px, 98vw); padding:14px 18px; scrollbar-width:none } #overlay .box.lobby::-webkit-scrollbar { display:none }
+  .lbGrid { display:grid; grid-template-columns:minmax(300px, .85fr) 1.3fr; gap:14px; align-items:start } .lbGrid .mcfg { margin:0 0 10px } .lbGrid .waitBan { margin:0 0 10px; flex-wrap:wrap } .lbGrid .chatList { height:max(220px, calc(100vh - 370px)); max-height:none }
+  @media (max-height:800px) { .lbGrid .lbNote { display:none } #overlay .box.lobby h2 { font-size:20px; margin:0 0 4px } .lbGrid .waitBan { padding:6px 12px } }  /* จอเตี้ย (laptop 720p): ซ่อนคำอธิบายยาว ให้ทั้งห้องอยู่ใน 1 หน้าจอ */
+  @media (max-width:900px) { .lbGrid { grid-template-columns:1fr } .lbGrid .chatList { height:auto; max-height:calc(10 * 1.45em + 40px) } }
   #overlay h2 { margin:0 0 6px; color:var(--yel) } #overlay p { margin:6px 0; color:#c5ccd6; font-size:14px }
   #overlay table { width:100%; font-size:14px; border-collapse:collapse; margin:8px 0 } #overlay td { padding:3px 0; border-bottom:1px solid var(--line) } #overlay td:last-child { text-align:right; font-weight:700 }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; margin:10px 0 }
@@ -56,6 +60,37 @@
   .pb { display:inline-block; vertical-align:middle; width:96px; height:9px; border-radius:5px; background:rgba(255,255,255,.12); overflow:hidden; margin:0 6px 0 8px }
   .pb i { display:block; height:100%; width:0; border-radius:5px; transition:width .5s ease, background-color .5s ease }
   .pv { display:inline-block; min-width:58px; font-size:12px; font-variant-numeric:tabular-nums; vertical-align:middle } #netBar .pb { width:80px; margin-left:6px }
+  .waitBan { position:relative; overflow:hidden; display:flex; align-items:center; gap:14px; padding:10px 14px; margin:2px 0 10px; border-radius:12px; border:1px solid color-mix(in srgb, var(--rc) 45%, transparent); background:linear-gradient(100deg, color-mix(in srgb, var(--rc) 16%, transparent), rgba(255,255,255,.02) 70%) }
+  .waitBan::after { content:''; position:absolute; inset:0; background:linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--rc) 22%, transparent) 50%, transparent 70%); transform:translateX(-100%); animation:wbSweep 2.8s ease-in-out infinite; pointer-events:none }
+  .waitBan .wt { font-weight:800; font-size:17px; color:var(--rc); letter-spacing:.3px } .waitBan .ws { font-size:12px; color:var(--mut); margin-top:2px }
+  .radar { position:relative; width:38px; height:38px; flex:none } .radar i { position:absolute; inset:0; margin:auto; width:11px; height:11px; border-radius:50%; background:var(--rc); box-shadow:0 0 12px var(--rc) }
+  .radar b { position:absolute; inset:0; border-radius:50%; border:2px solid var(--rc); opacity:0; animation:radar 2.1s ease-out infinite } .radar b:nth-of-type(2) { animation-delay:.7s } .radar b:nth-of-type(3) { animation-delay:1.4s }
+  .radar.full b { animation-duration:3s } .radar.full i { animation:beat 1.4s ease-in-out infinite }
+  .wdots span { display:inline-block; animation:wdot 1.2s ease-in-out infinite } .wdots span:nth-child(2) { animation-delay:.18s } .wdots span:nth-child(3) { animation-delay:.36s }
+  .pips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; position:relative; z-index:1 } .pip { font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; border:1.5px solid var(--pc); color:var(--pc); white-space:nowrap }
+  .pip.on { background:color-mix(in srgb, var(--pc) 22%, transparent) } .pip.bot { border-color:var(--line); color:var(--mut) } .pip.wait { border-style:dashed; animation:pipWait 1.3s ease-in-out infinite alternate }
+  @keyframes radar { 0% { transform:scale(.25); opacity:.95 } 100% { transform:scale(1.55); opacity:0 } }
+  @keyframes beat { 0%, 100% { transform:scale(1) } 50% { transform:scale(1.35) } }
+  @keyframes wdot { 0%, 80%, 100% { opacity:.25; transform:translateY(0) } 40% { opacity:1; transform:translateY(-4px) } }
+  @keyframes pipWait { from { opacity:.45 } to { opacity:1; box-shadow:0 0 8px color-mix(in srgb, var(--pc) 60%, transparent) } }
+  @keyframes wbSweep { 0% { transform:translateX(-100%) } 60%, 100% { transform:translateX(100%) } }
+  #netBar .dot.live { animation:dotLive 1.3s ease-out infinite } @keyframes dotLive { 0% { box-shadow:0 0 0 0 currentColor } 100% { box-shadow:0 0 0 7px transparent } }
+  @media (prefers-reduced-motion: reduce) { .waitBan::after, .radar b, .radar i, .wdots span, .pip.wait, #netBar .dot.live { animation:none !important } .radar b:first-of-type { opacity:.5; transform:scale(1.2) } }
+  .rdyCtl { display:inline-flex; gap:6px } .rdyCtl button { padding:6px 12px } .rdyCtl button.on { background:var(--grn); color:#06130a; border-color:var(--grn); box-shadow:0 0 12px color-mix(in srgb, var(--grn) 55%, transparent) } .rdyCtl button.on.wait { background:var(--yel); border-color:var(--yel); box-shadow:0 0 12px color-mix(in srgb, var(--yel) 55%, transparent) }
+  .rdyB { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700; border:1px solid var(--line); color:var(--mut); vertical-align:middle } .rdyB.ok { color:var(--grn); border-color:var(--grn); background:color-mix(in srgb, var(--grn) 15%, transparent) } .rdyB.wait { color:var(--yel); border-color:var(--yel) }
+  .chatBox { margin-top:0 } .chatList { gap:3px !important; min-height:64px; max-height:calc(10 * 1.45em + 40px); font-size:13px; line-height:1.45; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.35) transparent; display:flex; flex-direction:column; gap:5px; padding:6px 8px; border:1px solid var(--line); border-radius:10px; background:rgba(0,0,0,.25); scroll-behavior:smooth }
+  .cEv, .cMsg { display:flex; align-items:baseline; gap:8px; align-self:stretch } .cEv > span:first-child, .cMsg .cx { flex:1; min-width:0 } .cEv { font-size:11px; color:var(--mut); padding:0 10px } .chatList::-webkit-scrollbar { width:8px } .chatList::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:4px }
+  .cMsg { max-width:100%; padding:2px 10px; border-radius:8px; background:rgba(255,255,255,.08); font-size:13px; line-height:1.35; word-break:break-word } .cMsg.me { background:color-mix(in srgb, var(--yel) 20%, transparent) }
+  .cMsg .cn { font-size:11px; font-weight:800 } .ct { flex:none; margin-left:auto; font-size:10px; color:var(--mut); font-variant-numeric:tabular-nums } .chatIn { display:flex; gap:6px; margin-top:6px } .chatIn input { flex:1; font:inherit; padding:6px 10px; border-radius:8px }
+  #cdOv { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; pointer-events:none; background:radial-gradient(circle, rgba(0,0,0,.3), rgba(0,0,0,.7)) }
+  #cdOv.on { display:flex } #cdOv.out { animation:cdOut .8s ease forwards }
+  #cdOv b { position:relative; font-size:min(36vh, 32vw); font-weight:900; line-height:1; color:var(--yel); text-shadow:0 0 50px color-mix(in srgb, var(--yel) 70%, transparent), 0 8px 0 rgba(0,0,0,.45); animation:cdPop .9s cubic-bezier(.2, 1.5, .4, 1) both }
+  #cdOv b.go { color:var(--grn); font-size:min(22vh, 17vw); letter-spacing:8px; text-shadow:0 0 60px color-mix(in srgb, var(--grn) 80%, transparent), 0 8px 0 rgba(0,0,0,.45) }
+  #cdOv i { position:absolute; width:46vh; height:46vh; border-radius:50%; border:8px solid var(--yel); animation:cdRing .95s ease-out both } #cdOv i.go { border-color:var(--grn); width:70vh; height:70vh }
+  #cdOv small { position:absolute; bottom:18vh; font-size:20px; font-weight:700; color:#fff; letter-spacing:1px; opacity:.85 }
+  @keyframes cdPop { 0% { transform:scale(2.4); opacity:0 } 25% { opacity:1 } 60% { transform:scale(1) } 100% { transform:scale(.9); opacity:.8 } }
+  @keyframes cdRing { 0% { transform:scale(.35); opacity:.95 } 100% { transform:scale(1.5); opacity:0 } }
+  @keyframes cdOut { to { opacity:0 } }
   #netBar button { padding:2px 9px; font-size:12px } #netBar .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px }
   body.online .hud, body.online #overlay { top:32px }
   body.nopanel #left, body.nopanel #right { display:none }
@@ -145,7 +180,7 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.7"></script>
+<script src="scenarios.js?v=2.9"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1302,7 +1337,7 @@ function sendResult(r) {
 // =================== Overlay ===================
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-function ov(show, html) { $('overlay').classList.toggle('hidden', !show); if (html != null) $('ovBox').innerHTML = html; }
+function ov(show, html) { $('overlay').classList.toggle('hidden', !show); if (html != null) { $('ovBox').innerHTML = html; $('ovBox').classList.toggle('lobby', html.includes('class="lbGrid"')); } }
 function plansHtml(P) { return P ? ['R1', 'R2'].map(id => `<div class="plan"><b>แผน AUTO ของ ${id}</b>${P[id].map((p, k) => `<label><input type="radio" name="plan${id}" value="${k}" ${k === 0 ? 'checked' : ''}> ${esc(p.label)}</label>`).join('')}</div>`).join('') : ''; }
 const readPlan = () => ({ R1: +(document.querySelector('input[name=planR1]:checked')?.value || 0), R2: +(document.querySelector('input[name=planR2]:checked')?.value || 0) });
 const ROLE_TH = { coach: 'Drive Coach', driver: 'Driver', operator: 'Operator', hp: 'Human Player' };
@@ -1317,7 +1352,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.7</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.9</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1493,9 +1528,21 @@ function netHostMsg(c, d) {
     if (p && !(d.n <= p.inN)) { p.inN = +d.n || 0; ip.at = performance.now(); ip.fwd = clamp(+a[0] || 0, -1, 1); ip.strafe = clamp(+a[1] || 0, -1, 1); ip.turn = clamp(+a[2] || 0, -1, 1); ip.slow = !!a[3]; ip.fc = !!a[4]; }
     for (const k of Array.isArray(d.e) ? d.e : []) if (NET_EDGE.includes(k)) ip[k] = true;
   } else if (d.t === 'pg') c.send({ t: 'po', c: d.c });
+  else if (d.t === 'rdy' && !NET.playing) { const s = NET.room.slots.find(x => x.who === c.id && x.type === 'human'), p = NET.peers[c.id]; if (s && p && s.rdy !== !!d.v) { s.rdy = !!d.v; netLog(`${p.name} ${s.rdy ? 'พร้อมเล่น ✅' : 'ขอรอก่อน ⏸'}`); netLobbyPush(); } }
+  else if (d.t === 'chat' && typeof d.x === 'string') { const p = NET.peers[c.id]; if (p) netChatAdd(c.id, p.name, d.x); }
   else if (d.t === 'hq') { const p = NET.peers[c.id], r = performance.now() - d.c; if (p && Number.isFinite(r) && r >= 0 && r < 60000) { p.ping = p.ping == null ? r : p.ping * 0.5 + r * 0.5; p.pAt = performance.now(); p.relay = !!d.r; } }
 }
-function netLobbyPush() { NET.room.n = 1 + Object.keys(NET.peers).length; for (const id in NET.peers) { NET.lseq++; NET.peers[id].conn.send({ t: 'lobby', n: NET.lseq, room: NET.room, playing: !!NET.playing, you: id }); } if (!NET.playing && !NET.res) showLobby(); }
+// แชทในห้อง: host เป็นคนใส่ชื่อผู้ส่งเอง (ปลอมชื่อไม่ได้) · จำกัด 120 ตัวอักษร · ส่งถี่ไม่เกิน 5 ข้อความ / 4 วิ ต่อเครื่อง
+const CHAT_MAX = 80;
+function netChatAdd(id, name, x) {
+  const R = NET.room; if (NET.role !== 'host' || !R) return; x = String(x).replace(/\s+/g, ' ').trim().slice(0, 120); if (!x) return;
+  const now = Date.now(), q = (NET.chatQ ||= {})[id] = (NET.chatQ[id] || []).filter(t => now - t < 4000); if (q.length >= 5) return; q.push(now);
+  const si = R.slots.findIndex(s => s.who === id), m = { ts: now, id, n: String(name).slice(0, 16), x, c: si < 0 ? '' : si < 2 ? 'r' : 'b' };
+  (R.chat ||= []).push(m); if (R.chat.length > CHAT_MAX) R.chat.shift();
+  for (const pid in NET.peers) NET.peers[pid].conn.send({ t: 'cm', m });
+  chatPaint();
+}
+function netLobbyPush() { NET.room.slots.forEach(s => { if (!s.who || s.type !== 'human') delete s.rdy; }); NET.room.n = 1 + Object.keys(NET.peers).length; for (const id in NET.peers) { NET.lseq++; NET.peers[id].conn.send({ t: 'lobby', n: NET.lseq, room: NET.room, playing: !!NET.playing, you: id }); } if (!NET.playing && !NET.res) showLobby(); }
 function netDrop(id) {
   const p = NET.peers[id]; if (!p) return; delete NET.peers[id];
   NET.room.slots.forEach(s => { if (s.who === id) { s.who = null; s.name = ''; } });
@@ -1505,7 +1552,7 @@ function netDrop(id) {
   netLobbyPush();
 }
 function netStartMatch() {
-  const R = NET.room, c = R.cfg;
+  const R = NET.room, c = R.cfg; R.slots.forEach(s => delete s.rdy);  // รอบใหม่ทุกคนกด “พร้อมเล่น” ใหม่
   S = newState(); applyOpts({}); S.mode = c.kind === 'free' ? 'free' : 'match'; S.bot = { opp: c.bot, ally: c.bot };
   Object.assign(S.opt, { hpManual: c.hp === 'manual', intakeDelay: !!c.intakeDelay, shove: !!c.shove, health: !!c.health, gate: false, rival: false, hoard: c.kind !== 'free' });
   S.el = c.kind === 'full' ? 0 : MATCH_LEN - 120;
@@ -1569,6 +1616,8 @@ function netClientMsg(d) {
   else if (d.t === 'bye') netLeave('host ปิดห้องแล้ว', 'hostleft');
   else if (d.t === 'full') netLeave(`ห้องนี้เต็มแล้ว (เชื่อมต่อได้สูงสุด ${NET_MAX} เครื่อง)`);
   else if (d.t === 'po') { const p = performance.now() - d.c; NET.ping = NET.ping ? NET.ping * 0.7 + p * 0.3 : p; }
+  else if (d.t === 'cd' && !NET.playing) showCountdown(clamp(Math.round(+d.n) || CD_N, 1, 9));
+  else if (d.t === 'cm' && d.m && NET.room) { (NET.room.chat ||= []).push(d.m); if (NET.room.chat.length > CHAT_MAX) NET.room.chat.shift(); chatPaint(); }
   else if (d.t === 'hp') NET.conn.send({ t: 'hq', c: d.c, r: NET.relay ? 1 : 0 });
   else if (d.t === 'pm' && d.m && typeof d.m === 'object') { NET.pings = d.m; NET.pingAt = Date.now(); pingPaint(); }
   else if (d.t === 'start') {
@@ -1649,7 +1698,7 @@ const recClean = r => ({ ts: nN(r.ts), dur: nN(r.dur), code: nT(r.code, 8), role
   score: nRB(r.score), tips: nRB(r.tips), autoTips: nRB(r.autoTips), leavePark: nRB(r.leavePark),
   det: nA(r.det).slice(0, 20).map(d => [nT(d?.[0], 60), nN(d?.[1]), nT(d?.[2], 5)]),
   fouls: nA(r.fouls).slice(0, 80).map(f => ({ all: nT(f?.all, 5), rule: nT(f?.rule, 8), sev: nT(f?.sev, 6), pts: nN(f?.pts), why: nT(f?.why, 80), by: nT(f?.by, 4), rem: nN(f?.rem), card: f?.card === 'red' ? 'red' : f?.card ? 'yellow' : null })),
-  robots: nA(r.robots).filter(x => SLOT_ID.includes(x?.id)).slice(0, 4).map(x => ({ id: x.id, off: !!x.off, human: !!x.human, name: nT(x.name, 24), shots: nN(x.shots), hits: nN(x.hits), nCyc: nN(x.nCyc), cyc: nN(x.cyc), hp: nN(x.hp), ping: x.ping === 'H' ? 'H' : x.ping && typeof x.ping === 'object' ? { a: nN(x.ping.a), mx: nN(x.ping.mx), miss: nN(x.ping.miss), n: nN(x.ping.n), relay: !!x.ping.relay } : null })),
+  robots: nA(r.robots).filter(x => SLOT_ID.includes(x?.id)).slice(0, 4).map(x => ({ id: x.id, off: !!x.off, human: !!x.human, name: nT(x.name, 24), shots: nN(x.shots), hits: nN(x.hits), nCyc: nN(x.nCyc), cyc: nN(x.cyc), hp: nN(x.hp), ping: x.ping === 'H' ? 'H' : x.ping && typeof x.ping === 'object' ? { a: nN(x.ping.a), mx: nN(x.ping.mx), miss: nN(x.ping.miss), n: nN(x.ping.n), relay: !!x.ping.relay, self: !!x.ping.self } : null })),
   log: nA(r.log).slice(-40).map(e => ({ ts: nN(e?.ts), t: nT(e?.t, 160) })) });
 const histLoad = () => { try { const a = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(a) ? a.filter(r => r && r.score && r.cfg && Array.isArray(r.robots)).map(recClean) : []; } catch { return []; } };
 const netLog = t => { const R = NET.room; if (!R) return; (R.log ||= []).push({ ts: Date.now(), t }); if (R.log.length > 40) R.log.shift(); };
@@ -1659,7 +1708,7 @@ function netRec(why) {  // สรุปแมตช์ออนไลน์ 1 �
     score: S.end?.score || { red: total('red'), blue: total('blue') }, tips: { ...S.stats.tips }, autoTips: { ...S.stats.autoTips }, leavePark: { ...S.stats.leavePark },
     det: (S.end?.det || []).map(d => [d[0], d[1], d[2]]),
     fouls: S.fouls.map(f => ({ all: f.all, rule: f.rule, sev: f.sev, pts: f.pts, why: f.why, by: f.by, rem: Math.round(f.rem), card: f.card || null })),
-    robots: S.robots.map(r => ({ id: r.id, off: !!r.off, human: !!r.human, name: r.pname || 'Bot', shots: r.shots || 0, hits: r.hits || 0, nCyc: r.cycles.length, cyc: r.cycles.length ? +(r.cycles.reduce((a, b) => a + b, 0) / r.cycles.length).toFixed(1) : 0, hp: r.hp, ping: r.pingS?.host ? 'H' : r.pingS && (r.pingS.n || r.pingS.miss) ? { a: r.pingS.n ? Math.round(r.pingS.sum / r.pingS.n) : 0, mx: Math.round(r.pingS.mx), miss: r.pingS.miss, n: r.pingS.n, relay: !!r.pingS.relay } : null })),
+    robots: S.robots.map(r => ({ id: r.id, off: !!r.off, human: !!r.human, name: r.pname || 'Bot', shots: r.shots || 0, hits: r.hits || 0, nCyc: r.cycles.length, cyc: r.cycles.length ? +(r.cycles.reduce((a, b) => a + b, 0) / r.cycles.length).toFixed(1) : 0, hp: r.hp, ping: r.pingS?.host ? 'H' : r.pingS && (r.pingS.n || r.pingS.miss) ? { a: r.pingS.n ? Math.round(r.pingS.sum / r.pingS.n) : 0, mx: Math.round(r.pingS.mx), miss: r.pingS.miss, n: r.pingS.n, relay: !!r.pingS.relay, self: !!r.pingS.self } : null })),
     log: (R.log || []).filter(e => e.ts >= t0 - 500) });
 }
 function netHist(why) {  // บันทึกลงประวัติ 1 ครั้งต่อแมตช์
@@ -1687,7 +1736,7 @@ function recHtml(rec) {
     if (!p) return '<td style="text-align:left" class="mut">—</td>';
     const bad = p.miss >= 3 || p.a >= 180, col = bad ? '#ff7b6b' : p.miss || p.a >= 80 ? 'var(--yel)' : 'var(--grn)';
     const say = p.miss >= 3 ? `หลุด / ไม่ตอบ ${p.miss} วิ` : p.a >= 180 ? 'เน็ตช้า' : p.a >= 80 ? 'เริ่มช้า' : p.miss ? `ดี · สะดุด ${p.miss} วิ` : p.mx >= 180 ? 'ดี · กระตุกบางช่วง' : 'เน็ตดี';
-    return `<td style="text-align:left;white-space:nowrap"><span class="pb" style="width:56px;margin:0 6px 0 0"><i style="width:${p.n ? clamp(100 - (p.a - 30) / 3, 8, 100) : 4}%;background:${col}"></i></span><b style="color:${col}">${p.n ? p.a + ' ms' : '—'}</b> <span style="color:${col};font-weight:400;font-size:12px">${say}</span><br><span class="mut" style="font-weight:400;font-size:11px">สูงสุด ${p.mx} ms${p.relay ? ' · relay' : ''}</span></td>`;
+    return `<td style="text-align:left;white-space:nowrap"><span class="pb" style="width:56px;margin:0 6px 0 0"><i style="width:${p.n ? clamp(100 - (p.a - 30) / 3, 8, 100) : 4}%;background:${col}"></i></span><b style="color:${col}">${p.n ? p.a + ' ms' : '—'}</b> <span style="color:${col};font-weight:400;font-size:12px">${say}</span><br><span class="mut" style="font-weight:400;font-size:11px">สูงสุด ${p.mx} ms${p.relay ? ' · relay' : ''}${p.self ? ' · 🏠 เครื่องแม่ (เน็ตถึงเว็บไซต์)' : ''}</span></td>`;
   };
   const bots = rec.robots.map(r => { const col = r.id[0] === 'R' ? 'var(--red)' : BL;
     return r.off ? `<tr><td><b style="color:${col}">${SLOT_TH[r.id]}</b></td><td colspan="5" class="mut" style="text-align:left;font-weight:400">ไม่ลงสนาม</td></tr>`
@@ -1771,6 +1820,7 @@ function showLobby() {
   const ae = document.activeElement;
   if (ae?.tagName === 'SELECT' && $('ovBox').contains(ae)) { if (!lobbyPend) { lobbyPend = true; ae.addEventListener('blur', () => { lobbyPend = false; setTimeout(showLobby, 0); }, { once: true }); } return; }
   const host = NET.role === 'host', c = R.cfg, me = NET.id, dis = host ? '' : 'disabled';
+  const chatV = $('lbChatIn')?.value || '', chatF = document.activeElement?.id === 'lbChatIn';  // มีคนเข้า / กดพร้อมระหว่างพิมพ์ = ข้อความไม่หาย
   const sel = (id, cur, o) => `<select id="${id}" ${dis}>${Object.entries(o).map(([v, t]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const chk = (k, t) => `<label><input type="checkbox" data-cfg="${k}" ${c[k] ? 'checked' : ''} ${dis}> ${t}</label>`;
   const link = location.origin + location.pathname + '?room=' + R.code + (LOCALNET ? '&net=local' : '');
@@ -1778,13 +1828,20 @@ function showLobby() {
   const mySlot = R.slots.findIndex(s => s.who === me), nHum = humanSlots(), nIn = R.slots.filter(s => s.type === 'human' && s.who).length;
   const rows = R.slots.map((s, i) => {
     const col = i < 2 ? 'var(--red)' : 'var(--blu)', mineS = s.who === me;
-    const who = s.type === 'none' ? '<span class="mut">ไม่ลงสนาม</span>' : s.type === 'bot' ? '🤖 Bot' : s.who ? `🧑 <b>${esc(s.name)}</b>${mineS ? ' (คุณ)' : ''}${s.who === 'H' ? ' · host' : ''}<span data-pid="${esc(s.who)}"></span>` : '<span class="mut">ว่าง · รอคนเข้า (ถ้าไม่มี Bot ขับแทน)</span>';
+    const who = s.type === 'none' ? '<span class="mut">ไม่ลงสนาม</span>' : s.type === 'bot' ? '🤖 Bot' : s.who ? `🧑 <b>${esc(s.name)}</b>${mineS ? ' (คุณ)' : ''}${s.who === 'H' ? ' · host' : ''}<span data-pid="${esc(s.who)}"></span>${s.type === 'human' ? (s.rdy === true ? '<span class="rdyB ok">✅ พร้อมเล่น</span>' : s.rdy === false ? '<span class="rdyB wait">⏸ รอก่อน</span>' : '<span class="rdyB">⌛ ยังไม่กดพร้อม</span>') : ''}` : '<span class="mut">ว่าง · รอคนเข้า (ถ้าไม่มี Bot ขับแทน)</span>';
     const act = s.type === 'human' && !s.who && !NET.busy ? `<button class="sec" data-seat="${i}">นั่งตำแหน่งนี้</button>` : '';
     return `<tr><td style="width:74px"><b style="color:${col}">${SLOT_TH[SLOT_ID[i]]}</b></td><td style="width:118px;text-align:left">${host ? `<select data-type="${i}" ${mineS ? 'disabled title="ตำแหน่งของคุณเอง ย้ายที่นั่งก่อนถึงเปลี่ยนได้"' : ''}>${Object.entries(TYPE_TH).map(([v, t]) => `<option value="${v}" ${v === s.type ? 'selected' : ''}>${t}</option>`).join('')}</select>` : TYPE_TH[s.type]}</td><td style="text-align:left;font-weight:400">${who}</td><td style="width:120px">${act}</td></tr>`;
   }).join('');
-  ov(true, `<h2>🌐 ห้องออนไลน์</h2>
-    <div class="mcfg" style="text-align:center"><div class="mut">รหัสห้อง (ส่งให้เพื่อนเพื่อเข้าร่วม)</div><div style="font-size:44px;font-weight:800;letter-spacing:8px;color:var(--yel);line-height:1.15" id="lbCode">${esc(R.code)}</div>
-      <div class="mrow" style="justify-content:center"><input id="lbLink" readonly value="${esc(link)}" style="font:inherit;font-size:12px;padding:4px 6px;width:330px;max-width:100%"><button class="sec" id="lbCopy">คัดลอกลิงก์</button></div></div>
+  const nRdy = R.slots.filter(s => s.type === 'human' && s.who && s.rdy === true).length, allR = nIn > 0 && nIn >= nHum && nRdy === nIn;
+  const full = nIn >= nHum, rc = full ? 'var(--grn)' : 'var(--yel)', dots = '<span class="wdots"><span>.</span><span>.</span><span>.</span></span>';
+  const pips = R.slots.map((s, i) => s.type === 'none' ? '' : `<span class="pip ${s.type === 'bot' ? 'bot' : s.who ? 'on' : 'wait'}" style="--pc:${i < 2 ? 'var(--red)' : '#6aa2ff'}" title="${SLOT_TH[SLOT_ID[i]]} · ${s.type === 'bot' ? 'Bot' : s.who ? esc(s.name) : 'ว่าง รอคนเข้า'}">${s.type === 'bot' ? '🤖' : s.who ? (s.rdy === true ? '✅' : '🧑') : '⌛'} ${SLOT_TH[SLOT_ID[i]]}</span>`).join('');
+  const ban = NET.busy ? '' : `<div class="waitBan" style="--rc:${rc}"><div class="radar${allR ? ' full' : ''}"><b></b><b></b><b></b><i></i></div>
+      <div><div class="wt">${allR ? (host ? 'ทุกคนพร้อมแล้ว! กด ▶ เริ่มแมตช์ได้เลย' : `ทุกคนพร้อมแล้ว · รอ host กดเริ่ม${dots}`) : full ? `ผู้เล่นครบแล้ว · รอทุกคนกดพร้อมเล่น${dots}` : `กำลังรอผู้เล่น${dots}`}</div>
+      <div class="ws">${full ? `พร้อมเล่นแล้ว <b style="color:var(--grn)">${nRdy}/${nIn}</b> คน${host && !allR ? ' · host กดเริ่มได้เลยถ้าไม่อยากรอ' : ''}` : `อีก ${nHum - nIn} คน · ส่งรหัสห้อง <b style="color:var(--yel)">${esc(R.code)}</b> ให้เพื่อนกด “เข้าร่วม”`}</div></div>
+      <div class="pips">${pips}</div></div>`;
+  ov(true, `<h2>🌐 ห้องออนไลน์</h2><div class="lbGrid"><div class="lbL">${ban}
+    <div class="chatBox mcfg"><h4 style="margin:0 0 6px">💬 แชท และเหตุการณ์ในห้อง</h4><div class="chatList" id="lbChat"></div>
+      <div class="chatIn"><input id="lbChatIn" maxlength="120" placeholder="พิมพ์ข้อความถึงทุกคนในห้อง แล้วกด Enter" autocomplete="off"><button id="lbChatGo">ส่ง</button></div></div></div><div class="lbR">
     <div class="mcfg"><h4>กติกา ${host ? '' : '(host เป็นคนกำหนด)'}</h4>
       <div class="mrow"><label>รูปแบบ ${sel('lbKind', c.kind, NKIND_TH)}</label></div>
       <div class="mrow"><label>Human Player ${sel('lbHp', c.hp, { manual: 'ผู้เล่นกดปล่อย NECTAR เอง (H)', auto: 'ปล่อยอัตโนมัติ' })}</label><label>ระดับ Bot ${sel('lbBot', c.bot, Object.fromEntries(Object.entries(BOT_LV).map(([k, l]) => [k, l.th])))}</label></div>
@@ -1793,20 +1850,27 @@ function showLobby() {
       ${host ? `<div class="mrow"><label>จำนวนผู้เล่น (เครื่อง) <select id="lbN"><option value="" ${pre ? '' : 'selected'}>กำหนดเอง</option>${[2, 3, 4].map(n => `<option value="${n}" ${String(n) === pre ? 'selected' : ''}>${n} เครื่อง</option>`).join('')}</select></label><span class="mut">หรือเลือกทีละตำแหน่งด้านล่าง: คนจริง / Bot / ไม่มีหุ่น</span></div>` : ''}
       <table>${rows}</table>
       <div id="lbSpec" style="font-size:13px;margin:4px 0"></div>
-      <p class="mut" style="font-size:12px">📶 ping = เวลาไป-กลับของสัญญาณถึงเครื่องแม่ (host) วัดทุก 1 วิ · <b style="color:var(--grn)">เขียว &lt; 80 ms ดี</b> · <b style="color:var(--yel)">เหลือง 80–180 ms เริ่มช้า</b> · <b style="color:#ff7b6b">แดง &gt; 180 ms ช้า</b> · relay = ต่อผ่านตัวส่งต่อ</p>
-      <p class="mut" style="font-size:12px">ตำแหน่ง “คนจริง” ที่ยังว่างตอนกดเริ่ม จะให้ Bot ขับแทน · ทีมน้ำเงินเห็นสนามจากฝั่งตัวเอง</p></div>
-    ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : host ? '' : `<p style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]} · รอ host กดเริ่ม…` : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</p>`}
+      <p class="mut" style="font-size:12px">📶 ping = เวลาไป-กลับของสัญญาณถึงเครื่องแม่ (host) วัดทุก 1 วิ · <b style="color:var(--grn)">เขียว &lt; 80 ms ดี</b> · <b style="color:var(--yel)">เหลือง 80–180 ms เริ่มช้า</b> · <b style="color:#ff7b6b">แดง &gt; 180 ms ช้า</b> · relay = ต่อผ่านตัวส่งต่อ · เครื่องแม่ = เวลาไป-กลับถึงเว็บไซต์ (อินเทอร์เน็ตของเครื่องแม่)</p>
+      <p class="mut lbNote" style="font-size:12px">ตำแหน่ง “คนจริง” ที่ยังว่างตอนกดเริ่ม จะให้ Bot ขับแทน · ทีมน้ำเงินเห็นสนามจากฝั่งตัวเอง</p></div>
+    ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 8px"><span style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]}${host ? ' (host)' : ''} · สถานะของคุณ:` : host ? 'คุณยังไม่ได้นั่งตำแหน่ง (เป็นผู้ชม)' : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</span>${mySlot >= 0 && R.slots[mySlot].type === 'human' ? `<span class="rdyCtl"><button data-rdy="1" class="${R.slots[mySlot].rdy === true ? 'on' : 'sec'}">✅ พร้อมเล่น</button><button data-rdy="0" class="${R.slots[mySlot].rdy === false ? 'on wait' : 'sec'}">⏸ รอก่อน</button></span>` : ''}</div>`}
     <div style="display:flex;gap:8px;flex-wrap:wrap">${host ? '<button id="lbStart">▶ เริ่มแมตช์</button>' : ''}<button class="sec" id="lbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button></div>
-    ${host ? '<p class="mut" style="font-size:12px"><b>ห้องนี้เปิดรอเพื่อนได้เรื่อย ๆ ไม่มีหมดเวลา</b> จนกว่าจะกด “ปิดห้อง” (มีถามยืนยันก่อนปิดจริง) · เครื่อง host เป็นตัวคำนวณสนาม: อย่าปิดแท็บนี้หรือปล่อยให้เครื่องพักจอ / sleep (ปิด = ห้องปิด) · ควรใช้เครื่องและอินเทอร์เน็ตที่ดีที่สุดเป็น host</p>' : ''}
-    ${R.log?.length ? `<div class="mut" style="font-size:12px;line-height:1.5;margin-top:6px;border-top:1px solid var(--line);padding-top:6px"><b>เหตุการณ์ในห้อง</b><br>${R.log.slice(-6).map(e => `${fmtClock(e.ts)} · ${esc(e.t)}`).join('<br>')}</div>` : ''}`);
-  NET.stat = null; netBar(); pingPaint();
+    <div class="mcfg" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap"><div class="mut" title="ส่งรหัสหรือลิงก์ให้เพื่อนเพื่อเข้าร่วม">รหัสห้อง</div><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:var(--yel);line-height:1.1" id="lbCode">${esc(R.code)}</div>
+      <div class="mrow" style="justify-content:center;margin:0"><input id="lbLink" readonly value="${esc(link)}" style="font:inherit;font-size:12px;padding:4px 6px;width:240px;max-width:100%"><button class="sec" id="lbCopy">คัดลอกลิงก์</button></div></div>
+    ${host ? '<p class="mut lbNote" style="font-size:12px"><b>ห้องนี้เปิดรอเพื่อนได้เรื่อย ๆ ไม่มีหมดเวลา</b> จนกว่าจะกด “ปิดห้อง” (มีถามยืนยันก่อนปิดจริง) · เครื่อง host เป็นตัวคำนวณสนาม: อย่าปิดแท็บนี้หรือปล่อยให้เครื่องพักจอ / sleep (ปิด = ห้องปิด) · ควรใช้เครื่องและอินเทอร์เน็ตที่ดีที่สุดเป็น host</p>' : ''}</div></div>`);
+  NET.stat = null; netBar(); pingPaint(); chatPaint(true);
+  if ($('lbChatIn')) { $('lbChatIn').value = chatV; if (chatF) $('lbChatIn').focus(); }
   $('lbCopy').onclick = () => { $('lbLink').select(); try { navigator.clipboard?.writeText(link); } catch {} $('lbCopy').textContent = 'คัดลอกแล้ว ✓'; };
   $('lbLeave').onclick = askLeave;
   $('ovBox').querySelectorAll('[data-seat]').forEach(b => b.onclick = () => { const i = +b.dataset.seat;
     if (!host) return NET.conn.send({ t: 'pick', slot: i });
     R.slots.forEach(s => { if (s.who === 'H') { s.who = null; s.name = ''; } }); Object.assign(R.slots[i], { who: 'H', name: NET.name }); netLobbyPush(); });
+  $('ovBox').querySelectorAll('[data-rdy]').forEach(b => b.onclick = () => { const v = b.dataset.rdy === '1';
+    if (!host) return NET.conn.send({ t: 'rdy', v });
+    const s = R.slots.find(x => x.who === 'H'); if (s && s.rdy !== v) { s.rdy = v; netLog(`${NET.name} ${v ? 'พร้อมเล่น ✅' : 'ขอรอก่อน ⏸'}`); netLobbyPush(); } });
+  const chatSend = () => { const i = $('lbChatIn'), x = i.value.trim().slice(0, 120); if (!x) return; i.value = ''; i.focus(); if (host) netChatAdd('H', NET.name, x); else NET.conn.send({ t: 'chat', x }); };
+  $('lbChatGo').onclick = chatSend; $('lbChatIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); chatSend(); } };
   if (!host) return;
-  $('lbStart').onclick = netStartMatch;
+  $('lbStart').onclick = netCountdown; if (NET.cd) { $('lbStart').disabled = true; $('lbStart').textContent = '⏱ กำลังนับถอยหลัง…'; }
   $('lbKind').onchange = e => { c.kind = e.target.value; netLobbyPush(); }; $('lbHp').onchange = e => { c.hp = e.target.value; netLobbyPush(); }; $('lbBot').onchange = e => { c.bot = e.target.value; netLobbyPush(); };
   $('ovBox').querySelectorAll('[data-cfg]').forEach(b => b.onchange = () => { c[b.dataset.cfg] = b.checked; netLobbyPush(); });
   $('lbN').onchange = e => { if (e.target.value) netPreset(e.target.value); };
@@ -1817,17 +1881,19 @@ function netBar() {  // status bar บนสุดของจอ: สถาน�
   const el = $('netBar'), R = NET.role ? NET.room : null, st = R ? null : NET.stat, sl = R ? R.slots : [];
   const nHum = sl.filter(s => s.type === 'human').length, nIn = sl.filter(s => s.type === 'human' && s.who).length, nBot = sl.filter(s => s.type === 'bot').length;
   const host = NET.role === 'host', nPc = host ? 1 + Object.keys(NET.peers).length : R?.n || 1, seat = sl.findIndex(s => s.who === NET.id);
-  const key = R ? [NET.role, R.code, ME, seat, NET.playing, NET.spec, NET.res, NET.busy, S.over, nHum, nIn, nBot, nPc].join() : st ? 's' + st.t : '';
+  const nR = sl.filter(s => s.type === 'human' && s.who && s.rdy === true).length;
+  const key = R ? [NET.role, R.code, ME, seat, NET.playing, NET.spec, NET.res, NET.busy, S.over, nHum, nIn, nBot, nPc, nR].join() : st ? 's' + st.t : '';
   if (key === netBarKey) return netPing(); netBarKey = key;
   el.classList.toggle('hidden', !key); document.body.classList.toggle('online', !!key);
   if (!key) { el.innerHTML = ''; return; }
   if (!R) { el.innerHTML = `<span><i class="dot" style="background:${st.bad ? '#ff7b6b' : 'var(--yel)'}"></i><b>ออนไลน์</b> · ${esc(st.t)}</span>`; return; }
-  const [stT, col] = NET.playing ? ['กำลังแข่ง', 'var(--red)'] : NET.res ? ['จบแมตช์ · ดูผล', 'var(--yel)'] : NET.busy ? ['ห้องกำลังแข่ง · รอรอบถัดไป', 'var(--yel)'] : [nIn < nHum ? `รอผู้เล่นอีก ${nHum - nIn} คน` : 'ครบแล้ว · รอ host กดเริ่ม', 'var(--grn)'];
+  const [stT, col] = NET.playing ? ['กำลังแข่ง', 'var(--red)'] : NET.res ? ['จบแมตช์ · ดูผล', 'var(--yel)'] : NET.busy ? ['ห้องกำลังแข่ง · รอรอบถัดไป', 'var(--yel)'] : nIn < nHum ? [`⌛ รอผู้เล่นอีก ${nHum - nIn} คน`, 'var(--yel)'] : [nR >= nIn ? 'ทุกคนพร้อม · รอ host กดเริ่ม' : `ครบแล้ว · พร้อม ${nR}/${nIn}`, 'var(--grn)'];
   const sid = NET.playing || NET.res ? (NET.spec ? null : R1().id) : SLOT_ID[seat], me = sid ? `คุณ: <b style="color:${sid[0] === 'R' ? 'var(--red)' : '#6aa2ff'}">${SLOT_TH[sid]}</b>` : 'คุณ: ผู้ชม';
-  el.innerHTML = `<span><i class="dot" style="background:${col}"></i><b>ออนไลน์</b> · ห้อง <b style="color:var(--yel);letter-spacing:1px">${esc(R.code)}</b><span class="opt"> (${host ? 'คุณสร้างห้องนี้ · host' : 'เข้าร่วม'})</span></span>
+  const live = !NET.playing && !NET.res && !NET.busy;
+  el.innerHTML = `<span><i class="dot${live ? ' live' : ''}" style="background:${col};color:${col}"></i><b>ออนไลน์</b> · ห้อง <b style="color:var(--yel);letter-spacing:1px">${esc(R.code)}</b><span class="opt"> (${host ? 'คุณสร้างห้องนี้ · host' : 'เข้าร่วม'})</span></span>
     <span>สถานะ: <b>${stT}</b></span>
     <span title="ผู้เล่นคนจริงที่เข้านั่งแล้ว / ตำแหน่งคนจริงทั้งหมด">👥 ผู้เล่น <b>${nIn}/${nHum}</b> คน · 🤖 Bot <b>${nBot}</b><span class="opt"> · 🖥 เชื่อมต่อ <b>${nPc}</b> เครื่อง</span></span>
-    <span>${me}</span><span id="nbPing"></span>
+    <span>${me}</span><span id="nbPing"></span><span id="nbPing2" style="font-size:12px"></span>
     ${host && NET.playing && !S.over ? '<button class="sec" id="nbEnd">จบแมตช์</button>' : ''}<button class="sec" id="nbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button>`;
   $('nbLeave').onclick = askLeave;
   if ($('nbEnd')) $('nbEnd').onclick = () => endMatch(); netPing();
@@ -1835,10 +1901,12 @@ function netBar() {  // status bar บนสุดของจอ: สถาน�
 function netPing() {  // เวลาไป-กลับของสัญญาณถึง host (เครื่องที่เข้าร่วม) · เตือนเมื่อการเชื่อมต่อต้องอ้อมผ่านเซิร์ฟเวอร์ relay
   const el = $('nbPing'); if (!el) return;
   if (NET.role === 'client' && NET.playing && S.running && NET.age > 1.5) { delete el.dataset.pb; el.style.color = '#ff7b6b'; el.textContent = `⚠ ไม่ได้รับสัญญาณจาก host ${Math.floor(NET.age)} วิ${NET.age > 8 ? ' · ถ้าไม่กลับมาให้ออกแล้วเข้าห้องใหม่ด้วยชื่อเดิม' : ''}`; return; }
-  el.style.color = '';
-  if (NET.role === 'host') {
+  el.style.color = ''; const e2 = $('nbPing2'); if (e2) e2.textContent = '';
+  if (NET.role === 'host') {  // ping ของเครื่องแม่เอง + เครื่องที่ช้าสุดในห้อง
+    pingSet(el, NET.pings?.H || [-1, '', 0, 0], false, 'ping ของคุณ');
     const v = Object.entries(NET.pings || {}).filter(([id]) => id !== 'H').map(([, v]) => v).sort((a, b) => (b[3] ? 1e9 : b[0]) - (a[3] ? 1e9 : a[0]))[0];
-    return v ? pingSet(el, v, false, 'ช้าสุดในห้อง') : pingSet(el, null, false, '');
+    if (e2 && v) { e2.style.color = v[3] ? '#ff7b6b' : v[0] < 0 ? 'var(--mut)' : v[0] < 80 ? 'var(--grn)' : v[0] < 180 ? 'var(--yel)' : '#ff7b6b'; e2.textContent = `ช้าสุดในห้อง ${v[3] ? '⚠ ไม่ตอบ' : v[0] < 0 ? '…' : v[0] + ' ms'}`; }
+    return;
   }
   if (NET.role !== 'client') return pingSet(el, null, false, '');
   const v = NET.pings?.[NET.id] || (NET.ping ? [NET.ping, NET.name, NET.relay ? 1 : 0, 0] : null);
@@ -1847,18 +1915,26 @@ function netPing() {  // เวลาไป-กลับของสัญญา
 // ---- ping ถึงเครื่องแม่ (host) ทุก 1 วิ ----
 // host ส่ง hp → เครื่องลูกตอบ hq ทันที → host คำนวณเวลาไป-กลับของแต่ละเครื่อง แล้วส่งตาราง pm { id: [ms, ชื่อ, relay, เงียบ] } ให้ทุกเครื่องเห็นตรงกัน
 // วัดบนช่องเดียวกับข้อมูลเกม (P2P ตรงถึง host หรือผ่าน TURN) ไม่ได้ผ่าน Netlify
+// เครื่องแม่ไม่มีใครวัดถึงตัวเองได้ จึงวัดเวลาไป-กลับถึงเว็บไซต์นี้ (Netlify) แทน = คุณภาพอินเทอร์เน็ตของเครื่องแม่ · HEAD ไม่โหลดเนื้อหา
 let pingIv = 0;
 const pingStart = () => { if (!pingIv) pingIv = setInterval(netPingTick, 1000); };
+function hostSelfPing() {
+  if (NET.selfBusy) return; NET.selfBusy = true; const t = performance.now();
+  fetch(location.pathname + '?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(3000) })
+    .then(() => { const ms = performance.now() - t; NET.selfPing = NET.selfPing == null ? ms : NET.selfPing * 0.5 + ms * 0.5; NET.selfAt = performance.now(); })
+    .catch(() => {}).finally(() => { NET.selfBusy = false; });
+}
 function netPingTick() {
   if (!NET.role) { clearInterval(pingIv); pingIv = 0; return; }
   if (NET.role === 'host') {
-    const now = performance.now(), m = { H: [0, NET.name, 0, 0] };
+    const now = performance.now(); NET.selfAt ??= now; hostSelfPing();
+    const m = { H: [NET.selfPing == null ? -1 : Math.round(NET.selfPing), NET.name, 0, now - NET.selfAt > 3500 ? 1 : 0] };
     for (const id in NET.peers) { const p = NET.peers[id]; p.conn.send({ t: 'hp', c: now }); m[id] = [p.ping == null ? -1 : Math.round(p.ping), p.name, p.relay ? 1 : 0, now - p.pAt > 3500 ? 1 : 0]; }
     NET.pings = m; NET.pingAt = Date.now();
     if (NET.playing && !S.over && S.running) for (const rb of S.robots) {  // สรุป ping ต่อคนในหน้าจบแมตช์
       if (!rb.human && !rb.pingS) continue;
-      const ps = rb.pingS ||= rb.net ? { n: 0, sum: 0, mx: 0, miss: 0, relay: 0, last: 0 } : { host: 1 }; if (ps.host || !rb.net) continue;
-      const p = NET.peers[rb.net]; if (!p) continue;
+      const self = !rb.net && rb.human, ps = rb.pingS ||= { n: 0, sum: 0, mx: 0, miss: 0, relay: 0, last: 0, self: self ? 1 : 0 };
+      const p = rb.net ? NET.peers[rb.net] : self ? { ping: NET.selfPing, pAt: NET.selfAt } : null; if (!p) continue;
       // นับเฉพาะคำตอบใหม่ (ไม่ใช้ค่าเก่าซ้ำ) · เงียบเกิน 2 วิ = นับเป็นวินาทีที่ไม่ตอบ
       if (p.pAt > ps.last && p.ping != null) { ps.last = p.pAt; ps.n++; ps.sum += p.ping; ps.mx = Math.max(ps.mx, p.ping); if (p.relay) ps.relay = 1; } else if (now - p.pAt > 2000) ps.miss++;
     }
@@ -1871,10 +1947,40 @@ function pingSet(el, v, stale, label) {
   if (!v) { if (el.dataset.pb != null) { el.innerHTML = ''; delete el.dataset.pb; } return; }
   if (el.dataset.pb !== label) { el.dataset.pb = label; el.innerHTML = `${label ? `<span class="mut" style="font-size:12px">${label}</span>` : ''}<span class="pb"><i></i></span><b class="pv"></b>`; }
   const bar = el.querySelector('.pb i'), txt = el.querySelector('.pv'), [ms, , relay, late] = v;
-  if (el.dataset.pid === 'H') { el.querySelector('.pb').style.display = 'none'; txt.style.cssText = 'color:var(--mut);margin-left:8px'; txt.textContent = '🏠 เครื่องแม่ (ping 0)'; return; }
   const dead = stale || late, col = dead ? '#ff7b6b' : ms < 0 ? 'var(--mut)' : ms < 80 ? 'var(--grn)' : ms < 180 ? 'var(--yel)' : '#ff7b6b';
   bar.style.width = (dead ? 4 : ms < 0 ? 0 : clamp(100 - (ms - 30) / 3, 8, 100)) + '%'; bar.style.backgroundColor = col; txt.style.color = col;
   txt.textContent = dead ? '⚠ ไม่ตอบ' : ms < 0 ? 'กำลังวัด…' : `${ms} ms${ms >= 180 ? ' ช้า' : ms >= 80 ? ' เริ่มช้า' : ''}${relay ? ' · relay' : ''}`;
+}
+// host กดเริ่มแมตช์ → นับถอยหลัง 5 · 4 · 3 · 2 · 1 · START! กลางจอทุกเครื่องพร้อมกัน แล้วแมตช์เริ่มจริงตอน START
+const CD_N = 5;
+function showCountdown(n = CD_N) {
+  let el = $('cdOv'); if (!el) { el = document.createElement('div'); el.id = 'cdOv'; document.body.appendChild(el); }
+  clearInterval(el._iv); clearTimeout(el._to); el.classList.remove('out'); el.classList.add('on'); let k = n;
+  const draw = () => {
+    if (!NET.role) { clearInterval(el._iv); el.classList.remove('on'); return; }  // ออกจากห้องระหว่างนับ
+    const go = k <= 0;
+    el.innerHTML = `<i class="${go ? 'go' : ''}"></i><b class="${go ? 'go' : ''}">${go ? 'START!' : k}</b><small>${go ? 'ลุยเลย!' : 'แมตช์ออนไลน์กำลังจะเริ่ม · เตรียมจอย'}</small>`;
+    if (!go && DRV.sound !== false) tone(k === 1 ? 880 : 660, 0, 0.14, 'square', 0.09);
+    if (go) { clearInterval(el._iv); el._to = setTimeout(() => { el.classList.add('out'); el._to = setTimeout(() => el.classList.remove('on', 'out'), 800); }, 700); }
+    k--;
+  };
+  draw(); el._iv = setInterval(draw, 1000);
+}
+function netCountdown() {
+  if (NET.role !== 'host' || NET.playing || NET.cd) return;
+  NET.cd = true; for (const id in NET.peers) NET.peers[id].conn.send({ t: 'cd', n: CD_N });
+  if ($('lbStart')) { $('lbStart').disabled = true; $('lbStart').textContent = '⏱ กำลังนับถอยหลัง…'; }
+  showCountdown();
+  setTimeout(() => { NET.cd = false; if (NET.role === 'host' && !NET.playing) netStartMatch(); }, CD_N * 1000);
+}
+function chatPaint(jump) {
+  const b = $('lbChat'), R = NET.room; if (!b || !R) return;
+  const near = jump || b.scrollHeight - b.scrollTop - b.clientHeight < 40;  // กำลังเลื่อนอ่านข้อความเก่า = ไม่ดึงลงล่างให้
+  const items = [...(R.log || []).map(e => ({ ts: e.ts, ev: e.t })), ...(R.chat || []).map(m => ({ ...m, ts: +m.ts || 0 }))].sort((a, b) => a.ts - b.ts);
+  b.innerHTML = items.length ? items.map(e => e.ev != null ? `<div class="cEv"><span>${esc(e.ev)}</span><span class="ct">${fmtClock(e.ts).slice(0, 5)}</span></div>`
+    : `<div class="cMsg${e.id === NET.id ? ' me' : ''}"><span class="cx"><span class="cn" style="color:${e.c === 'r' ? 'var(--red)' : e.c === 'b' ? '#6aa2ff' : 'var(--mut)'}">${esc(String(e.n || ''))}${e.id === 'H' ? ' · host' : ''}:</span> ${esc(String(e.x || ''))}</span><span class="ct">${fmtClock(e.ts).slice(0, 5)}</span></div>`).join('')
+    : '<div class="cEv">ยังไม่มีข้อความ · พิมพ์ทักทายเพื่อนได้เลย 👋</div>';
+  if (near) { b.style.scrollBehavior = 'auto'; b.scrollTop = b.scrollHeight; b.style.scrollBehavior = ''; }
 }
 function pingPaint() {
   if (!NET.role) return;
