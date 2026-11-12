@@ -61,6 +61,8 @@
   @media (max-width:900px) { #left { width:200px; font-size:12px } #right { width:220px; font-size:12px } #top .t { font-size:22px } #top .s { font-size:18px } #bottom { display:none } }
 /* ซ่อนป้าย Powered by Netlify ที่โฮสต์แทรกเอง (บังปุ่มบนมือถือ) */
 #nl-badge-frame,#nl-hud-frame{display:none!important}
+#rMini { float:right; margin:4px 0 0 6px; padding:1px 8px; font-size:11px }
+#right.mini #freeBox, #right.mini #help, #right.mini #simNote { display:none }
 </style>
 </head>
 <body>
@@ -85,6 +87,7 @@
     <h4 id="foulHdr">FOUL / คำเตือน ของแดง</h4><div id="fouls" class="foul">—</div>
   </div>
   <div id="right" class="panel">
+    <button class="sec" id="rMini" title="หุบ / แสดงการตั้งค่าและคำอธิบายในแผงนี้ (จำไว้ในเครื่อง)">▴ หุบ</button>
     <div id="scnBox"></div>
     <div id="coachBox"></div>
     <div id="freeBox"></div>
@@ -136,7 +139,7 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.2"></script>
+<script src="scenarios.js?v=2.3"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1308,7 +1311,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.2</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.3</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1788,6 +1791,8 @@ function netPing() {  // เวลาไป-กลับของสัญญา
   el.textContent = `ping ${p} ms${NET.relay ? ' · ⚠ ผ่าน relay (หน่วงสูง)' : ''}`;
 }
 addEventListener('pageshow', e => { if (e.persisted && NET.dead) location.reload(); });
+{ const rm = $('rMini'), set = on => { $('right').classList.toggle('mini', on); rm.textContent = on ? '▾ แสดงทั้งหมด' : '▴ หุบ'; try { localStorage.setItem('dca-right-mini', on ? '1' : '0'); } catch {} };
+  let on0 = false; try { on0 = localStorage.getItem('dca-right-mini') === '1'; } catch {} set(on0); rm.onclick = () => set(!$('right').classList.contains('mini')); }
 addEventListener('beforeunload', e => { if ((NET.role && NET.playing && !S.over) || NET.role === 'host') { e.preventDefault(); e.returnValue = ''; } });  // กันเผลอปิดแท็บ / รีเฟรชระหว่างแข่ง (host ปิด = ห้องปิดทุกเครื่อง)
 addEventListener('pagehide', () => { if (NET.role) NET.dead = true; if (NET.role && NET.playing) netHist('closed'); try { if (NET.role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else if (NET.role === 'client') NET.conn.close(); } catch {} });
 
@@ -1805,7 +1810,7 @@ function applyFreeBots() { // Free Control: เปิด/ปิดหุ่น A
   });
 }
 function resetFree() { startMatch('free'); }
-let drvOpen = false;
+let drvOpen = false, fcOpen = (() => { try { return localStorage.getItem('dca-fc-open') !== '0'; } catch { return true; } })();
 function renderPanels() {
   const sb = $('scnBox'), cb = $('coachBox'), fb = $('freeBox');
   sb.innerHTML = SCN ? `<h4>สถานการณ์ ${esc(SCN_ID)}</h4><b>${esc(SCN.title)}</b><div id="objLive" style="margin-top:4px"></div>` : NET.role ? `<h4>แมตช์ออนไลน์ · ห้อง ${esc(NET.room?.code || '')}</h4><div class="mut" style="font-size:12px">${NKIND_TH[NET.room?.cfg.kind] || ''}</div>` : `<h4>${S.mode === 'free' ? 'Free Control' : 'แมตช์'}</h4>`;
@@ -1815,7 +1820,7 @@ function renderPanels() {
   cb.innerHTML = btns.length ? `<h4>ปุ่มโค้ช / Human Player</h4><div id="coachClock" class="mut"></div>` + btns.map(b => `<button class="cbtn" data-k="${BL[b][1]}">${BL[b][0]}</button>`).join('') : '';
   cb.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => once.add(b.dataset.k));
   const opt = (k, t) => `<label><input type="checkbox" data-opt="${k}" ${S.opt[k] ? 'checked' : ''}> ${t}</label>`;
-  fb.innerHTML = NET.role ? '' : S.mode === 'free' ? `<h4>ตั้งค่า Free Control</h4>${driveSel('driveMode2')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'ล็อกการยิง: ต้องผ่านเกณฑ์จุดยิงถึงยิงได้ (ปิด = ยิงได้ทุกที่ เข้า/ไม่เข้าตามจริง)')}${opt('intakeDelay', 'เก็บลูกมีดีเลย์ (ลูกต้องอยู่ที่ปาก intake จนดูดเสร็จ)')}${opt('rival', 'หุ่นคู่แข่ง 1 ตัว (B1) เข้ามาเบียด / แย่งลูก')}${opt('shove', 'โดนชนแล้วหุ่นถูกดัน ไถล บิดหมุน (เหมือนจริง)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}
+  fb.innerHTML = NET.role ? '' : S.mode === 'free' ? `<details id="fcBox" ${fcOpen ? 'open' : ''}><summary style="cursor:pointer"><h4 style="display:inline-block">ตั้งค่า Free Control</h4> <span class="mut" style="font-size:11px">${fcOpen ? '(กดเพื่อย่อ)' : `(เปิดอยู่ ${['autoStop', 'traj', 'gate', 'intakeDelay', 'rival', 'shove', 'health', 'simple', 'bots'].filter(k => S.opt[k]).length}/9 · กดเพื่อดู)`}</span></summary>${driveSel('driveMode2')}${opt('autoStop', 'หุ่นหยุดดูดเองเมื่อครบ 4 ลูก (G407) · ปิด = ดูดลูกที่ 5 ได้ ต้องกด ○ คายเอง')}${opt('traj', 'แสดงวิถีลูกแบบจุดปะ และจุดที่จะตก')}${opt('gate', 'ล็อกการยิง: ต้องผ่านเกณฑ์จุดยิงถึงยิงได้ (ปิด = ยิงได้ทุกที่ เข้า/ไม่เข้าตามจริง)')}${opt('intakeDelay', 'เก็บลูกมีดีเลย์ (ลูกต้องอยู่ที่ปาก intake จนดูดเสร็จ)')}${opt('rival', 'หุ่นคู่แข่ง 1 ตัว (B1) เข้ามาเบียด / แย่งลูก')}${opt('shove', 'โดนชนแล้วหุ่นถูกดัน ไถล บิดหมุน (เหมือนจริง)')}${opt('health', 'ชนหุ่น = เลือดลด 2%')}${opt('simple', 'คานแบบง่าย (1 / 2 / 8)')}${opt('bots', 'หุ่น AI อีก 3 ตัว')}</details>
     ${padPanel()}
     <details id="drvBox" ${drvOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;margin-top:6px">ตั้งค่าหุ่น ปืน และเกณฑ์จุดยิง</summary>
     <h4>ตั้งค่าหุ่นให้เหมือนหุ่นจริงของทีม</h4><div class="mut" style="font-size:12px">วัดจากหุ่นจริงแล้วใส่ ค่าจะถูกจำไว้และใช้กับทุกสถานการณ์</div>
@@ -1838,6 +1843,7 @@ function renderPanels() {
   padPanelWire(q); if (q('driveMode2')) q('driveMode2').onchange = e => setDriveMode(e.target.value);
   if (q('drvCurve')) q('drvCurve').onchange = e => { DRV.curve = e.target.value; saveDrv(); };
   if (q('drvBox')) q('drvBox').ontoggle = e => { drvOpen = e.target.open; };
+  if (q('fcBox')) q('fcBox').ontoggle = e => { if (fcOpen === e.target.open) return; fcOpen = e.target.open; try { localStorage.setItem('dca-fc-open', fcOpen ? '1' : '0'); } catch {} renderPanels(); };
   if (q('drvVmode')) q('drvVmode').onchange = e => { DRV.vmode = e.target.value; saveDrv(); renderPanels(); };
   if (q('gateFromCalc')) q('gateFromCalc').onclick = () => { const er = effRange(); if (!er) return say('ค่าปืนตอนนี้ยิงเข้า CELL ไม่ได้ทุกระยะ ปรับมุมหรือความเร็วก่อน', 2.5); DRV.gateMin = er.min; DRV.gateMax = er.max; saveDrv(); renderPanels(); say(`ตั้งเกณฑ์จุดยิง ${er.min}–${er.max} ม.`, 2); };
   if (q('drvReset')) q('drvReset').onclick = () => { DRV = { ...DEFAULT_DRIVE }; saveDrv(); renderPanels(); };
