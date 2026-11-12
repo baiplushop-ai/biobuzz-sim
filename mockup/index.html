@@ -136,7 +136,7 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.0"></script>
+<script src="scenarios.js?v=2.1"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1229,7 +1229,8 @@ function tick0(dt, inp) {
   else if (SCN?.end?.(api)) endMatch();
   S.msgT -= dt;
 }
-// หมดเวลา (0:00): หุ่นถูกตัดกำลัง แล้วรอให้ลูก/HIVE/หุ่นหยุดนิ่งก่อนนับคะแนน (ลูกที่ลอยอยู่ยังนับ) · G404 หุ่นต้องนิ่งหลังหมดเวลา
+// หมดเวลา (0:00): หุ่นถูกตัดกำลัง แล้วรอจนลูก/HIVE/หุ่นหยุดนิ่งจริงทุกอย่างก่อนนับคะแนนและแสดงผล (ลูกที่ลอยอยู่ยังนับ · SETTLE_MAX = กันค้างเท่านั้น) · G404 หุ่นต้องนิ่งหลังหมดเวลา
+const SETTLE_MAX = 12;
 function startSettle() {
   S.settle = { t: 0 }; say('หมดเวลา! วางจอย · รอทุกอย่างหยุดนิ่งแล้วนับคะแนน', 2.5, null);
   for (const rb of active()) { const v = speed(rb); S.stats.endSpeed[rb.id] = +v.toFixed(2); if (rb.human && v > 0.4 && (rb.g404 = true)) foul(rb.alliance, 'G404', 'WARN', 'หมดเวลาแล้วหุ่นยังวิ่งอยู่ ต้องจอดให้นิ่งก่อน 0:00 (จงใจขยับต่อ = MAJOR + ใบเหลือง)', rb.id); }
@@ -1242,9 +1243,10 @@ function stepSettle(dt, inp) {
   }
   stepContacts(dt); stepBalls(dt); stepHives(dt);
   if (NET.role === 'host') for (const id in NET.inputs) for (const k of EDGE) NET.inputs[id][k] = false;
-  const busy = S.balls.some(b => b.where === 'air' || (b.where === 'floor' && Math.hypot(b.vx, b.vz) > 0.05)) || S.hives.red.tipping || S.hives.blue.tipping || active().some(r => speed(r) > 0.02 || Math.abs(r.w) > 0.05);
+  const busy = S.balls.some(b => b.where === 'air' || (b.where === 'floor' && Math.hypot(b.vx || 0, b.vz || 0) >= 0.03)) || S.hives.red.tipping || S.hives.blue.tipping || active().some(r => speed(r) > 0.02 || Math.abs(r.w) > 0.05);
   S.msgT -= dt;
-  if (st.t > 3 || (st.t > 0.6 && !busy)) endMatch();
+  if (busy && st.t > 2.4 && S.msgT <= 0) say('รอลูกและ HIVE หยุดนิ่งก่อนนับคะแนน…', 1.2, null);
+  if (st.t > SETTLE_MAX || (st.t > 0.6 && !busy)) endMatch();
 }
 function fmt(s) { if (s >= 900) return '∞'; s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 
@@ -1306,7 +1308,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.0</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.1</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
