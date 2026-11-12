@@ -142,7 +142,7 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.4"></script>
+<script src="scenarios.js?v=2.5"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1314,7 +1314,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.4</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.5</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1361,7 +1361,36 @@ const NET_EDGE = ['shootP', 'shootN', 'placeP', 'placeN', 'intakeT', 'eject', 'h
 const PEER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js', LOCALNET = Q.get('net') === 'local';
 const loadPeer = () => window.Peer ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'), bad = () => { s.remove(); no(new Error('โหลดตัวเชื่อมต่อ (PeerJS) ไม่ได้ · ตรวจอินเทอร์เน็ต หรือเครือข่ายอาจบล็อก cdnjs.cloudflare.com แล้วลองใหม่')); }, t = setTimeout(bad, 12000); s.src = PEER_SRC; s.onload = () => { clearTimeout(t); ok(); }; s.onerror = () => { clearTimeout(t); bad(); }; document.head.appendChild(s); });
 const NET_MAX = 8;  // เครื่องที่เชื่อมต่อกับ host ได้พร้อมกัน (ผู้เล่น + ผู้ชม) · มากกว่านี้ host ส่งภาพสนามไม่ทัน
-const P2P_HINT = 'Wi-Fi โรงเรียน / ไฟร์วอลล์อาจบล็อกการเชื่อมต่อตรงระหว่างเครื่อง (P2P) → ให้ทุกเครื่องต่อ Wi-Fi วงเดียวกัน หรือใช้ hotspot มือถือ';
+const P2P_HINT = 'เครือข่ายบางแบบต่อตรงระหว่างเครื่อง (P2P) ไม่ได้ เช่น hotspot มือถือ (CGNAT ของค่ายมือถือ) หรือ Wi-Fi โรงเรียนที่มีไฟร์วอลล์ → ให้ทุกเครื่องต่อ Wi-Fi หรือ hotspot วงเดียวกัน';
+// ICE server: ขอจาก /api/ice (Netlify Function · ให้ TURN ถ้าตั้งค่าไว้) · ขอไม่ได้ = STUN อย่างเดียว
+// TURN ฟรีที่ PeerJS 1.5.4 ตั้งไว้ในตัว (eu-0 / us-0.turn.peerjs.com) ปิดไปแล้ว (DNS หาไม่เจอ) จึงต้องระบุเอง ไม่งั้นเครื่องหลัง NAT แบบเข้มงวดไม่มีทางสำรอง
+const ICE_STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }];
+const ICE = { servers: ICE_STUN, turn: false, at: 0, p: null };
+const loadIce = () => {
+  if (!ICE.p || Date.now() - ICE.at > 6 * 3600e3) { ICE.at = Date.now(); ICE.p = fetch('/api/ice', { cache: 'no-store', signal: AbortSignal.timeout(5000) }).then(r => r.ok ? r.json() : null).catch(() => null).then(d => { if (Array.isArray(d?.iceServers) && d.iceServers.length) { ICE.servers = d.iceServers; ICE.turn = !!d.turn; } else ICE.at = 0; return ICE; }); }
+  return ICE.p;
+};
+const peerOpts = () => ({ config: { iceServers: ICE.servers } });
+// ตรวจเครือข่ายของเครื่องนี้ (หน้าเล่นออนไลน์): ต่อ STUN ได้ไหม · NAT แบบเข้มงวดไหม (ที่อยู่สาธารณะเดียวกันได้พอร์ตต่างกันตาม STUN = symmetric NAT) · TURN ใช้ได้จริงไหม
+let netChk = null;
+async function netProbe() {
+  if (!window.RTCPeerConnection) return { rtc: false };
+  await loadIce();
+  const gather = async (servers, policy) => { const pc = new RTCPeerConnection({ iceServers: servers, iceTransportPolicy: policy }), c = []; try { pc.createDataChannel('p'); pc.onicecandidate = e => { if (e.candidate?.candidate) c.push(e.candidate); }; await pc.setLocalDescription(await pc.createOffer()); await new Promise(r => { const t = setTimeout(r, 6000); pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); r(); } }; }); } finally { pc.close(); } return c; };
+  const sr = (await gather(ICE_STUN.flatMap(s => s.urls).map(u => ({ urls: u })), 'all')).filter(c => c.type === 'srflx'), by = {};
+  for (const c of sr) (by[c.address] ||= new Set()).add(c.port);
+  const turnSrv = ICE.servers.filter(s => [].concat(s.urls).some(u => /^turns?:/.test(u)));
+  return { rtc: true, stun: sr.length > 0, sym: Object.values(by).some(s => s.size > 1), turnCfg: ICE.turn, turnOk: ICE.turn && turnSrv.length ? (await gather(turnSrv, 'relay')).some(c => c.type === 'relay') : false };
+}
+function netCheckShow(again) {
+  if (again || !netChk) netChk = netProbe().catch(() => ({ rtc: false }));
+  const put = t => { if ($('nNetTxt')) $('nNetTxt').textContent = t; };
+  put('กำลังตรวจเครือข่ายของเครื่องนี้…');
+  const my = netChk;  // ผลตรวจรอบเก่าที่เสร็จทีหลังห้ามเขียนทับผลรอบใหม่
+  my.then(r => my === netChk && put(!r.rtc ? '✗ เบราว์เซอร์นี้ไม่รองรับการเล่นออนไลน์ (WebRTC) · ใช้ Chrome หรือ Edge'
+    : `${r.stun ? '✓ ต่อเซิร์ฟเวอร์ภายนอกได้' : '✗ ต่อเซิร์ฟเวอร์ STUN ไม่ได้ (เครือข่ายอาจบล็อก UDP)'}${r.sym ? ' · ⚠ เครือข่ายนี้เป็น NAT แบบเข้มงวด (พบบ่อยใน hotspot มือถือ) ต่อตรงกับเครื่องอื่นได้ยาก' : r.stun ? ' · NAT ปกติ' : ''} · ตัวส่งต่อ (TURN): ${r.turnOk ? 'พร้อม ✓ ใช้ได้แม้ต่อตรงไม่ได้' : r.turnCfg ? '✗ ตั้งไว้แต่เครือข่ายนี้ใช้ไม่ได้' : 'ยังไม่ได้ตั้งค่า'}`
+      + (!r.turnOk && (r.sym || !r.stun) ? ' → เครื่องนี้อาจเข้าห้องไม่ได้ ให้ต่อ Wi-Fi วงเดียวกับเครื่อง host หรือให้ทุกเครื่องต่อ hotspot เดียวกัน' : '')));
+}
 const PEER_ERR = { 'peer-unavailable': 'ไม่พบห้องรหัสนี้ (ตรวจรหัส · host ต้องเปิดหน้าห้องค้างไว้)', network: 'ต่อเซิร์ฟเวอร์จับคู่ห้องไม่ได้ (เน็ตหลุด หรือเครือข่ายบล็อก) ลองใหม่ หรือเปลี่ยนเครือข่าย', 'server-error': 'เซิร์ฟเวอร์จับคู่ห้องขัดข้อง รอสักครู่แล้วลองใหม่', 'socket-error': 'การเชื่อมต่อกับเซิร์ฟเวอร์จับคู่ห้องขัดข้อง (เครือข่ายอาจบล็อก WebSocket) ลองเครือข่ายอื่น', 'socket-closed': 'การเชื่อมต่อกับเซิร์ฟเวอร์จับคู่ห้องถูกปิด ลองใหม่อีกครั้ง',
   'browser-incompatible': 'เบราว์เซอร์นี้เล่นออนไลน์ไม่ได้ (ไม่รองรับ WebRTC) ใช้ Chrome หรือ Edge บนคอมพิวเตอร์', webrtc: 'เชื่อมต่อระหว่างเครื่องไม่สำเร็จ · ' + P2P_HINT, 'ssl-unavailable': 'เชื่อมต่อแบบปลอดภัย (SSL) ไม่ได้ ลองเครือข่ายอื่น', 'unavailable-id': 'รหัสห้องนี้ถูกใช้อยู่ ลองสร้างใหม่', timeout: 'เซิร์ฟเวอร์จับคู่ห้องยังไม่ตอบ · ตรวจอินเทอร์เน็ต หรือเครือข่ายอาจบล็อกเซิร์ฟเวอร์จับคู่ห้อง (ลองใช้ hotspot มือถือ)' };
 const peerErr = e => PEER_ERR[e?.type] || (e?.type ? 'เชื่อมต่อไม่ได้: ' + e.type : e?.message || String(e));
@@ -1373,9 +1402,9 @@ async function tpHost(code, onConn, onWarn, ctl) {
       if (d === '__bye') { delete cs[from]; c.onclose?.(); } else c.ondata?.(d); };
     return { close() { ch.postMessage({ from: 'H', to: '*', d: '__bye' }); ch.close(); } };
   }
-  await loadPeer();
+  await loadPeer(); await loadIce();
   return new Promise((ok, no) => {
-    const p = new Peer('biobuzz-' + code); let open = false, closed = false, warnAt = 0;
+    const p = new Peer('biobuzz-' + code, peerOpts()); let open = false, closed = false, warnAt = 0;
     const t = setTimeout(() => { if (!open) { closed = true; p.destroy(); no({ type: 'timeout' }); } }, 12000);  // เซิร์ฟเวอร์จับคู่ห้องไม่ตอบใน 12 วิ = จบความพยายามรอบนี้ (netCreate ลองรอบใหม่ต่อเอง ไม่ปิดการสร้างห้อง)
     if (ctl) ctl.kill = () => { if (!open && !closed) { closed = true; clearTimeout(t); p.destroy(); no({ type: 'cancel' }); } };  // ผู้สร้างกด “ยกเลิก” ระหว่างรอ
     const warn = m => { const now = Date.now(); if (now - warnAt > 20000) { warnAt = now; onWarn?.(m); } };
@@ -1392,12 +1421,12 @@ async function tpJoin(code) {
     ch.onmessage = e => { const { from, to, d } = e.data; if (from !== 'H' || (to !== id && to !== '*')) return; if (d === '__bye') w.onclose?.(); else w.ondata?.(d); };
     return w;
   }
-  await loadPeer();
+  await loadPeer(); await loadIce();
   return new Promise((ok, no) => {
-    const p = new Peer(); let done = false;
+    const p = new Peer(peerOpts()); let done = false;
     const fail = m => { if (done) return; done = true; clearTimeout(t); p.destroy(); no(new Error(m)); };
     let sig = false;  // ต่อเซิร์ฟเวอร์จับคู่ได้แล้วแต่ต่อถึง host ไม่ได้ = มักเป็นเครือข่ายบล็อก P2P ไม่ใช่รหัสผิด
-    const t = setTimeout(() => fail(sig ? 'พบห้องแล้วแต่เชื่อมต่อถึงเครื่อง host ไม่ได้ภายใน 15 วิ · ' + P2P_HINT : 'เชื่อมต่อห้องไม่ได้ภายใน 15 วิ · ตรวจอินเทอร์เน็ตแล้วลองใหม่'), 15000);
+    const t = setTimeout(() => fail(sig ? 'พบห้องแล้วแต่เชื่อมต่อถึงเครื่อง host ไม่ได้ภายใน 15 วิ · ' + P2P_HINT + (ICE.turn ? '' : ' (เว็บยังไม่ได้ตั้งตัวส่งต่อ TURN)') : 'เชื่อมต่อห้องไม่ได้ภายใน 15 วิ · ตรวจอินเทอร์เน็ตแล้วลองใหม่'), 15000);
     p.on('error', e => fail(peerErr(e)));
     p.on('open', () => { sig = true; const c = p.connect('biobuzz-' + code, { reliable: false }), w = { id: p.id, send: o => { if (c.open) c.send(o); }, close: () => p.destroy(),
         relay: async () => { await new Promise(r => setTimeout(r, 1500)); try { const st = await c.peerConnection.getStats(); let rel = false; st.forEach(v => { if (v.type === 'candidate-pair' && v.state === 'succeeded' && v.nominated !== false) for (const id of [v.localCandidateId, v.remoteCandidateId]) if (st.get(id)?.candidateType === 'relay') rel = true; }); return rel; } catch { return false; } } };
@@ -1697,10 +1726,12 @@ function showOnline(code = '', err = '') {
     <div class="mcfg"><div class="mrow"><label>ชื่อผู้เล่น <input id="nName" maxlength="16" value="${esc(nm)}" placeholder="เช่น ทีม A · Driver" style="font:inherit;padding:4px 8px;width:190px"></label></div></div>
     <div class="mcfg"><h4>สร้างห้องใหม่ (เป็น host)</h4><div class="mrow"><button id="nCreate">สร้างห้อง</button><span class="mut">ตั้งกติกา จำนวนผู้เล่น และคนจริง / Bot ได้ในหน้าถัดไป</span></div></div>
     <div class="mcfg"><h4>เข้าร่วมห้องของเพื่อน</h4><div class="mrow"><label>รหัสห้อง <input id="nCode" inputmode="numeric" maxlength="6" value="${esc(code)}" placeholder="6 หลัก" style="font:inherit;font-size:20px;font-weight:700;letter-spacing:4px;padding:4px 8px;width:140px;text-align:center"></label><button id="nJoin">เข้าร่วม</button></div></div>
+    ${LOCALNET ? '' : '<p class="mut" style="font-size:12px">🔎 <span id="nNetTxt"></span> <button class="sec" id="nNetRe" style="padding:1px 8px;font-size:11px">ตรวจอีกครั้ง</button></p>'}
     <p class="mut"><span id="nStat"></span> <button class="sec" id="nCancel" style="display:none">✕ ยกเลิกการสร้างห้อง</button></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับเมนู</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button></div>`);
   netBar();
   const name = () => { const n = $('nName').value.trim().slice(0, 16) || 'ผู้เล่น'; try { localStorage.setItem('dca-net-name', n); } catch {} return n; };
   const busy = (b, m) => { $('nCreate').disabled = $('nJoin').disabled = $('nBack').disabled = $('nHist').disabled = b; $('nStat').textContent = m || ''; NET.stat = b ? { t: m } : null; netBar(); };
+  if ($('nNetRe')) { netCheckShow(); $('nNetRe').onclick = () => netCheckShow(true); }
   $('nBack').onclick = () => { NET.stat = null; netBar(); showMenu(); }; $('nHist').onclick = () => showHistory(() => showOnline($('nCode')?.value || code));
   $('nCreate').onclick = async () => {
     const c = $('nCode').value, ctl = { off: false }, t0 = Date.now(); let why = '', tries = 1;

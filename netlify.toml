@@ -4,6 +4,10 @@
   command = "rm -rf dist && mkdir dist && cp -R coach-training mockup index.html dist/ && rm -f dist/mockup/index-v1.html"
   publish = "dist"
 
+# Netlify Function: /api/ice ส่ง STUN / TURN ให้เล่นออนไลน์ (ตั้ง TURN ที่ Environment variables · ดูหัวไฟล์ ice.mjs)
+[functions]
+  directory = "netlify/functions"
+
 [[headers]]
   for = "/*"
   [headers.values]
