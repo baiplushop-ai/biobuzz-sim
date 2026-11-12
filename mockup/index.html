@@ -53,6 +53,9 @@
   .hidden { display:none !important }
   input[type=range] { width:100% }
   #netBar { position:fixed; top:0; left:0; right:0; z-index:6; height:32px; display:flex; gap:16px; align-items:center; justify-content:center; padding:0 10px; background:#0b1626; border-bottom:1px solid var(--line); font-size:13px; white-space:nowrap; overflow:hidden }
+  .pb { display:inline-block; vertical-align:middle; width:96px; height:9px; border-radius:5px; background:rgba(255,255,255,.12); overflow:hidden; margin:0 6px 0 8px }
+  .pb i { display:block; height:100%; width:0; border-radius:5px; transition:width .5s ease, background-color .5s ease }
+  .pv { display:inline-block; min-width:58px; font-size:12px; font-variant-numeric:tabular-nums; vertical-align:middle } #netBar .pb { width:80px; margin-left:6px }
   #netBar button { padding:2px 9px; font-size:12px } #netBar .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px }
   body.online .hud, body.online #overlay { top:32px }
   body.nopanel #left, body.nopanel #right { display:none }
@@ -142,7 +145,7 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.5"></script>
+<script src="scenarios.js?v=2.6"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1314,7 +1317,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.5</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.6</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1459,7 +1462,7 @@ async function netCreate(name, ctl = {}, onWait) {
     }
   }
   if (ctl.off) { try { tp?.close(); } catch {} throw new Error(NET_CANCEL); }
-  Object.assign(NET, { role: 'host', id: 'H', name, tp, room, peers: {}, playing: false, res: false, inputs: {}, says: [], seq: 0, lseq: 0 }); netBgTicker();
+  Object.assign(NET, { role: 'host', id: 'H', name, tp, room, peers: {}, playing: false, res: false, inputs: {}, says: [], seq: 0, lseq: 0 }); netBgTicker(); pingStart();
   Object.assign(room.slots[0], { who: 'H', name }); netLog(`${name} สร้างห้อง ${room.code}`);
 }
 function netHostMsg(c, d) {
@@ -1468,7 +1471,7 @@ function netHostMsg(c, d) {
   if (d.t === 'hello') {
     if (NET.peers[c.id]) return;  // hello ซ้ำจากเครื่องเดิม = ไม่จองที่นั่งเพิ่ม
     if (Object.keys(NET.peers).length >= NET_MAX) { c.send({ t: 'full' }); setTimeout(() => { try { c.close(); } catch {} }, 400); return; }
-    const p = NET.peers[c.id] = { conn: c, name: String(d.name || 'ผู้เล่น').slice(0, 16), drv: netDrv(d.drv), inN: 0 };
+    const p = NET.peers[c.id] = { conn: c, name: String(d.name || 'ผู้เล่น').slice(0, 16), drv: netDrv(d.drv), inN: 0, ping: null, pAt: performance.now(), relay: false };
     const s = !NET.playing && NET.room.slots.find(s => s.type === 'human' && !s.who); if (s) { s.who = c.id; s.name = p.name; }
     // กลับเข้าห้องระหว่างแมตช์ด้วยชื่อเดิม (เน็ตหลุด / เผลอปิดแท็บ) = รับหุ่นตัวเดิมคืนจาก Bot
     const rb = NET.playing && !S.over && S.robots.find(r => !r.net && !r.human && r.pname === p.name + ' → Bot'), ri = rb ? S.robots.indexOf(rb) : -1;
@@ -1490,6 +1493,7 @@ function netHostMsg(c, d) {
     if (p && !(d.n <= p.inN)) { p.inN = +d.n || 0; ip.at = performance.now(); ip.fwd = clamp(+a[0] || 0, -1, 1); ip.strafe = clamp(+a[1] || 0, -1, 1); ip.turn = clamp(+a[2] || 0, -1, 1); ip.slow = !!a[3]; ip.fc = !!a[4]; }
     for (const k of Array.isArray(d.e) ? d.e : []) if (NET_EDGE.includes(k)) ip[k] = true;
   } else if (d.t === 'pg') c.send({ t: 'po', c: d.c });
+  else if (d.t === 'hq') { const p = NET.peers[c.id], r = performance.now() - d.c; if (p && Number.isFinite(r) && r >= 0 && r < 60000) { p.ping = p.ping == null ? r : p.ping * 0.5 + r * 0.5; p.pAt = performance.now(); p.relay = !!d.r; } }
 }
 function netLobbyPush() { NET.room.n = 1 + Object.keys(NET.peers).length; for (const id in NET.peers) { NET.lseq++; NET.peers[id].conn.send({ t: 'lobby', n: NET.lseq, room: NET.room, playing: !!NET.playing, you: id }); } if (!NET.playing && !NET.res) showLobby(); }
 function netDrop(id) {
@@ -1550,7 +1554,7 @@ function netBgTicker() {  // host สลับแท็บ/ย่อหน้า
 // ---- เครื่องที่เข้าร่วม ----
 async function netJoin(code, name) {
   const c = await tpJoin(code);
-  Object.assign(NET, { role: 'client', conn: c, name, id: c.id, room: null, playing: false, peers: {}, tI: 0, tP: 0, inSeq: 0, lN: 0, ping: 0, relay: false });
+  Object.assign(NET, { role: 'client', conn: c, name, id: c.id, room: null, playing: false, peers: {}, tI: 0, tP: 0, inSeq: 0, lN: 0, ping: 0, relay: false, pings: null, pingAt: 0 }); pingStart();
   c.ondata = netClientMsg; c.onclose = () => netLeave('การเชื่อมต่อกับ host หลุด (host ปิดห้องหรือเน็ตหลุด)');
   c.send({ t: 'hello', name, drv: DRV });
   let tm; try { await new Promise((ok, no) => { NET.wait = ok; NET.waitNo = no; tm = setTimeout(() => no(new Error('ไม่พบห้องรหัสนี้ (host ต้องเปิดหน้าห้องค้างไว้)')), 8000); }); }
@@ -1565,6 +1569,8 @@ function netClientMsg(d) {
   else if (d.t === 'bye') netLeave('host ปิดห้องแล้ว', 'hostleft');
   else if (d.t === 'full') netLeave(`ห้องนี้เต็มแล้ว (เชื่อมต่อได้สูงสุด ${NET_MAX} เครื่อง)`);
   else if (d.t === 'po') { const p = performance.now() - d.c; NET.ping = NET.ping ? NET.ping * 0.7 + p * 0.3 : p; }
+  else if (d.t === 'hp') NET.conn.send({ t: 'hq', c: d.c, r: NET.relay ? 1 : 0 });
+  else if (d.t === 'pm' && d.m && typeof d.m === 'object') { NET.pings = d.m; NET.pingAt = Date.now(); pingPaint(); }
   else if (d.t === 'start') {
     if (NET.wait) { NET.wait(); NET.wait = null; }
     S = d.S; Object.assign(NET, { res: false, busy: false, lastR: null, tgt: null, fN: d.n, sN: d.n, bN: d.n, bq: [], age: 0, pred: false, spec: !(d.me >= 0), playing: true, saved: false, lastRec: null, t0: Date.now() }); ME = NET.spec ? 0 : d.me;
@@ -1765,7 +1771,7 @@ function showLobby() {
   const mySlot = R.slots.findIndex(s => s.who === me), nHum = humanSlots(), nIn = R.slots.filter(s => s.type === 'human' && s.who).length;
   const rows = R.slots.map((s, i) => {
     const col = i < 2 ? 'var(--red)' : 'var(--blu)', mineS = s.who === me;
-    const who = s.type === 'none' ? '<span class="mut">ไม่ลงสนาม</span>' : s.type === 'bot' ? '🤖 Bot' : s.who ? `🧑 <b>${esc(s.name)}</b>${mineS ? ' (คุณ)' : ''}${s.who === 'H' ? ' · host' : ''}` : '<span class="mut">ว่าง · รอคนเข้า (ถ้าไม่มี Bot ขับแทน)</span>';
+    const who = s.type === 'none' ? '<span class="mut">ไม่ลงสนาม</span>' : s.type === 'bot' ? '🤖 Bot' : s.who ? `🧑 <b>${esc(s.name)}</b>${mineS ? ' (คุณ)' : ''}${s.who === 'H' ? ' · host' : ''}<span data-pid="${esc(s.who)}"></span>` : '<span class="mut">ว่าง · รอคนเข้า (ถ้าไม่มี Bot ขับแทน)</span>';
     const act = s.type === 'human' && !s.who && !NET.busy ? `<button class="sec" data-seat="${i}">นั่งตำแหน่งนี้</button>` : '';
     return `<tr><td style="width:74px"><b style="color:${col}">${SLOT_TH[SLOT_ID[i]]}</b></td><td style="width:118px;text-align:left">${host ? `<select data-type="${i}" ${mineS ? 'disabled title="ตำแหน่งของคุณเอง ย้ายที่นั่งก่อนถึงเปลี่ยนได้"' : ''}>${Object.entries(TYPE_TH).map(([v, t]) => `<option value="${v}" ${v === s.type ? 'selected' : ''}>${t}</option>`).join('')}</select>` : TYPE_TH[s.type]}</td><td style="text-align:left;font-weight:400">${who}</td><td style="width:120px">${act}</td></tr>`;
   }).join('');
@@ -1779,12 +1785,14 @@ function showLobby() {
     <div class="mcfg"><h4>ผู้เล่น · คนจริง ${nIn}/${nHum} ตำแหน่ง</h4>
       ${host ? `<div class="mrow"><label>จำนวนผู้เล่น (เครื่อง) <select id="lbN"><option value="" ${pre ? '' : 'selected'}>กำหนดเอง</option>${[2, 3, 4].map(n => `<option value="${n}" ${String(n) === pre ? 'selected' : ''}>${n} เครื่อง</option>`).join('')}</select></label><span class="mut">หรือเลือกทีละตำแหน่งด้านล่าง: คนจริง / Bot / ไม่มีหุ่น</span></div>` : ''}
       <table>${rows}</table>
+      <div id="lbSpec" style="font-size:13px;margin:4px 0"></div>
+      <p class="mut" style="font-size:12px">📶 ping = เวลาไป-กลับของสัญญาณถึงเครื่องแม่ (host) วัดทุก 1 วิ · <b style="color:var(--grn)">เขียว &lt; 80 ms ดี</b> · <b style="color:var(--yel)">เหลือง 80–180 ms เริ่มช้า</b> · <b style="color:#ff7b6b">แดง &gt; 180 ms ช้า</b> · relay = ต่อผ่านตัวส่งต่อ</p>
       <p class="mut" style="font-size:12px">ตำแหน่ง “คนจริง” ที่ยังว่างตอนกดเริ่ม จะให้ Bot ขับแทน · ทีมน้ำเงินเห็นสนามจากฝั่งตัวเอง</p></div>
     ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : host ? '' : `<p style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]} · รอ host กดเริ่ม…` : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</p>`}
     <div style="display:flex;gap:8px;flex-wrap:wrap">${host ? '<button id="lbStart">▶ เริ่มแมตช์</button>' : ''}<button class="sec" id="lbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button></div>
     ${host ? '<p class="mut" style="font-size:12px"><b>ห้องนี้เปิดรอเพื่อนได้เรื่อย ๆ ไม่มีหมดเวลา</b> จนกว่าจะกด “ปิดห้อง” (มีถามยืนยันก่อนปิดจริง) · เครื่อง host เป็นตัวคำนวณสนาม: อย่าปิดแท็บนี้หรือปล่อยให้เครื่องพักจอ / sleep (ปิด = ห้องปิด) · ควรใช้เครื่องและอินเทอร์เน็ตที่ดีที่สุดเป็น host</p>' : ''}
     ${R.log?.length ? `<div class="mut" style="font-size:12px;line-height:1.5;margin-top:6px;border-top:1px solid var(--line);padding-top:6px"><b>เหตุการณ์ในห้อง</b><br>${R.log.slice(-6).map(e => `${fmtClock(e.ts)} · ${esc(e.t)}`).join('<br>')}</div>` : ''}`);
-  NET.stat = null; netBar();
+  NET.stat = null; netBar(); pingPaint();
   $('lbCopy').onclick = () => { $('lbLink').select(); try { navigator.clipboard?.writeText(link); } catch {} $('lbCopy').textContent = 'คัดลอกแล้ว ✓'; };
   $('lbLeave').onclick = askLeave;
   $('ovBox').querySelectorAll('[data-seat]').forEach(b => b.onclick = () => { const i = +b.dataset.seat;
@@ -1819,10 +1827,52 @@ function netBar() {  // status bar บนสุดของจอ: สถาน�
 }
 function netPing() {  // เวลาไป-กลับของสัญญาณถึง host (เครื่องที่เข้าร่วม) · เตือนเมื่อการเชื่อมต่อต้องอ้อมผ่านเซิร์ฟเวอร์ relay
   const el = $('nbPing'); if (!el) return;
-  if (NET.role === 'client' && NET.playing && S.running && NET.age > 1.5) { el.style.color = '#ff7b6b'; el.textContent = `⚠ ไม่ได้รับสัญญาณจาก host ${Math.floor(NET.age)} วิ${NET.age > 8 ? ' · ถ้าไม่กลับมาให้ออกแล้วเข้าห้องใหม่ด้วยชื่อเดิม' : ''}`; return; }
-  if (NET.role !== 'client' || !NET.ping) { el.textContent = ''; return; }
-  const p = Math.round(NET.ping); el.style.color = p < 80 ? 'var(--grn)' : p < 180 ? 'var(--yel)' : '#ff7b6b';
-  el.textContent = `ping ${p} ms${NET.relay ? ' · ⚠ ผ่าน relay (หน่วงสูง)' : ''}`;
+  if (NET.role === 'client' && NET.playing && S.running && NET.age > 1.5) { delete el.dataset.pb; el.style.color = '#ff7b6b'; el.textContent = `⚠ ไม่ได้รับสัญญาณจาก host ${Math.floor(NET.age)} วิ${NET.age > 8 ? ' · ถ้าไม่กลับมาให้ออกแล้วเข้าห้องใหม่ด้วยชื่อเดิม' : ''}`; return; }
+  el.style.color = '';
+  if (NET.role === 'host') {
+    const v = Object.entries(NET.pings || {}).filter(([id]) => id !== 'H').map(([, v]) => v).sort((a, b) => (b[3] ? 1e9 : b[0]) - (a[3] ? 1e9 : a[0]))[0];
+    return v ? pingSet(el, v, false, 'ช้าสุดในห้อง') : pingSet(el, null, false, '');
+  }
+  if (NET.role !== 'client') return pingSet(el, null, false, '');
+  const v = NET.pings?.[NET.id] || (NET.ping ? [NET.ping, NET.name, NET.relay ? 1 : 0, 0] : null);
+  pingSet(el, v || [-1, '', 0, 0], NET.pings && Date.now() - NET.pingAt > 3500, 'ping ของคุณ');
+}
+// ---- ping ถึงเครื่องแม่ (host) ทุก 1 วิ ----
+// host ส่ง hp → เครื่องลูกตอบ hq ทันที → host คำนวณเวลาไป-กลับของแต่ละเครื่อง แล้วส่งตาราง pm { id: [ms, ชื่อ, relay, เงียบ] } ให้ทุกเครื่องเห็นตรงกัน
+// วัดบนช่องเดียวกับข้อมูลเกม (P2P ตรงถึง host หรือผ่าน TURN) ไม่ได้ผ่าน Netlify
+let pingIv = 0;
+const pingStart = () => { if (!pingIv) pingIv = setInterval(netPingTick, 1000); };
+function netPingTick() {
+  if (!NET.role) { clearInterval(pingIv); pingIv = 0; return; }
+  if (NET.role === 'host') {
+    const now = performance.now(), m = { H: [0, NET.name, 0, 0] };
+    for (const id in NET.peers) { const p = NET.peers[id]; p.conn.send({ t: 'hp', c: now }); m[id] = [p.ping == null ? -1 : Math.round(p.ping), p.name, p.relay ? 1 : 0, now - p.pAt > 3500 ? 1 : 0]; }
+    NET.pings = m; NET.pingAt = Date.now();
+    for (const id in NET.peers) NET.peers[id].conn.send({ t: 'pm', m });
+  }
+  pingPaint();
+}
+// แถบ ping 1 แถบ: v = [ms, ชื่อ, relay, เงียบ] · ยาว + เขียว = ดี · สั้นลง เหลือง → แดง = ช้า · อัปเดตเฉพาะความยาว / สี (ไม่วาดใหม่ แถบจึงเลื่อนนุ่ม)
+function pingSet(el, v, stale, label) {
+  if (!v) { if (el.dataset.pb != null) { el.innerHTML = ''; delete el.dataset.pb; } return; }
+  if (el.dataset.pb !== label) { el.dataset.pb = label; el.innerHTML = `${label ? `<span class="mut" style="font-size:12px">${label}</span>` : ''}<span class="pb"><i></i></span><b class="pv"></b>`; }
+  const bar = el.querySelector('.pb i'), txt = el.querySelector('.pv'), [ms, , relay, late] = v;
+  if (el.dataset.pid === 'H') { el.querySelector('.pb').style.display = 'none'; txt.style.cssText = 'color:var(--mut);margin-left:8px'; txt.textContent = '🏠 เครื่องแม่ (ping 0)'; return; }
+  const dead = stale || late, col = dead ? '#ff7b6b' : ms < 0 ? 'var(--mut)' : ms < 80 ? 'var(--grn)' : ms < 180 ? 'var(--yel)' : '#ff7b6b';
+  bar.style.width = (dead ? 4 : ms < 0 ? 0 : clamp(100 - (ms - 30) / 3, 8, 100)) + '%'; bar.style.backgroundColor = col; txt.style.color = col;
+  txt.textContent = dead ? '⚠ ไม่ตอบ' : ms < 0 ? 'กำลังวัด…' : `${ms} ms${ms >= 180 ? ' ช้า' : ms >= 80 ? ' เริ่มช้า' : ''}${relay ? ' · relay' : ''}`;
+}
+function pingPaint() {
+  if (!NET.role) return;
+  const m = NET.pings || {}, stale = NET.role === 'client' && NET.pingAt && Date.now() - NET.pingAt > 3500, box = $('ovBox');
+  if (box) box.querySelectorAll('[data-pid]').forEach(el => pingSet(el, m[el.dataset.pid] || [-1, '', 0, 0], stale, ''));
+  const sp = $('lbSpec');
+  if (sp && NET.room) {  // เครื่องที่ยังไม่ได้นั่งตำแหน่ง (ผู้ชม) ก็เห็น ping ด้วย
+    const seated = new Set(NET.room.slots.map(s => s.who).filter(Boolean)), ids = Object.keys(m).filter(id => !seated.has(id)), key = ids.join();
+    if (sp.dataset.k !== key) { sp.dataset.k = key; sp.innerHTML = ids.length ? '<span class="mut">ผู้ชม / ยังไม่เลือกตำแหน่ง:</span> ' + ids.map(id => `<span style="white-space:nowrap;margin-right:10px">🧑 <b>${esc(String(m[id][1] || ''))}</b>${id === NET.id ? ' (คุณ)' : ''}${id === 'H' ? ' · host' : ''}<span data-pid="${esc(id)}"></span></span>`).join('') : ''; }
+    sp.querySelectorAll('[data-pid]').forEach(el => pingSet(el, m[el.dataset.pid], stale, ''));
+  }
+  netPing();
 }
 addEventListener('pageshow', e => { if (e.persisted && NET.dead) location.reload(); });
 // ปุ่มหุบแผง (จำสถานะไว้ในเครื่อง): แผงขวาเหลือแค่หัวข้อ + ปุ่มโค้ช / Human Player · แผงซ้ายเหลือสถานะหุ่น + การยิง + FOUL · “การยิง:” กดย่อเหตุผลได้
