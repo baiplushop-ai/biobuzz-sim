@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BIOBUZZ Scouting</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f6f4ee; --surface:#ffffff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0;
+  --acc:#d9a400; --accfg:#1d1f24; --ok:#1f9d55; --bad:#c9382f; --red:#d6453c; --blue:#2f6fd0; --warn:#b87400;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
+  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --warn:#f5a524;
+} }
+:root[data-theme="dark"] {
+  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
+  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --warn:#f5a524;
+}
+* { box-sizing:border-box }
+html,body { margin:0; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; line-height:1.45; -webkit-text-size-adjust:100% }
+a { color:var(--blue) }
+header { position:sticky; top:0; z-index:5; background:var(--surface); border-bottom:1px solid var(--line); padding:8px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+header h1 { font-size:18px; margin:0; white-space:nowrap } header h1 span { color:var(--acc) } header .ver { font-size:10px; color:var(--mut) }
+.sp { flex:1 }
+.chip { font-size:12px; padding:3px 10px; border-radius:999px; border:1px solid var(--line); background:var(--surface2); white-space:nowrap; cursor:pointer; color:var(--fg); font:inherit; font-size:12px }
+.chip.ok { border-color:var(--ok); color:var(--ok) } .chip.warn { border-color:var(--warn); color:var(--warn) } .chip.bad { border-color:var(--bad); color:var(--bad) }
+nav.tabs { position:sticky; top:var(--hh, 50px); z-index:4; display:flex; gap:4px; padding:6px 12px; background:var(--bg); border-bottom:1px solid var(--line); overflow-x:auto }
+nav.tabs button { font:inherit; font-size:15px; font-weight:700; padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--fg); white-space:nowrap; cursor:pointer }
+nav.tabs button.on { background:var(--acc); color:var(--accfg); border-color:transparent }
+main { max-width:1100px; margin:0 auto; padding:12px 16px 90px }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:0 0 12px }
+.card h3 { margin:0 0 8px; font-size:16px } .card h3 small { font-weight:400; color:var(--mut); font-size:12px }
+.mut { color:var(--mut) } .ok { color:var(--ok) } .bad { color:var(--bad) } .r { color:var(--red) } .b { color:var(--blue) }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+label.f { display:flex; flex-direction:column; gap:3px; font-size:13px; color:var(--mut) } label.f > * { color:var(--fg) }
+input, select, textarea { font:inherit; font-size:16px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface2); color:var(--fg); max-width:100% }
+textarea { width:100%; min-height:70px }
+button.btn { font:inherit; font-size:15px; font-weight:700; padding:9px 16px; border-radius:10px; border:1px solid transparent; background:var(--acc); color:var(--accfg); cursor:pointer }
+button.sec { background:var(--surface2); color:var(--fg); border-color:var(--line) } button.danger { background:transparent; color:var(--bad); border-color:var(--bad) }
+button:disabled { opacity:.5; cursor:default }
+.grid2 { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:10px }
+.ctr { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--surface2) }
+.ctr .lb { font-size:14px; font-weight:600 } .ctr .lb small { display:block; font-weight:400; font-size:11px; color:var(--mut) }
+.ctr .v { font-size:26px; font-weight:800; min-width:44px; text-align:center; font-variant-numeric:tabular-nums }
+.ctr button { width:46px; height:46px; font-size:24px; font-weight:800; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--fg); cursor:pointer; touch-action:manipulation }
+.ctr button.pl { background:var(--acc); color:var(--accfg); border-color:transparent }
+.seg { display:flex; flex-wrap:wrap; gap:6px } .seg button { font:inherit; font-size:14px; padding:8px 12px; min-height:42px; border-radius:10px; border:1px solid var(--line); background:var(--surface2); color:var(--fg); cursor:pointer; touch-action:manipulation }
+.seg button.on { background:var(--acc); color:var(--accfg); border-color:transparent; font-weight:700 } .seg button.on.r { background:var(--red); color:#fff } .seg button.on.b { background:var(--blue); color:#fff } .seg button.on.bad { background:var(--bad); color:#fff }
+.q { margin:10px 0 4px; font-size:13px; font-weight:700; color:var(--mut) }
+.stars button { min-width:42px }
+table { width:100%; border-collapse:collapse; font-size:13px } th, td { padding:6px 6px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap } th:first-child, td:first-child { text-align:left }
+th { cursor:pointer; user-select:none; color:var(--mut); font-weight:700; position:sticky; top:0; background:var(--surface) } th.on { color:var(--fg) }
+tbody tr { cursor:pointer } tbody tr:hover { background:var(--surface2) } tr.our td:first-child { color:var(--acc); font-weight:800 }
+.tw { overflow:auto; max-height:70vh; border:1px solid var(--line); border-radius:10px }
+.pk { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid var(--line); border-radius:10px; margin:6px 0; background:var(--surface2); flex-wrap:wrap }
+.pk .acts { display:flex; gap:4px; flex-wrap:wrap; align-items:center }
+@media (max-width:700px) { .pk .acts { width:100%; justify-content:flex-end } .pk .st { min-width:0; flex-basis:calc(100% - 110px) } }
+.pk .n { font-size:20px; font-weight:800; min-width:70px } .pk .st { flex:1; font-size:12px; color:var(--mut); min-width:160px } .pk.taken { opacity:.45 } .pk.taken .n { text-decoration:line-through }
+.pk button { font:inherit; font-size:14px; padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--fg); cursor:pointer }
+.tier { font-size:12px; font-weight:800; padding:2px 8px; border-radius:999px; white-space:nowrap } .t1 { background:var(--ok); color:#fff } .t2 { background:var(--acc); color:var(--accfg) } .t3 { background:var(--surface); border:1px solid var(--line) } .tx { background:var(--bad); color:#fff }
+.toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:10px 18px; border-radius:999px; font-weight:700; z-index:20; opacity:0; transition:opacity .2s; pointer-events:none; max-width:90vw; text-align:center }
+.toast.on { opacity:1 }
+.savebar { position:fixed; left:0; right:0; bottom:0; z-index:6; background:var(--surface); border-top:1px solid var(--line); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:10px; align-items:center; justify-content:center }
+.savebar button.btn { min-width:200px; font-size:17px }
+dialog { border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--fg); width:min(820px, 96vw); max-height:90vh; padding:16px }
+dialog::backdrop { background:rgba(0,0,0,.5) }
+.kv { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; margin:8px 0 } .kv div { background:var(--surface2); border-radius:10px; padding:6px 10px } .kv b { display:block; font-size:20px } .kv span { font-size:12px; color:var(--mut) }
+.hidden { display:none !important }
+@media (max-width:600px) { header h1 { font-size:16px } main { padding:10px 10px 90px } .grid2 { grid-template-columns:1fr } }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>📋 Scouting <span>BIOBUZZ</span></h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับเครื่องอื่นให้กดรีเฟรช">v4.5</div></div>
+  <span class="sp"></span>
+  <button class="chip" id="syncChip" title="สถานะการส่งข้อมูลขึ้นเซิร์ฟเวอร์ (กดเพื่อซิงก์ตอนนี้)">⚪ ยังไม่ซิงก์</button>
+  <a class="chip" href="../coach-training/#home" style="text-decoration:none">← หน้า Home</a>
+</header>
+<nav class="tabs" id="tabs">
+  <button data-tab="form" class="on">📝 จดแมตช์</button>
+  <button data-tab="teams">📊 ทีมทั้งหมด</button>
+  <button data-tab="pick">🏆 Pick list</button>
+  <button data-tab="pit">🔧 Pit</button>
+  <button data-tab="set">⚙️ ตั้งค่า</button>
+</nav>
+<main id="main"></main>
+<div class="savebar hidden" id="saveBar"><button class="sec btn" id="resetBtn" type="button">ล้างฟอร์ม</button><button class="btn" id="saveBtn" type="button">💾 บันทึกแมตช์นี้</button></div>
+<dialog id="teamDlg"><div id="teamBox"></div><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn sec" id="teamClose" type="button">ปิด</button></div></dialog>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+// =================== ข้อมูลในเครื่อง (ใช้ได้แม้ไม่มีเน็ต) ===================
+// คะแนนประมาณการต่อหุ่น (ไม่ใช่คะแนนทางการ · TIP เป็นของทั้ง alliance จึงคิดจากลูกที่หุ่นนี้ยิงเข้า CELL):
+//   ลูกเข้า CELL ≈ 2.5 (CELL ว่างใช้ POLLEN 8 ลูก = TIP 20 แต้ม) · FLOWER ลูกละ 2 · LEAVE 3 · PARK 5 (จบ AUTO / จบแมตช์) · FOUL ที่ให้คู่แข่ง MINOR 5 / MAJOR 20
+const K = 'bb-scout-v1', KK = 'bb-scout-key', API = '/api/scout';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const r1 = v => Math.round(v * 10) / 10, pc = v => Math.round(v * 100);
+const uid = () => (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : (Date.now().toString(36) + Math.random().toString(36).slice(2))).slice(0, 24);
+const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v ?? d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast('บันทึกในเครื่องไม่ได้ (พื้นที่เต็ม?) · Export ไฟล์ไว้ก่อน'); return false; } };
+const DEF = { ev: 'ftc-thailand-8-2026', evName: 'FTC Thailand ครั้งที่ 8 · เชียงใหม่ 9-11 ธ.ค. 2569', our: '', teams: [], scout: '', dev: uid(), mine: { recs: {}, pit: {} }, cache: { devices: [], pick: null, at: 0 }, pick: { ver: 0, list: [], taken: [] }, dirty: false, pickDirty: false, sort: ['net', -1] };
+let D = Object.assign({}, DEF, lsGet(K, {})); D.mine = Object.assign({ recs: {}, pit: {} }, D.mine); D.cache = Object.assign({ devices: [], pick: null, at: 0 }, D.cache); D.pick = Object.assign({ ver: 0, list: [], taken: [] }, D.pick);
+const save = () => lsSet(K, D);
+let KEY = (() => { try { return localStorage.getItem(KK) || ''; } catch { return ''; } })();
+const setKey = k => { KEY = k; try { k ? localStorage.setItem(KK, k) : localStorage.removeItem(KK); } catch {} };
+const toast = (m, ms = 2200) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), ms); };
+const teamName = n => (D.teams.find(t => t.num === String(n)) || {}).name || '';
+const teamLbl = n => `<b>${esc(n)}</b>${teamName(n) ? ` <span class="mut">${esc(teamName(n))}</span>` : ''}`;
+
+// รวมข้อมูลทุกเครื่อง: บันทึกเดียวกัน (แมตช์ + ทีม) ใช้อันที่แก้ล่าสุด · ลบ = ซ่อน
+function allRecs() {
+  const by = new Map(), add = r => { if (!r || !r.team || !r.id) return; const k = r.id; const o = by.get(k); if (!o || (r.at || 0) > (o.at || 0)) by.set(k, r); };
+  for (const dv of D.cache.devices || []) if (dv.dev !== D.dev) for (const r of dv.recs || []) add({ ...r, src: dv.name || 'อีกเครื่อง' });
+  for (const r of Object.values(D.mine.recs)) add({ ...r, src: 'เครื่องนี้' });
+  const best = new Map();  // หลายเครื่องจดหุ่นเดียวกันในแมตช์เดียวกัน = ใช้อันล่าสุด
+  for (const r of by.values()) { const k = r.match + '|' + r.team, o = best.get(k); if (!o || (r.at || 0) > (o.at || 0)) best.set(k, r); }
+  return [...best.values()].filter(r => !r.del);
+}
+function allPit() {
+  const m = new Map(), add = p => { if (!p?.team) return; const o = m.get(p.team); if (!o || (p.at || 0) > (o.at || 0)) m.set(p.team, p); };
+  for (const dv of D.cache.devices || []) if (dv.dev !== D.dev) (dv.pit || []).forEach(add);
+  Object.values(D.mine.pit).forEach(add); return m;
+}
+const recPts = r => { if (r.noShow) return { auto: 0, tele: 0, end: 0, foul: 0, est: 0, net: 0 };
+  const auto = (r.aLeave ? 3 : 0) + (r.aPark ? 5 : 0) + r.aCell * 2.5, tele = r.tCell * 2.5 + (r.tFlowerP + r.tFlowerN) * 2, end = r.park === 'yes' ? 5 : 0, foul = r.minor * 5 + r.major * 20;
+  return { auto, tele, end, foul, est: auto + tele + end, net: auto + tele + end - foul }; };
+function teamStats() {
+  const recs = allRecs(), m = new Map();
+  for (const n of D.teams.map(t => t.num)) m.set(n, []);
+  for (const r of recs) { if (!m.has(r.team)) m.set(r.team, []); m.get(r.team).push(r); }
+  return [...m.entries()].map(([team, rs]) => {
+    rs.sort((a, b) => a.match - b.match); const play = rs.filter(r => !r.noShow), n = play.length, av = f => n ? play.reduce((s, r) => s + f(r), 0) / n : 0;
+    const shots = play.reduce((s, r) => s + r.aCell + r.aMiss + r.tCell + r.tMiss, 0), cells = play.reduce((s, r) => s + r.aCell + r.tCell, 0);
+    const rate = f => n ? pc(play.filter(f).length / n) : null, ravg = k => { const v = play.map(r => r[k]).filter(x => x > 0); return v.length ? r1(v.reduce((a, b) => a + b, 0) / v.length) : null; };
+    return { team, n, all: rs.length, recs: rs, net: r1(av(r => recPts(r).net)), est: r1(av(r => recPts(r).est)), auto: r1(av(r => recPts(r).auto)), cell: r1(av(r => r.aCell + r.tCell)), acc: shots ? pc(cells / shots) : null,
+      flower: r1(av(r => r.tFlowerP + r.tFlowerN)), park: rate(r => r.park === 'yes'), leave: rate(r => r.aLeave), foul: r1(av(r => recPts(r).foul)), cards: play.filter(r => r.card !== 'none').length,
+      broke: rate(r => r.broke !== 'none'), def: rate(r => r.defense !== 'none'), drive: ravg('rDrive'), speed: ravg('rSpeed'), noShow: rs.filter(r => r.noShow).length };
+  });
+}
+
+// =================== แท็บ ===================
+let TAB = 'form';
+function setTab(t) { TAB = t; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t)); $('saveBar').classList.toggle('hidden', t !== 'form'); render(); scrollTo(0, 0); }
+$('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); };
+function render() { ({ form: rForm, teams: rTeams, pick: rPick, pit: rPit, set: rSet })[TAB](); syncChip(); }
+
+// =================== 1) จดแมตช์ ===================
+const blank = () => ({ id: '', match: F?.match || 1, team: '', alliance: F?.alliance || 'red', scout: D.scout, noShow: false, aLeave: false, aPark: false, aCell: 0, aMiss: 0, tCell: 0, tMiss: 0, tFlowerP: 0, tFlowerN: 0, tips: 0,
+  park: 'no', defense: 'none', shotZone: '', minor: 0, major: 0, card: 'none', broke: 'none', rDrive: 0, rSpeed: 0, rDef: 0, note: '' });
+let F = null; F = blank();
+const ctr = (k, lb, sub = '') => `<div class="ctr"><div class="lb">${lb}${sub ? `<small>${sub}</small>` : ''}</div><div class="row" style="gap:6px;flex-wrap:nowrap"><button type="button" data-dec="${k}" aria-label="ลด ${lb}">−</button><span class="v" id="v_${k}">${F[k]}</span><button type="button" class="pl" data-inc="${k}" aria-label="เพิ่ม ${lb}">+</button></div></div>`;
+const seg = (k, opts, cls = {}) => `<div class="seg" data-seg="${k}">${opts.map(([v, t]) => `<button type="button" data-v="${esc(v)}" class="${String(F[k]) === String(v) ? 'on' : ''} ${cls[v] || ''}">${t}</button>`).join('')}</div>`;
+const yn = (k, t) => `<div class="seg" data-yn="${k}"><button type="button" data-v="1" class="${F[k] ? 'on' : ''}">✓ ${t}</button><button type="button" data-v="0" class="${!F[k] ? 'on' : ''}">✗ ไม่</button></div>`;
+const stars = k => `<div class="seg stars" data-seg="${k}">${[1, 2, 3, 4, 5].map(v => `<button type="button" data-v="${v}" class="${F[k] === v ? 'on' : ''}">${'★'.repeat(v)}</button>`).join('')}<button type="button" data-v="0" class="${!F[k] ? 'on' : ''}">ไม่ให้คะแนน</button></div>`;
+function rForm() {
+  const tl = D.teams.length ? `<select id="fTeam"><option value="">— เลือกทีม —</option>${D.teams.map(t => `<option value="${esc(t.num)}" ${F.team === t.num ? 'selected' : ''}>${esc(t.num)}${t.name ? ' · ' + esc(t.name) : ''}</option>`).join('')}</select>` : '';
+  const mineList = Object.values(D.mine.recs).filter(r => !r.del).sort((a, b) => b.at - a.at).slice(0, 12);
+  $('main').innerHTML = `
+  <div class="card"><h3>📝 จดแมตช์ ${F.id ? '<small class="bad">(กำลังแก้รายการเดิม)</small>' : ''} <small>1 ฟอร์ม = 1 หุ่นใน 1 แมตช์ · บันทึกในเครื่องก่อน มีเน็ตค่อยส่งให้ทีม</small></h3>
+    <div class="row">
+      <label class="f">แมตช์ (Q#)<span class="row" style="gap:4px"><button type="button" class="btn sec" data-mm="-1" style="padding:8px 12px">−</button><input id="fMatch" type="number" inputmode="numeric" min="1" max="999" value="${F.match}" style="width:80px;font-size:20px;font-weight:800;text-align:center"><button type="button" class="btn sec" data-mm="1" style="padding:8px 12px">+</button></span></label>
+      <label class="f">ทีม ${tl}<input id="fTeamTxt" inputmode="numeric" maxlength="6" placeholder="เลขทีม" value="${esc(F.team)}" style="width:120px;font-size:20px;font-weight:800"></label>
+      <label class="f">Alliance ${seg('alliance', [['red', '🔴 แดง'], ['blue', '🔵 น้ำเงิน']], { red: 'r', blue: 'b' })}</label>
+    </div>
+    <div class="q">ทีมนี้ไม่มาลงแมตช์ / หุ่นไม่ได้ลงสนาม</div>${yn('noShow', 'ไม่มา (No show)')}
+  </div>
+  <div id="fBody" class="${F.noShow ? 'hidden' : ''}">
+  <div class="card"><h3>🤖 AUTO (0:30)</h3>
+    <div class="grid2">${ctr('aCell', 'ยิงเข้า CELL', 'ลูกที่เข้า CELL ที่หงาย')}${ctr('aMiss', 'ยิงพลาด')}</div>
+    <div class="row" style="gap:20px"><div><div class="q">LEAVE (ออกจากกำแพง)</div>${yn('aLeave', 'LEAVE')}</div><div><div class="q">PARK ตอนจบ AUTO</div>${yn('aPark', 'PARK')}</div></div>
+  </div>
+  <div class="card"><h3>🎮 TELEOP (2:00)</h3>
+    <div class="grid2">${ctr('tCell', 'ยิงเข้า CELL', 'POLLEN / NECTAR เข้า CELL ที่หงาย')}${ctr('tMiss', 'ยิงพลาด')}${ctr('tFlowerP', 'POLLEN ใส่ FLOWER')}${ctr('tFlowerN', 'NECTAR ใส่ FLOWER', 'ใส่ได้เมื่อเหลือ ≤ 1:00 (G410)')}${ctr('tips', 'TIP ที่หุ่นนี้ยิงลูกสุดท้าย', 'ไม่บังคับ · ช่วยดูว่าใครปิด TIP ได้')}</div>
+    <div class="q">ยิงจากตรงไหนเป็นหลัก</div>${seg('shotZone', [['near', 'ใกล้ HIVE'], ['mid', 'ระยะกลาง'], ['far', 'ไกล'], ['mix', 'หลายจุด'], ['', 'ไม่ได้ยิง / ไม่แน่ใจ']])}
+    <div class="q">เกมรับ (defense)</div>${seg('defense', [['none', 'ไม่เล่นเกมรับ'], ['some', 'บางช่วง'], ['main', 'เน้นเกมรับ']])}
+  </div>
+  <div class="card"><h3>🏁 ตอนจบแมตช์</h3>
+    <div class="q">PARK ใน LOADING ZONE</div>${seg('park', [['yes', '✓ PARK ได้'], ['try', 'พยายามแต่ไม่ทัน'], ['no', '✗ ไม่ PARK']])}
+  </div>
+  <div class="card"><h3>⚠️ FOUL และปัญหาหุ่น</h3>
+    <div class="grid2">${ctr('minor', 'MINOR FOUL', '+5 ให้คู่แข่ง')}${ctr('major', 'MAJOR FOUL', '+20 ให้คู่แข่ง')}</div>
+    <div class="q">ใบเหลือง / แดง</div>${seg('card', [['none', 'ไม่มี'], ['yellow', '🟨 เหลือง'], ['red', '🟥 แดง']], { red: 'bad' })}
+    <div class="q">หุ่นมีปัญหาไหม</div>${seg('broke', [['none', 'ปกติทั้งแมตช์'], ['part', 'หยุด / ติดขัดบางช่วง'], ['dead', 'ดับ / พังเกือบทั้งแมตช์']], { dead: 'bad' })}
+  </div>
+  <div class="card"><h3>⭐ ความเห็นของคน scout <small>(ไม่บังคับ)</small></h3>
+    <div class="q">คนขับคล่องแค่ไหน</div>${stars('rDrive')}
+    <div class="q">ความเร็วรอบเก็บ → ยิง</div>${stars('rSpeed')}
+    <div class="q">เกมรับได้ผลแค่ไหน</div>${stars('rDef')}
+    <div class="q">โน้ต (จุดเด่น / จุดอ่อน / เข้ากับหุ่นเราไหม)</div><textarea id="fNote" maxlength="400" placeholder="เช่น AUTO ยิง 4 ลูกเข้าเสมอ · intake ช้า · ชอบเบียดฝั่งคู่แข่ง">${esc(F.note)}</textarea>
+  </div></div>
+  <div class="card"><h3>🧾 ที่จดในเครื่องนี้ล่าสุด <small>${Object.values(D.mine.recs).filter(r => !r.del).length} รายการ</small></h3>
+    ${mineList.length ? `<div class="tw" style="max-height:none"><table><thead><tr><th>แมตช์</th><th>ทีม</th><th>คะแนนประมาณ</th><th>ซิงก์</th><th></th></tr></thead><tbody>${mineList.map(r => `<tr data-edit="${esc(r.id)}"><td>Q${r.match} <span class="${r.alliance === 'red' ? 'r' : 'b'}">●</span></td><td>${teamLbl(r.team)}</td><td>${r.noShow ? 'ไม่มา' : r1(recPts(r).net)}</td><td>${r.at <= (D.pushedAt || 0) ? '✓' : '<span class="mut">รอส่ง</span>'}</td><td><button type="button" class="btn sec" style="padding:4px 10px" data-edit="${esc(r.id)}">แก้</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="mut">ยังไม่มี</p>'}
+  </div>`;
+  const m = $('main');
+  m.querySelectorAll('[data-inc],[data-dec]').forEach(b => b.onclick = () => { const k = b.dataset.inc || b.dataset.dec; F[k] = Math.max(0, Math.min(120, F[k] + (b.dataset.inc ? 1 : -1))); $('v_' + k).textContent = F[k]; if (navigator.vibrate) try { navigator.vibrate(8); } catch {} });
+  m.querySelectorAll('[data-seg]').forEach(g => g.onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; const k = g.dataset.seg, v = b.dataset.v; F[k] = ['rDrive', 'rSpeed', 'rDef'].includes(k) ? +v : v; g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });
+  m.querySelectorAll('[data-yn]').forEach(g => g.onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; const k = g.dataset.yn; F[k] = b.dataset.v === '1'; g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); if (k === 'noShow') $('fBody').classList.toggle('hidden', F.noShow); });
+  m.querySelectorAll('[data-mm]').forEach(b => b.onclick = () => { F.match = Math.max(1, Math.min(999, (+$('fMatch').value || 1) + +b.dataset.mm)); $('fMatch').value = F.match; });
+  $('fMatch').onchange = e => { F.match = Math.max(1, Math.min(999, +e.target.value || 1)); };
+  if ($('fTeam')) $('fTeam').onchange = e => { F.team = e.target.value; $('fTeamTxt').value = F.team; };
+  $('fTeamTxt').oninput = e => { F.team = e.target.value.replace(/\D/g, '').slice(0, 6); if ($('fTeam')) $('fTeam').value = D.teams.some(t => t.num === F.team) ? F.team : ''; };
+  $('fNote').oninput = e => { F.note = e.target.value; };
+  m.querySelectorAll('[data-edit]').forEach(x => x.onclick = e => { e.stopPropagation(); const r = D.mine.recs[x.dataset.edit]; if (!r) return; F = { ...blank(), ...r }; render(); scrollTo(0, 0); toast('กำลังแก้ Q' + r.match + ' ทีม ' + r.team); });
+}
+$('saveBtn').onclick = () => {
+  F.team = String(F.team || '').replace(/\D/g, ''); F.match = Math.max(1, Math.min(999, +$('fMatch')?.value || F.match));
+  if (!F.team) return toast('ใส่เลขทีมก่อน');
+  const dup = Object.values(D.mine.recs).find(r => !r.del && r.match === F.match && r.team === F.team && r.id !== F.id);
+  if (dup && !confirm(`เครื่องนี้จด Q${F.match} ทีม ${F.team} ไว้แล้ว · บันทึกทับอันเดิม?`)) return;
+  const id = F.id || dup?.id || uid(), rec = { ...F, id, scout: D.scout || F.scout, at: Date.now() };
+  D.mine.recs[id] = rec; D.dirty = true; save();
+  toast(`บันทึก Q${rec.match} ทีม ${rec.team} แล้ว` + (navigator.onLine ? '' : ' · ไม่มีเน็ต เก็บในเครื่องไว้ก่อน'));
+  const keep = { match: rec.match, alliance: rec.alliance }; F = { ...blank(), ...keep }; render(); scrollTo(0, 0); syncSoon();
+};
+$('resetBtn').onclick = () => { if (!confirm('ล้างฟอร์มนี้?')) return; const keep = { match: F.match, alliance: F.alliance }; F = { ...blank(), ...keep }; render(); };
+
+// =================== 2) ตารางทีม ===================
+const COLS = [['team', 'ทีม'], ['n', 'แมตช์'], ['net', 'คะแนนสุทธิ*'], ['auto', 'AUTO'], ['cell', 'เข้า CELL'], ['acc', 'แม่น %'], ['flower', 'FLOWER'], ['park', 'PARK %'], ['leave', 'LEAVE %'], ['foul', 'FOUL ให้คู่แข่ง'], ['broke', 'หุ่นมีปัญหา %'], ['def', 'เกมรับ %'], ['drive', 'คนขับ ★']];
+function rTeams() {
+  const [sk, sd] = D.sort, st = teamStats().sort((a, b) => { const x = a[sk] ?? -1, y = b[sk] ?? -1; return (sk === 'team' ? (+x - +y) : (y - x)) * (sk === 'team' ? 1 : -sd) || a.team - b.team; });
+  const pit = allPit();
+  $('main').innerHTML = `<div class="card"><h3>📊 ทีมทั้งหมด <small>${st.length} ทีม · ${allRecs().length} บันทึก · กดหัวตารางเพื่อเรียง · กดแถวเพื่อดูรายละเอียด</small></h3>
+    <div class="tw"><table><thead><tr>${COLS.map(([k, t]) => `<th data-sort="${k}" class="${k === sk ? 'on' : ''}">${t}${k === sk ? (sd < 0 ? ' ▼' : ' ▲') : ''}</th>`).join('')}</tr></thead>
+    <tbody>${st.map(s => `<tr data-team="${esc(s.team)}" class="${s.team === D.our ? 'our' : ''}"><td>${teamLbl(s.team)}${pit.has(s.team) ? ' 🔧' : ''}${D.pick.taken.includes(s.team) ? ' <span class="mut">(ถูกเลือกแล้ว)</span>' : ''}</td><td>${s.n}${s.noShow ? `<span class="mut">+${s.noShow}✗</span>` : ''}</td>
+      ${s.n ? `<td><b>${s.net}</b></td><td>${s.auto}</td><td>${s.cell}</td><td>${s.acc ?? '—'}</td><td>${s.flower}</td><td>${s.park}%</td><td>${s.leave}%</td><td class="${s.foul >= 10 ? 'bad' : ''}">${s.foul}${s.cards ? ' 🟨' : ''}</td><td class="${s.broke >= 34 ? 'bad' : ''}">${s.broke}%</td><td>${s.def}%</td><td>${s.drive ?? '—'}</td>` : `<td colspan="${COLS.length - 2}" class="mut" style="text-align:left">ยังไม่มีข้อมูล</td>`}</tr>`).join('')}</tbody></table></div>
+    <p class="mut" style="font-size:12px;margin:8px 0 0">* คะแนนสุทธิ = คะแนนประมาณการที่หุ่นทำได้ต่อแมตช์ ลบ FOUL ที่ให้คู่แข่ง (ลูกเข้า CELL ≈ 2.5 · FLOWER 2 · LEAVE 3 · PARK 5 · MINOR −5 · MAJOR −20) ใช้เทียบกันเอง ไม่ใช่คะแนนทางการ · TIP เป็นของทั้ง alliance</p>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn sec" id="csvT">⬇️ Export ตารางทีม (.csv)</button><button type="button" class="btn sec" id="csvR">⬇️ Export ทุกบันทึก (.csv)</button></div></div>`;
+  $('main').querySelectorAll('th[data-sort]').forEach(th => th.onclick = () => { const k = th.dataset.sort; D.sort = [k, D.sort[0] === k ? -D.sort[1] : -1]; save(); rTeams(); });
+  $('main').querySelectorAll('tr[data-team]').forEach(tr => tr.onclick = () => openTeam(tr.dataset.team));
+  $('csvT').onclick = () => dl('scouting-teams.csv', csv([COLS.map(c => c[1]).concat(['ชื่อทีม'])].concat(st.map(s => [s.team, s.n, s.net, s.auto, s.cell, s.acc ?? '', s.flower, s.park ?? '', s.leave ?? '', s.foul, s.broke ?? '', s.def ?? '', s.drive ?? '', teamName(s.team)]))));
+  $('csvR').onclick = () => { const R = allRecs().sort((a, b) => a.match - b.match || a.team - b.team), ks = ['match', 'team', 'alliance', 'noShow', 'aLeave', 'aPark', 'aCell', 'aMiss', 'tCell', 'tMiss', 'tFlowerP', 'tFlowerN', 'tips', 'park', 'defense', 'shotZone', 'minor', 'major', 'card', 'broke', 'rDrive', 'rSpeed', 'rDef', 'scout', 'note'];
+    dl('scouting-records.csv', csv([ks.concat(['net'])].concat(R.map(r => ks.map(k => r[k]).concat([r1(recPts(r).net)]))))); };
+}
+const csv = rows => '﻿' + rows.map(r => r.map(v => { const s = String(v ?? ''); return /[",\n]|^[=+\-@]/.test(s) ? '"' + s.replace(/^([=+\-@])/, "'$1").replace(/"/g, '""') + '"' : s; }).join(',')).join('\n');  // กันสูตร Excel ที่แฝงมาในโน้ต
+function dl(name, txt, type = 'text/csv') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+function spark(vals) { if (vals.length < 2) return ''; const W = 260, H = 54, mx = Math.max(10, ...vals), mn = Math.min(0, ...vals), X = i => 6 + i * (W - 12) / (vals.length - 1), Y = v => H - 6 - (v - mn) / (mx - mn || 1) * (H - 12);
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:320px;display:block" role="img" aria-label="คะแนนสุทธิแต่ละแมตช์"><line x1="6" x2="${W - 6}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/><path d="${vals.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('')}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round"/>${vals.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="var(--blue)"><title>${r1(v)}</title></circle>`).join('')}</svg>`; }
+function openTeam(team) {
+  const s = teamStats().find(x => x.team === team); if (!s) return; const p = allPit().get(team);
+  const Z = { near: 'ใกล้ HIVE', mid: 'ระยะกลาง', far: 'ไกล', mix: 'หลายจุด' }, DEFN = { none: '—', some: 'บางช่วง', main: 'เน้นเกมรับ' }, PK = { yes: '✓', try: 'ไม่ทัน', no: '✗' }, BR = { none: '', part: '⚠️ ติดขัด', dead: '❌ ดับ' };
+  $('teamBox').innerHTML = `<h3 style="margin:0 0 4px">ทีม ${teamLbl(team)} ${team === D.our ? '<span class="tier t2">ทีมเรา</span>' : ''}</h3>
+    ${s.n ? `<div class="kv"><div><b>${s.net}</b><span>คะแนนสุทธิเฉลี่ย*</span></div><div><b>${s.auto}</b><span>AUTO เฉลี่ย</span></div><div><b>${s.cell}</b><span>เข้า CELL / แมตช์</span></div><div><b>${s.acc ?? '—'}%</b><span>ความแม่น</span></div>
+      <div><b>${s.flower}</b><span>FLOWER / แมตช์</span></div><div><b>${s.park}%</b><span>PARK ได้</span></div><div><b>${s.foul}</b><span>FOUL ให้คู่แข่ง / แมตช์</span></div><div><b>${s.broke}%</b><span>หุ่นมีปัญหา</span></div></div>
+      <div class="q">คะแนนสุทธิแต่ละแมตช์</div>${spark(s.recs.filter(r => !r.noShow).map(r => recPts(r).net))}` : '<p class="mut">ยังไม่มีข้อมูลแมตช์</p>'}
+    ${p ? `<div class="q">🔧 ข้อมูล Pit</div><div style="font-size:14px">${p.name ? esc(p.name) + ' · ' : ''}${pitTxt(p)}${p.note ? `<br><span class="mut">${esc(p.note)}</span>` : ''}</div>` : ''}
+    <div class="q">บันทึกแต่ละแมตช์</div>
+    <div class="tw" style="max-height:40vh"><table><thead><tr><th>แมตช์</th><th>AUTO</th><th>CELL</th><th>พลาด</th><th>FLOWER</th><th>PARK</th><th>FOUL</th><th>ยิงจาก</th><th>เกมรับ</th><th>สุทธิ</th></tr></thead><tbody>
+    ${s.recs.map(r => `<tr><td>Q${r.match} <span class="${r.alliance === 'red' ? 'r' : 'b'}">●</span> ${r.noShow ? '<span class="bad">ไม่มา</span>' : BR[r.broke]}</td>${r.noShow ? '<td colspan="9"></td>' : `<td>${r.aLeave ? 'L' : ''}${r.aPark ? 'P' : ''} ${r.aCell}</td><td>${r.tCell}</td><td>${r.aMiss + r.tMiss}</td><td>${r.tFlowerP + r.tFlowerN}</td><td>${PK[r.park]}</td><td>${r.minor ? r.minor + 'm ' : ''}${r.major ? r.major + 'M' : ''}${r.card !== 'none' ? (r.card === 'red' ? '🟥' : '🟨') : ''}</td><td>${Z[r.shotZone] || '—'}</td><td>${DEFN[r.defense]}</td><td><b>${r1(recPts(r).net)}</b></td>`}</tr>${r.note ? `<tr><td colspan="10" class="mut" style="text-align:left;white-space:normal">📝 ${esc(r.note)} <span style="font-size:11px">— ${esc(r.scout || r.src || '')}</span></td></tr>` : ''}`).join('')}</tbody></table></div>
+    <div class="row" style="margin-top:10px"><button type="button" class="btn sec" id="tAddPick">➕ เพิ่มใน Pick list</button></div>`;
+  $('tAddPick').onclick = () => { addPick(team); toast('เพิ่มทีม ' + team + ' ใน Pick list แล้ว'); };
+  if (!$('teamDlg').open) $('teamDlg').showModal();
+}
+$('teamClose').onclick = () => $('teamDlg').close();
+
+// =================== 3) Pick list ===================
+const TIER = { 1: 'เลือกก่อน', 2: 'ตัวเลือกดี', 3: 'สำรอง', x: 'ไม่เลือก' };
+function addPick(team) { if (!team || D.pick.list.some(x => x.team === team)) return; D.pick.list.push({ team, tier: '2', note: '' }); D.pickDirty = true; save(); syncSoon(); }
+function rPick() {
+  const st = new Map(teamStats().map(s => [s.team, s])), L = D.pick.list, ord = ['1', '2', '3', 'x'];
+  const left = [...st.keys()].filter(t => !L.some(x => x.team === t) && t !== D.our);
+  $('main').innerHTML = `<div class="card"><h3>🏆 Pick list สำหรับ Alliance Selection <small>เรียงลำดับที่อยากเลือก · ระหว่างเลือกจริงกด “ถูกเลือกแล้ว” เพื่อขีดฆ่า · ซิงก์ให้ทุกเครื่องในทีม</small></h3>
+    <div class="row"><button type="button" class="btn sec" id="pAuto">✨ เติมทีมที่ยังไม่อยู่ในรายการ (เรียงตามคะแนนสุทธิ)</button><button type="button" class="btn sec" id="pClearTaken">ล้างเครื่องหมาย “ถูกเลือกแล้ว”</button>
+      <span class="mut" style="font-size:12px">${D.cache.pick?.by ? `แก้ล่าสุดโดย ${esc(D.cache.pick.by)} · ` : ''}เวอร์ชัน ${D.pick.ver}${D.pickDirty ? ' · <b class="warn" style="color:var(--warn)">รอส่ง</b>' : ''}</span></div>
+    ${(() => { let rank = 0; return ord.map(tr => { const items = L.map((x, i) => [x, i]).filter(([x]) => x.tier === tr); return `<div class="q" style="margin-top:14px"><span class="tier t${tr}">${TIER[tr]}</span> ${items.length} ทีม</div>
+      ${items.map(([x, i]) => { const s = st.get(x.team), tk = D.pick.taken.includes(x.team); rank++; return `<div class="pk ${tk ? 'taken' : ''}"><span class="mut" style="min-width:22px">${rank}.</span><span class="n">${esc(x.team)}</span>
+        <div class="st">${esc(teamName(x.team))}${s?.n ? ` · สุทธิ <b style="color:var(--fg)">${s.net}</b> · AUTO ${s.auto} · CELL ${s.cell} · PARK ${s.park}% · FOUL ${s.foul}${s.broke ? ` · มีปัญหา ${s.broke}%` : ''} · ${s.n} แมตช์` : ' · ยังไม่มีข้อมูล'}
+          <input data-note="${i}" value="${esc(x.note)}" placeholder="โน้ต (เช่น ทำ FLOWER ได้ เข้ากับเรา)" maxlength="120" style="display:block;width:100%;margin-top:4px;font-size:13px;padding:5px 8px"></div>
+        <div class="acts"><button type="button" data-up="${i}" aria-label="เลื่อนขึ้น">▲</button><button type="button" data-dn="${i}" aria-label="เลื่อนลง">▼</button>
+          <select data-tier="${i}" style="font-size:13px;padding:5px">${ord.map(o => `<option value="${o}" ${o === x.tier ? 'selected' : ''}>${TIER[o]}</option>`).join('')}</select>
+          <button type="button" data-tk="${i}">${tk ? '↩ ยังไม่ถูกเลือก' : '✔ ถูกเลือกแล้ว'}</button><button type="button" data-rm="${i}" aria-label="เอาออก">✕</button><button type="button" data-info="${esc(x.team)}">ดู</button></div></div>`; }).join('') || '<p class="mut" style="margin:4px 0">—</p>'}`; }).join(''); })()}
+    <div class="row" style="margin-top:14px"><select id="pAdd"><option value="">➕ เพิ่มทีม…</option>${left.map(t => `<option value="${esc(t)}">${esc(t)}${teamName(t) ? ' · ' + esc(teamName(t)) : ''}</option>`).join('')}</select><input id="pAddTxt" inputmode="numeric" maxlength="6" placeholder="หรือพิมพ์เลขทีม" style="width:150px"><button type="button" class="btn" id="pAddBtn">เพิ่ม</button></div></div>`;
+  const ch = () => { D.pickDirty = true; save(); syncSoon(); rPick(); }, m = $('main');
+  m.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; if (i > 0) { [L[i - 1], L[i]] = [L[i], L[i - 1]]; ch(); } });
+  m.querySelectorAll('[data-dn]').forEach(b => b.onclick = () => { const i = +b.dataset.dn; if (i < L.length - 1) { [L[i + 1], L[i]] = [L[i], L[i + 1]]; ch(); } });
+  m.querySelectorAll('[data-tier]').forEach(s => s.onchange = () => { L[+s.dataset.tier].tier = s.value; ch(); });
+  m.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (confirm('เอาทีม ' + L[+b.dataset.rm].team + ' ออกจาก Pick list?')) { L.splice(+b.dataset.rm, 1); ch(); } });
+  m.querySelectorAll('[data-tk]').forEach(b => b.onclick = () => { const t = L[+b.dataset.tk].team, T = D.pick.taken; const j = T.indexOf(t); j >= 0 ? T.splice(j, 1) : T.push(t); ch(); });
+  m.querySelectorAll('[data-note]').forEach(x => x.onchange = () => { L[+x.dataset.note].note = x.value.slice(0, 120); D.pickDirty = true; save(); syncSoon(); });
+  m.querySelectorAll('[data-info]').forEach(b => b.onclick = () => openTeam(b.dataset.info));
+  $('pAuto').onclick = () => { const add = left.map(t => st.get(t)).filter(s => s?.n).sort((a, b) => b.net - a.net); add.forEach(s => L.push({ team: s.team, tier: '2', note: '' })); if (!add.length) return toast('ไม่มีทีมที่มีข้อมูลให้เติม'); ch(); };
+  $('pClearTaken').onclick = () => { if (D.pick.taken.length && confirm('ล้างเครื่องหมาย “ถูกเลือกแล้ว” ทั้งหมด?')) { D.pick.taken = []; ch(); } };
+  $('pAddBtn').onclick = () => { const t = ($('pAddTxt').value.replace(/\D/g, '') || $('pAdd').value); if (!t) return toast('เลือกหรือพิมพ์เลขทีม'); addPick(t); rPick(); };
+}
+
+// =================== 4) Pit ===================
+const PL = { drive: { mecanum: 'Mecanum', tank: 'Tank', swerve: 'Swerve', other: 'อื่น ๆ' }, auto: { none: 'ไม่มี AUTO', leave: 'แค่ LEAVE', preload: 'ยิง pre-load', more: 'ยิง + เก็บเพิ่ม' }, yn: { yes: 'ได้', no: 'ไม่ได้' } };
+const pitTxt = x => `ฐานล้อ ${esc(PL.drive[x.drive] || '—')} · AUTO ${esc(PL.auto[x.auto] || '—')} · FLOWER ${esc(PL.yn[x.flower] || '—')} · PARK ${esc(PL.yn[x.park] || '—')}${x.launcher ? ' · ' + esc(x.launcher) : ''}`;
+function rPit() {
+  const pit = allPit(), teams = [...new Set([...D.teams.map(t => t.num), ...pit.keys()])];
+  const p = D.pitEdit ? { ...(D.mine.pit[D.pitEdit] || pit.get(D.pitEdit) || {}), team: D.pitEdit } : null;
+  const o = (k, opts) => `<select data-pk="${k}">${opts.map(([v, t]) => `<option value="${v}" ${(p?.[k] || '') === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  $('main').innerHTML = `<div class="card"><h3>🔧 ข้อมูลหุ่นจาก Pit <small>เดินคุยกับทีมอื่นก่อนแข่ง · 1 รายการต่อทีม</small></h3>
+    <div class="row"><input id="pitTeam" inputmode="numeric" maxlength="6" placeholder="เลขทีม" value="${esc(D.pitEdit || '')}" style="width:130px"><button type="button" class="btn" id="pitGo">เปิด / จด</button></div>
+    ${p ? `<div class="grid2" style="margin-top:10px">
+      <label class="f">ชื่อทีม / ชื่อหุ่น<input data-pk="name" maxlength="60" value="${esc(p.name || teamName(p.team))}"></label>
+      <label class="f">ฐานล้อ ${o('drive', [['', '—'], ['mecanum', 'Mecanum'], ['tank', 'Tank / West coast'], ['swerve', 'Swerve'], ['other', 'อื่น ๆ']])}</label>
+      <label class="f">AUTO ทำอะไรได้ ${o('auto', [['', '—'], ['none', 'ไม่มี AUTO'], ['leave', 'แค่ LEAVE'], ['preload', 'ยิงลูก pre-load'], ['more', 'ยิง + เก็บเพิ่ม']])}</label>
+      <label class="f">ทำ FLOWER ได้ไหม ${o('flower', [['', '—'], ['yes', 'ได้'], ['no', 'ไม่ได้']])}</label>
+      <label class="f">PARK ได้ไหม ${o('park', [['', '—'], ['yes', 'ได้'], ['no', 'ไม่ได้']])}</label>
+      <label class="f">ระบบยิง / intake<input data-pk="launcher" maxlength="60" value="${esc(p.launcher || '')}" placeholder="เช่น flywheel คู่ ยิงได้ 1.2 ม."></label></div>
+      <label class="f" style="margin-top:8px">โน้ต<textarea data-pk="note" maxlength="400">${esc(p.note || '')}</textarea></label>
+      <div class="row" style="margin-top:8px"><button type="button" class="btn" id="pitSave">💾 บันทึก Pit ทีม ${esc(p.team)}</button><button type="button" class="btn sec" id="pitCancel">ยกเลิก</button></div>` : ''}
+  </div>
+  <div class="card"><h3>รายการ Pit <small>${pit.size} ทีม</small></h3>${pit.size ? [...pit.values()].sort((a, b) => a.team - b.team).map(x => `<div class="pk" data-pit="${esc(x.team)}" style="cursor:pointer"><span class="n">${esc(x.team)}</span><div class="st">${esc(x.name || teamName(x.team))} · ${pitTxt(x)}${x.note ? '<br>' + esc(x.note) : ''}</div></div>`).join('') : '<p class="mut">ยังไม่มี</p>'}</div>`;
+  $('pitGo').onclick = () => { const t = $('pitTeam').value.replace(/\D/g, ''); if (!t) return toast('ใส่เลขทีม'); D.pitEdit = t; rPit(); };
+  $('main').querySelectorAll('[data-pit]').forEach(x => x.onclick = () => { D.pitEdit = x.dataset.pit; rPit(); scrollTo(0, 0); });
+  if (p) {
+    $('pitSave').onclick = () => { const v = { team: p.team, at: Date.now() }; $('main').querySelectorAll('[data-pk]').forEach(i => { v[i.dataset.pk] = i.value; }); D.mine.pit[p.team] = v; D.pitEdit = null; D.dirty = true; save(); syncSoon(); toast('บันทึก Pit ทีม ' + p.team + ' แล้ว'); rPit(); };
+    $('pitCancel').onclick = () => { D.pitEdit = null; rPit(); };
+  }
+}
+
+// =================== 5) ตั้งค่า ===================
+function rSet() {
+  $('main').innerHTML = `<div class="card"><h3>👤 คนจด</h3><label class="f">ชื่อคน scout (แสดงในบันทึก)<input id="sScout" maxlength="24" value="${esc(D.scout)}" placeholder="เช่น มายด์ ม.5"></label></div>
+  <div class="card"><h3>🏟 งานแข่ง</h3>
+    <div class="grid2"><label class="f">รหัสงาน (ทุกเครื่องในทีมต้องใช้รหัสเดียวกัน)<input id="sEv" maxlength="40" value="${esc(D.ev)}"></label><label class="f">ชื่องาน<input id="sEvName" maxlength="80" value="${esc(D.evName)}"></label><label class="f">เลขทีมเรา<input id="sOur" inputmode="numeric" maxlength="6" value="${esc(D.our)}"></label></div>
+    <label class="f" style="margin-top:8px">รายชื่อทีมในงาน (บรรทัดละ 1 ทีม: เลขทีม ชื่อทีม · หรือวางเลขทีมคั่นด้วยเว้นวรรค / ,)<textarea id="sTeams" rows="6" placeholder="12345 Robo Bees&#10;23456 Hive Hunters">${esc(D.teams.map(t => t.num + (t.name ? ' ' + t.name : '')).join('\n'))}</textarea></label>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn" id="sSave">บันทึก</button><span class="mut" id="sMsg"></span></div></div>
+  <div class="card"><h3>☁️ ซิงก์กับทีม</h3>
+    <p class="mut" style="margin:0 0 6px;font-size:13px">ใส่รหัสทีม Scouting (ผู้ดูแลตั้งไว้ที่ Netlify → Environment variables → <code>SCOUT_KEY</code>) ทุกเครื่องที่ใส่รหัสเดียวกันและรหัสงานเดียวกันจะเห็นข้อมูลของกันและกัน · ไม่มีเน็ตก็จดได้ ข้อมูลจะส่งเองเมื่อมีเน็ต</p>
+    <div class="row"><input id="sKey" type="password" maxlength="128" autocomplete="off" placeholder="${KEY ? 'ใส่ไว้แล้ว (เว้นว่าง = ใช้รหัสเดิม)' : 'รหัสทีม Scouting'}" style="width:240px"><button type="button" class="btn" id="sKeyGo">ตรวจรหัส + ซิงก์</button>${KEY ? '<button type="button" class="btn sec" id="sKeyDel">ลบรหัสจากเครื่องนี้</button>' : ''}</div>
+    <p class="mut" id="sSync" style="font-size:13px">${syncText()}</p></div>
+  <div class="card"><h3>💾 สำรอง / ย้ายข้อมูล</h3>
+    <div class="row"><button type="button" class="btn sec" id="sExp">⬇️ Export ทั้งหมด (.json)</button><label class="btn sec" style="display:inline-block">⬆️ Import (.json)<input type="file" id="sImp" accept=".json,application/json" class="hidden"></label></div>
+    <p class="mut" style="font-size:12px">Import = รวมบันทึกจากไฟล์เข้ามาเป็นของเครื่องนี้ (ใช้ตอนเน็ตไม่มี ส่งไฟล์ผ่าน LINE / AirDrop แล้วรวมที่เครื่องโค้ช)</p>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn danger" id="sWipe">ลบข้อมูล scouting ในเครื่องนี้</button></div></div>`;
+  $('sSave').onclick = () => {
+    const ev = $('sEv').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40);
+    if (ev.length < 3) return toast('รหัสงานสั้นเกินไป');
+    if (ev !== D.ev && (Object.keys(D.mine.recs).length || D.pick.list.length) && !confirm('เปลี่ยนรหัสงาน = เริ่มชุดข้อมูลใหม่บนเซิร์ฟเวอร์ (ข้อมูลเดิมในเครื่องยังอยู่ และจะถูกส่งเข้างานใหม่) · ทำต่อ?')) return;
+    if (ev !== D.ev) { D.cache = { devices: [], pick: null, at: 0 }; D.pick.ver = 0; D.dirty = true; }
+    D.ev = ev; D.evName = $('sEvName').value.slice(0, 80); D.our = $('sOur').value.replace(/\D/g, '').slice(0, 6); D.scout = $('sScout').value.trim().slice(0, 24);
+    const seen = new Set(); D.teams = $('sTeams').value.split(/\n/).flatMap(l => { const m = l.trim().match(/^(\d{1,6})\s*[-:·,]?\s*(.*)$/); if (!m) return []; if (/^\d{1,6}([\s,]+\d{1,6})+$/.test(l.trim())) return l.trim().split(/[\s,]+/).map(n => ({ num: n, name: '' })); return [{ num: m[1], name: m[2].slice(0, 60) }]; }).filter(t => !seen.has(t.num) && seen.add(t.num)).slice(0, 120);
+    save(); $('sMsg').textContent = `บันทึกแล้ว · ${D.teams.length} ทีม`; syncSoon();
+  };
+  $('sScout').onchange = () => { D.scout = $('sScout').value.trim().slice(0, 24); save(); };
+  $('sKeyGo').onclick = async () => { const k = $('sKey').value.trim() || KEY; if (!k) return toast('ใส่รหัสทีมก่อน');
+    $('sSync').textContent = 'กำลังตรวจรหัส…'; const [c] = await call({ op: 'check', key: k });
+    if (c === 200) { setKey(k); toast('รหัสถูกต้อง · กำลังซิงก์'); D.dirty = D.dirty || Object.keys(D.mine.recs).length > 0; await sync(true); rSet(); }
+    else $('sSync').textContent = c === 403 ? '❌ รหัสไม่ถูกต้อง' : c === 404 || c === 405 ? '❌ ยังไม่มี /api/scout บนเว็บนี้' : '❌ ต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่เมื่อมีเน็ต'; };
+  if ($('sKeyDel')) $('sKeyDel').onclick = () => { if (confirm('ลบรหัสทีมจากเครื่องนี้? (ข้อมูลที่จดยังอยู่)')) { setKey(''); rSet(); syncChip(); } };
+  $('sExp').onclick = () => dl(`scouting-${D.ev}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ v: 1, kind: 'bb-scout', ev: D.ev, evName: D.evName, teams: D.teams, recs: allRecs(), pit: [...allPit().values()], pick: D.pick }), 'application/json');
+  $('sImp').onchange = async e => { const f = e.target.files?.[0]; if (!f) return; try { const o = JSON.parse(await f.text()); if (o?.kind !== 'bb-scout') throw 0; let n = 0;
+      for (const r of (Array.isArray(o.recs) ? o.recs : []).slice(0, 1000)) { const c = cleanRec(r); if (!c) continue; const ex = D.mine.recs[c.id]; if (!ex || c.at > ex.at) { D.mine.recs[c.id] = c; n++; } }
+      for (const p of (Array.isArray(o.pit) ? o.pit : []).slice(0, 200)) { if (/^\d{1,6}$/.test(String(p?.team ?? ''))) { const ex = D.mine.pit[p.team]; if (!ex || (+p.at || 0) > (ex.at || 0)) D.mine.pit[p.team] = { team: String(p.team), at: +p.at || Date.now(), name: String(p.name || '').slice(0, 60), drive: String(p.drive || '').slice(0, 12), auto: String(p.auto || '').slice(0, 12), flower: String(p.flower || '').slice(0, 4), park: String(p.park || '').slice(0, 4), launcher: String(p.launcher || '').slice(0, 60), note: String(p.note || '').slice(0, 400) }; } }
+      if (!D.teams.length && Array.isArray(o.teams)) D.teams = o.teams.slice(0, 120).filter(t => /^\d{1,6}$/.test(String(t?.num ?? ''))).map(t => ({ num: String(t.num), name: String(t.name || '').slice(0, 60) }));
+      D.dirty = true; save(); syncSoon(); toast(`รวมเข้ามา ${n} บันทึก`); rSet(); } catch { toast('ไฟล์ไม่ถูกต้อง'); } };
+  $('sWipe').onclick = () => { if (!confirm('ลบบันทึก Pit และ Pick list ในเครื่องนี้ทั้งหมด?\nข้อมูลที่ซิงก์ขึ้นเซิร์ฟเวอร์แล้วจะยังอยู่บนเซิร์ฟเวอร์')) return; const keep = { ev: D.ev, evName: D.evName, our: D.our, teams: D.teams, scout: D.scout, dev: uid() }; D = Object.assign({}, DEF, keep, { mine: { recs: {}, pit: {} }, cache: { devices: [], pick: null, at: 0 }, pick: { ver: 0, list: [], taken: [] } }); save(); toast('ลบแล้ว'); rSet(); };
+}
+const cleanRec = r => { if (!r || typeof r !== 'object' || !/^\d{1,6}$/.test(String(r.team ?? '')) || !/^[A-Za-z0-9_-]{6,40}$/.test(r.id || '')) return null; const b = blank(), o = { id: r.id, at: +r.at || Date.now(), team: String(r.team) };
+  for (const k of Object.keys(b)) if (!(k in o)) o[k] = typeof b[k] === 'number' ? Math.max(0, Math.min(120, Math.round(+r[k]) || 0)) : typeof b[k] === 'boolean' ? r[k] === true : String(r[k] ?? b[k]).slice(0, k === 'note' ? 400 : 24); o.match = Math.max(1, Math.min(999, o.match)); return o; };
+
+// =================== ซิงก์ ===================
+async function call(body) { try { const q = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) }); return [q.status, await q.json().catch(() => null)]; } catch { return [0, null]; } }
+let SY = { busy: false, err: '', t: null, last: 0 };
+const pending = () => Object.values(D.mine.recs).filter(r => r.at > (D.pushedAt || 0)).length + Object.values(D.mine.pit).filter(p => p.at > (D.pushedAt || 0)).length;
+const syncText = () => !KEY ? '⚪ ยังไม่ได้ใส่รหัสทีม (จดได้ แต่เก็บเฉพาะเครื่องนี้)' : SY.err ? '🔴 ' + SY.err : !navigator.onLine ? `🟠 ไม่มีเน็ต · รอส่ง ${pending()} รายการ` : D.dirty || D.pickDirty ? `🟠 รอส่ง ${pending()} รายการ` : D.cache.at ? `🟢 ซิงก์แล้ว ${new Date(D.cache.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} · ${(D.cache.devices || []).length} เครื่องในทีม` : '⚪ ยังไม่ซิงก์';
+function syncChip() { const c = $('syncChip'), t = syncText(); c.textContent = SY.busy ? '⏳ กำลังซิงก์…' : t.split(' · ')[0] + (t.includes('รอส่ง') ? ' · ' + t.match(/รอส่ง \d+/)?.[0] : ''); c.className = 'chip ' + (t.startsWith('🟢') ? 'ok' : t.startsWith('🟠') ? 'warn' : t.startsWith('🔴') ? 'bad' : ''); c.title = t; if ($('sSync')) $('sSync').textContent = t; }
+function syncSoon() { clearTimeout(SY.t); SY.t = setTimeout(() => sync(), 1200); syncChip(); }
+async function sync(force) {
+  if (!KEY || SY.busy || (!navigator.onLine && !force)) { syncChip(); return; }
+  SY.busy = true; syncChip(); SY.err = '';
+  try {
+    if (D.dirty) { const t0 = Date.now(), [c, d] = await call({ op: 'push', key: KEY, ev: D.ev, dev: D.dev, name: D.scout, recs: Object.values(D.mine.recs), pit: Object.values(D.mine.pit) });
+      if (c === 200 && d?.ok) { D.dirty = false; D.pushedAt = t0; } else throw c === 403 ? 'รหัสทีมไม่ถูกต้อง' : c === 413 ? 'ข้อมูลใหญ่เกินไป' : 'ส่งข้อมูลไม่สำเร็จ (จะลองใหม่)'; }
+    if (D.pickDirty) { const [c, d] = await call({ op: 'pick', key: KEY, ev: D.ev, pick: { ...D.pick, by: D.scout } });
+      if (c === 200 && d?.ok) { D.pick = d.pick; D.pickDirty = false; }
+      else if (c === 409 && d?.pick) { D.pick = d.pick; D.pickDirty = false; toast('มีคนแก้ Pick list ก่อนหน้า · โหลดฉบับล่าสุดแล้ว ทำรายการล่าสุดซ้ำอีกครั้ง', 4500); }
+      else throw 'ส่ง Pick list ไม่สำเร็จ (จะลองใหม่)'; }
+    const [c, d] = await call({ op: 'pull', key: KEY, ev: D.ev });
+    if (c === 200 && d?.ok) { D.cache = { devices: Array.isArray(d.devices) ? d.devices : [], pick: d.pick, at: Date.now() }; if (d.pick && !D.pickDirty && (d.pick.ver || 0) >= (D.pick.ver || 0)) D.pick = { ver: d.pick.ver, list: d.pick.list || [], taken: d.pick.taken || [] }; }
+    else throw c === 403 ? 'รหัสทีมไม่ถูกต้อง' : 'ดึงข้อมูลไม่สำเร็จ (จะลองใหม่)';
+  } catch (e) { SY.err = typeof e === 'string' ? e : 'ซิงก์ไม่สำเร็จ'; }
+  SY.busy = false; SY.last = Date.now(); save();
+  if (!document.querySelector('input:focus,select:focus,textarea:focus') && !$('teamDlg').open) render(); else syncChip();  /* ไม่วาดหน้าใหม่ระหว่างกำลังพิมพ์ (ค่าในฟอร์มอยู่ใน F ไม่หาย) */
+}
+$('syncChip').onclick = () => { if (!KEY) return setTab('set'); sync(true); };
+setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - SY.last > 20000) sync(); }, 5000);
+addEventListener('online', () => sync()); addEventListener('offline', syncChip);
+addEventListener('beforeunload', e => { if (TAB === 'form' && (F.team || F.tCell || F.aCell || F.note)) { e.preventDefault(); e.returnValue = ''; } });  // กันปิดหน้าทั้งที่ยังไม่กดบันทึก
+document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
+addEventListener('resize', () => document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px'));
+if (!D.teams.length && !Object.keys(D.mine.recs).length) TAB = 'set';
+setTab(TAB); sync();
+</script>
+</body>
+</html>
