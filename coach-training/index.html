@@ -115,7 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v4.6</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v4.7</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -123,6 +123,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   <a class="pad" id="padChip2" href="../mockup/gamepad-test.html?pad=2" target="_blank" title="คลิกเพื่อทดสอบ Joy 2"><i></i><span id="padChipTxt2">Joy 2: ยังไม่เชื่อม</span></a>
   <button class="hbtn tmode hidden" id="teacherChip" title="โหมดครูเปิดอยู่: เปิดทุกบทโดยไม่ต้องผ่านตามลำดับ ผลและใบผ่านในโหมดนี้ไม่ใช่ผลจริง · คลิกเพื่อเปิดตั้งค่า">โหมดครู</button>
   <button class="hbtn liveChip hidden" id="liveChip" title="ห้องเล่นออนไลน์ที่เปิดอยู่ตอนนี้ · กดเพื่อดูรายการ คะแนน เวลา และเข้าชมการแข่งสด"><i></i>ห้องออนไลน์ <b id="liveN">–</b></button>
+  <button class="hbtn" id="histBtn" title="รายงานผลประเมินผู้เล่น + Replay ย้อนหลัง (ต้องใช้รหัสพิเศษ)">📜 History การฝึก</button>
   <a class="hbtn" href="../scouting/" style="text-decoration:none" title="จดข้อมูลทีมอื่นทีละแมตช์ในวันแข่ง และทำ Pick list สำหรับ Alliance Selection (ใช้บนมือถือได้ ไม่มีเน็ตก็จดได้)">📋 Scouting</a>
   <button class="hbtn" id="btnReport">ส่งผลให้โค้ช</button>
   <button class="hbtn" id="btnSettings">ตั้งค่า</button>
@@ -162,6 +163,14 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
+<dialog id="histDlg" style="width:min(820px,96vw)">
+  <h3 style="margin-top:0">📜 History การฝึก</h3>
+  
+    <p class="mut" style="margin:6px 0;font-size:13px">รายงานผลประเมินผู้เล่น + Replay ทุกแมตช์ที่ผู้ชมพิเศษดู ถูกบันทึกไว้ให้อัตโนมัติ · กด “เปิด” เพื่ออ่านรายงานและดู Replay อีกครั้ง · ต้องใช้รหัสพิเศษ</p>
+    <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><input type="password" id="hKey" maxlength="128" autocomplete="off" style="max-width:240px"><button class="btn sec" id="hLoad" type="button">แสดงรายการ</button><span id="hMsg" style="font-size:14px"></span></div>
+    <div id="hList" style="margin-top:8px;max-height:50vh;overflow:auto"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn sec" id="histClose" type="button">ปิด</button></div>
+</dialog>
 <dialog id="liveDlg">
   <div id="liveBox"></div>
   <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn sec" id="liveClose">ปิด</button></div>
@@ -186,8 +195,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=4.6"></script>
-<script src="../mockup/live-rooms.js?v=4.6"></script>
+<script src="../mockup/scenarios.js?v=4.7"></script>
+<script src="../mockup/live-rooms.js?v=4.7"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1588,6 +1597,27 @@ $('aiTest').onclick = async () => {
   msg.className = 'bad';
   msg.textContent = '❌ ' + (code === 403 ? 'รหัสพิเศษไม่ถูกต้อง' : code === 404 || code === 405 ? 'ยังไม่มี /api/analyze บนเว็บนี้ (ต้อง deploy บน Netlify)' : typeof d?.msg === 'string' && d.msg ? d.msg.slice(0, 200) : code ? 'ทดสอบไม่ผ่าน (' + code + ')' : 'ต่อเซิร์ฟเวอร์ไม่ได้ / หมดเวลา');
 };
+// History การฝึก: รายการรายงาน + Replay ที่บันทึกบนเซิร์ฟเวอร์ (ต้องใช้รหัสพิเศษ) · กดเปิด = เปิด simulator พร้อมรายงานนั้น
+const H_KIND = { tele: 'TELEOP 2:00', full: 'แมตช์เต็ม', free: 'ซ้อมอิสระ' }, H_V = { good: '🟢', mid: '🟡', bad: '🔴', afk: '⚪', wait: '⏳' };
+async function histApi(body) { try { const r = await fetch('/api/history', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(20000) }); return [r.status, await r.json().catch(() => null)]; } catch { return [0, null]; } }
+function histOpen() { $('hKey').value = ''; $('hKey').placeholder = aiStore.key() ? 'ใช้รหัสที่จำไว้ในเครื่องนี้ (เว้นว่างได้)' : 'ใส่รหัสพิเศษ'; $('hMsg').textContent = ''; $('hList').innerHTML = ''; }
+async function histLoad() {
+  const k = $('hKey').value.trim() || aiStore.key(), msg = $('hMsg'); if (!k) { msg.className = 'bad'; msg.textContent = 'ใส่รหัสพิเศษก่อน'; return; }
+  msg.className = 'mut'; msg.textContent = 'กำลังโหลด…'; $('hLoad').disabled = true; const [c, d] = await histApi({ op: 'list', key: k }); $('hLoad').disabled = false;
+  if (c !== 200 || !d?.ok) { msg.className = 'bad'; msg.textContent = c === 403 ? '❌ รหัสพิเศษไม่ถูกต้อง' : c === 404 || c === 405 ? '❌ ยังไม่มี /api/history บนเว็บนี้' : '❌ โหลดไม่ได้ (เน็ต / เซิร์ฟเวอร์)'; return; }
+  if ($('hKey').value.trim()) aiStore.setKey(k);  // จำไว้ 12 ชม. (simulator ใช้รหัสนี้โหลดรายงาน)
+  const items = Array.isArray(d.items) ? d.items : []; msg.className = 'ok'; msg.textContent = `${items.length} รายการ`;
+  $('hList').innerHTML = items.length ? items.map(it => { const sc = it.score || {}, hum = (it.players || []).filter(p => !p.bot);
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:var(--surface2)"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <b>${esc(new Date(+it.ts || 0).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }))}</b><span class="mut" style="font-size:13px">${esc(H_KIND[it.kind] || '')}${it.end === 'lost' ? ' · ไม่ครบแมตช์' : ''}</span>
+      <span style="font-weight:800"><span style="color:var(--red)">${+sc.red || 0}</span> – <span style="color:var(--blue)">${+sc.blue || 0}</span></span><span>${it.replay ? '🎬' : ''}${it.ai ? ' 🤖' : ''}</span><span style="flex:1"></span>
+      <button class="btn" type="button" data-hopen="${esc(it.id)}" style="padding:4px 12px">เปิด</button><button class="btn sec" type="button" data-hdel="${esc(it.id)}" style="padding:4px 10px">ลบ</button></div>
+      <div style="font-size:13px;margin-top:3px">${hum.map(p => `${H_V[p.v] || ''} <b>${esc(p.id)}</b> ${esc(p.name)} <span class="mut">ตั้งใจ ${p.intent ?? '—'} · ฝีมือ ${p.skill ?? '—'}</span>`).join(' · ') || '<span class="mut">ไม่มีคนจริง</span>'}</div></div>`; }).join('') : '<p class="mut">ยังไม่มีรายการ · ระบบจะบันทึกให้เองเมื่อผู้ชมพิเศษดูแมตช์จนจบ</p>';
+  $('hList').querySelectorAll('[data-hopen]').forEach(b => b.onclick = () => openSim('?hist=' + encodeURIComponent(b.dataset.hopen)));
+  $('hList').querySelectorAll('[data-hdel]').forEach(b => b.onclick = async () => { if (!confirm('ลบรายงานนี้ (และ Replay) ออกจาก History ถาวร?')) return; b.disabled = true; const [c2] = await histApi({ op: 'del', key: k, id: b.dataset.hdel }); if (c2 === 200) histLoad(); else { b.disabled = false; msg.className = 'bad'; msg.textContent = 'ลบไม่สำเร็จ'; } });
+}
+$('hLoad').onclick = histLoad; $('hKey').onkeydown = e => { if (e.key === 'Enter') histLoad(); };
+$('histBtn').onclick = () => { histOpen(); $('histDlg').showModal(); if (aiStore.key()) histLoad(); }; $('histClose').onclick = () => $('histDlg').close();
 $('btnSettings').onclick = $('teacherChip').onclick = () => { aiSetOpen(); $('mockUrl').value = ST.mockUrl; $('trainee').value = ST.name; $('team').value = ST.team; $('teacher').checked = ST.teacher; $('btnReset').disabled = !ST.role; $('dlg').showModal(); };
 $('btnClose').onclick = () => { const u = $('mockUrl').value.trim(); if (u && safeUrl(u)) ST.mockUrl = u; ST.name = $('trainee').value.trim().slice(0, 60); ST.team = $('team').value.trim().slice(0, 60); ST.teacher = $('teacher').checked; save(); $('dlg').close(); render(); };
 // ล้างบทบาท: ล้างผลสถานการณ์ 3D ของบทบาทนี้ด้วย (ทั้งในหน้านี้และ dca-sim-results) ยกเว้นสถานการณ์ที่ใช้ร่วมกับบทบาทอื่นที่ยังมีความคืบหน้า

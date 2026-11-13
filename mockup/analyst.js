@@ -308,6 +308,7 @@
     s.aiLive = LV.list.map(x => ({ el: x.el, text: x.text })); s.replay = fin.replay || null;  // ภาพรวมสนามทุก 0.125 วิ (สำหรับ Replay · ไม่ส่งให้ AI ไม่เก็บในประวัติ)
     { const sm = summ(s); if (sm.players.length) hist.save([...hist.load(), sm]); }  // เก็บไว้เทียบแมตช์ถัดไป
     reports.push(s); if (reports.length > 20) reports.shift(); cur = reports.length - 1; openDlg(cur);
+    s.hid = 'h' + s.ts.toString(36) + Math.random().toString(36).slice(2, 8); saveHist(s);  // บันทึกลง History การฝึก (ดูย้อนหลังได้จากหน้า Home → 📜 History การฝึก)
     if ((autoEnd || mode === 'live') && !LV.off && s.players.some(p => !p.bot && p.intent != null)) askAI(s);  // จบแมตช์: AI สรุปผล + เทียบแมตช์ก่อนหน้าให้เลย
     return s;
   }
@@ -355,7 +356,7 @@
   }
   // เปิดไฟล์รายงาน (.json ที่บันทึกไว้) · ข้อมูลจากไฟล์ = บังคับชนิดทุกช่องก่อนแสดง (กันข้อความแปลกปลอมกลายเป็น HTML)
   const VTXT = { wait: '⏳ กำลังเก็บข้อมูล', afk: '⚪ แทบไม่ได้ขับ', good: '🟢 ตั้งใจเล่น', mid: '🟡 ตั้งใจบ้าง ไม่สม่ำเสมอ', bad: '🔴 น่าจะเล่นมั่ว / ไม่ตั้งใจ' };
-  function importReport(o) {
+  function importReport(o, from) {
     if (!o || typeof o !== 'object' || !Array.isArray(o.players)) throw new Error('ไม่ใช่ไฟล์รายงานของระบบนี้');
     const N = v => Number.isFinite(+v) ? +v : 0, Nn = v => v == null || v === '' ? null : N(v), T = (v, n) => String(v ?? '').slice(0, n), A = v => Array.isArray(v) ? v : [], B = v => v === true;
     const nums = (o2, n = 60) => Object.fromEntries(Object.entries(o2 && typeof o2 === 'object' ? o2 : {}).slice(0, n).map(([k, v]) => [T(k, 20), Nn(v)]));
@@ -368,7 +369,24 @@
           prev: A(p?.prev).slice(0, 5).map(q => ({ ...nums(q, 20), name: T(q?.name, 24), v: T(q?.v, 6) })), bk: A(p?.bk).slice(0, 20).map(b => nums(b, 8)), fouls: A(p?.fouls).slice(0, 80).map(f => ({ rule: T(f?.rule, 8), sev: T(f?.sev, 6), pts: N(f?.pts), rem: N(f?.rem), why: T(f?.why, 80) })),
           shotsEv: A(p?.shotsEv).slice(0, 60).map(ev), ev: A(p?.ev).slice(0, 80).map(ev), zones: p?.zones ? nums(p.zones, 8) : null, ring: A(p?.ring).slice(0, 2).map(N), endgame: p?.endgame ? nums(p.endgame, 8) : null, park: p?.park == null ? null : B(p.park), from: N(p?.from), to: N(p?.to) }; }),
       ai: o.ai && typeof o.ai.text === 'string' ? { text: T(o.ai.text, 20000), model: T(o.ai.model, 80), at: N(o.ai.at) } : null, aiLive: A(o.aiLive).slice(0, 40).map(x => ({ el: N(x?.el), text: T(x?.text, 4000) })), replay: o.replay && typeof o.replay === 'object' ? o.replay : null };
-    reports.push(r); if (reports.length > 20) reports.shift(); cur = reports.length - 1; addCss(); aiMsg = 'เปิดจากไฟล์แล้ว' + (r.replay ? ' · กด “▶ ดู Replay” ได้' : ' (ไฟล์นี้ไม่มี Replay)'); paintDlg(); return r;
+    if (from?.hid && /^[A-Za-z0-9_-]{8,48}$/.test(from.hid)) { r.hid = from.hid; r.histOk = true; }
+    const ex = r.hid && reports.findIndex(x => x.hid === r.hid); if (ex >= 0) reports.splice(ex, 1);  // เปิดรายการเดิมซ้ำ = ใช้ฉบับใหม่แทน
+    reports.push(r); if (reports.length > 20) reports.shift(); cur = reports.length - 1; addCss(); aiMsg = (from?.hid ? 'เปิดจาก History การฝึก' : 'เปิดจากไฟล์แล้ว') + (r.replay ? ' · กด “▶ ดู Replay” ได้' : ' (ไม่มี Replay)'); paintDlg(); return r;
+  }
+  // ---- History การฝึก (เก็บบนเซิร์ฟเวอร์ · ต้องใช้รหัสพิเศษ) ----
+  const HAPI = '/api/history';
+  async function histCall(body) { try { const q = await fetch(HAPI, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) }); return [q.status, await q.json().catch(() => null)]; } catch { return [0, null]; } }
+  async function saveHist(r) {
+    const k = key.get(); if (!k || !r?.hid) return;
+    r.histMsg = '☁️ กำลังบันทึกลง History…'; if (dlg && rep() === r) paintDlg();
+    const { histMsg, histOk, ...body } = r, [c, d] = await histCall({ op: 'save', key: k, id: r.hid, report: body });
+    r.histOk = c === 200 && d?.ok; r.histMsg = r.histOk ? '☁️ บันทึกลง History การฝึกแล้ว (หน้า Home → 📜 History การฝึก)' : c === 413 ? '☁️ บันทึกลง History ไม่ได้: รายงานใหญ่เกินไป (บันทึกเป็นไฟล์ .json แทน)' : c === 403 ? '☁️ บันทึกลง History ไม่ได้: รหัสพิเศษไม่ถูกต้อง' : '☁️ บันทึกลง History ไม่ได้ (เน็ต / เซิร์ฟเวอร์) · กด “☁️ บันทึกลง History” อีกครั้ง';
+    if (dlg && rep() === r) paintDlg();
+  }
+  async function openHistory(id) {
+    const k = key.get(); if (!k) throw new Error('ไม่พบรหัสพิเศษในเครื่องนี้ · ใส่รหัสที่หน้า Home → ตั้งค่า ก่อน');
+    const [c, d] = await histCall({ op: 'get', key: k, id }); if (c !== 200 || !d?.ok) throw new Error(c === 404 ? 'ไม่พบรายการนี้ (ถูกลบแล้ว?)' : c === 403 ? 'รหัสพิเศษไม่ถูกต้อง' : 'โหลดไม่ได้ (เน็ต / เซิร์ฟเวอร์)');
+    return importReport(d.report, { hid: id });
   }
   function body(r, forFile) {
     const sc = r.score || {}, t = new Date(r.ts);
@@ -401,10 +419,12 @@
         <span class="${/ไม่|ผิด|เกิน|หลุด/.test(aiMsg) ? 'err' : 'mut'}" style="font-size:13px">${esc(aiMsg)}</span>
       ${r.replay && window.BBReplay ? '<button class="go" data-a="replay">▶ ดู Replay</button>' : ''}<button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูล${r.replay ? ' + Replay' : 'ดิบ'} (.json)</button>
         ${cur < 0 ? '<button data-a="refresh">🔄 อัปเดตตัวเลขล่าสุด</button>' : ''}${reports.length > 1 || (cur < 0 && reports.length) ? `<select data-a="pick"><option value="-1" ${cur < 0 ? 'selected' : ''}>ตอนนี้ (สด)</option>${opts}</select>` : ''}
+        ${r.hid ? '' : key.get() ? '<button data-a="hsave" title="บันทึกรายงานนี้ (และ Replay) ลง History การฝึก บนเซิร์ฟเวอร์">☁️ บันทึกลง History</button>' : ''}${r.hid && !r.histOk && r.histMsg && !/กำลัง/.test(r.histMsg) ? '<button data-a="hsave">☁️ ลองบันทึกอีกครั้ง</button>' : ''}<span class="mut" style="font-size:12px">${esc(r.histMsg || '')}</span>
         <span class="sp"></span><button data-a="hclear" title="ลบประวัติที่ใช้เทียบแมตช์ก่อนหน้า (เก็บในเครื่องนี้)">🗑 ล้างประวัติเทียบ (${hist.load().length})</button><button data-a="logout" title="ลบรหัสพิเศษออกจากเครื่องนี้">🚪 ออกจากโหมดผู้ชมพิเศษ</button><button class="go" data-a="close">✕ ปิด</button></div></div>`;
     const on = (a, fn) => { const b = dlg.querySelector(`[data-a="${a}"]`); if (b) b[a === 'pick' ? 'onchange' : 'onclick'] = fn; };
     fitDlg(); requestAnimationFrame(fitDlg);
     on('replay', () => openReplay(r, r.startEl));
+    on('hsave', () => { if (!r.hid) r.hid = 'h' + (r.ts || Date.now()).toString(36) + Math.random().toString(36).slice(2, 8); saveHist(r); });
     dlg.onclick = e => { const a = e.target.closest?.('[data-rt],[data-el]'); if (!a || !r.replay) return; e.preventDefault(); const el = a.dataset.el != null ? +a.dataset.el : clockToEl(r, a.dataset.rt); if (Number.isFinite(el)) openReplay(r, el - 2); };
     on('close', closeDlg); on('html', () => save(r, 'html')); on('json', () => save(r, 'json')); on('ai', () => askAI(r));
     on('refresh', () => { live = snapshot(); paintDlg(); });
@@ -442,7 +462,7 @@
     aiBusy = true; aiMsg = ''; if (dlg) paintDlg();
     const [code, res] = await callAI(k, 'full', r);
     aiBusy = false;
-    if (res?.ok && typeof res.text === 'string') { r.ai = { text: res.text.slice(0, 20000), model: String(res.model || '') + (res.via ? ' · ' + res.via : ''), at: Date.now() }; aiMsg = 'เสร็จแล้ว · บันทึกไฟล์ได้ทันที (ผล AI รวมอยู่ในไฟล์)'; }
+    if (res?.ok && typeof res.text === 'string') { r.ai = { text: res.text.slice(0, 20000), model: String(res.model || '') + (res.via ? ' · ' + res.via : ''), at: Date.now() }; if (r.hid) saveHist(r); aiMsg = 'เสร็จแล้ว · บันทึกไฟล์ได้ทันที (ผล AI รวมอยู่ในไฟล์)'; }
     else aiMsg = aiErr(code, res);
     if (dlg) paintDlg();
   }
@@ -454,5 +474,5 @@
   const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]
     || (code === 504 || !code ? 'AI ตอบไม่ทันเวลา / เน็ตหลุด ลองกดใหม่' : 'เรียก AI ไม่ได้ (' + code + ') ลองใหม่ภายหลัง'));
 
-  window.BBAna = { key, reset, feed, mount, unmount, finish, importReport, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
+  window.BBAna = { key, reset, feed, mount, unmount, finish, importReport, openHistory, reopen: () => { if (!reports.length) return false; if (cur < 0 || !reports[cur]) cur = reports.length - 1; addCss(); aiMsg = ''; paintDlg(); return true; }, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
 })();

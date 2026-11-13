@@ -188,9 +188,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=4.6"></script>
-<script src="live-rooms.js?v=4.6"></script>
-<script src="analyst.js?v=4.6"></script>
+<script src="scenarios.js?v=4.7"></script>
+<script src="live-rooms.js?v=4.7"></script>
+<script src="analyst.js?v=4.7"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1362,14 +1362,15 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v4.6</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v4.7</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button>${window.BBAna?.reports?.length ? '<button id="mLastRep" class="sec">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>
     <div id="mcfg" class="mcfg"></div>
     ${Object.entries(groups).filter(([, l]) => l.length).map(([k, l]) => `<h4>สถานการณ์ฝึก · ${ROLE_TH[k]}</h4><div class="grid">${l.join('')}</div>`).join('')}
     <p><a href="../coach-training/index.html" style="color:var(--yel)">← ไปหน้าบทเรียน (เลือกบทบาท Coach / Driver / Human Player)</a></p>`);
   $('mFree').onclick = () => startMatch('free'); $('mTele').onclick = () => startMatch('tele'); $('mFull').onclick = () => startMatch('full', { R1: 0, R2: 0 });
   $('mNet').onclick = () => showOnline(); $('mHist').onclick = () => showHistory(showMenu);
+  if ($('mLastRep')) $('mLastRep').onclick = () => window.BBAna?.reopen();
   $('mOpen').onclick = () => { const f = document.createElement('input'); f.type = 'file'; f.accept = '.json,application/json';
     f.onchange = async () => { const x = f.files?.[0]; if (!x) return; if (x.size > 40e6) return sayMe('ไฟล์ใหญ่เกินไป', 3);
       try { window.BBAna.importReport(JSON.parse(await x.text())); } catch (e) { sayMe('เปิดไฟล์ไม่ได้: ' + String(e?.message || e).slice(0, 80), 4); } };
@@ -1949,13 +1950,14 @@ function showOnline(code = '', err = '', autoWatch = false) {
     <div class="mcfg"><h4>เข้าร่วมห้องของเพื่อน</h4><div class="mrow"><label>รหัสห้อง <input id="nCode" inputmode="numeric" maxlength="6" value="${esc(code)}" placeholder="6 หลัก" style="font:inherit;font-size:20px;font-weight:700;letter-spacing:4px;padding:4px 8px;width:140px;text-align:center"></label><button id="nJoin">เข้าร่วม</button></div></div>
     <div class="mcfg" id="nLive"></div>
     ${LOCALNET ? '' : '<p class="mut" style="font-size:12px">🔎 <span id="nNetTxt"></span> <button class="sec" id="nNetRe" style="padding:1px 8px;font-size:11px">ตรวจอีกครั้ง</button></p>'}
-    <p class="mut"><span id="nStat"></span> <button class="sec" id="nCancel" style="display:none">✕ ยกเลิกการสร้างห้อง</button></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับหน้า Home</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button></div>`);
+    <p class="mut"><span id="nStat"></span> <button class="sec" id="nCancel" style="display:none">✕ ยกเลิกการสร้างห้อง</button></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับหน้า Home</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button>${window.BBAna?.reports?.length ? '<button class="sec" id="nLastRep">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>`);
   netBar();
   const name = () => { const n = $('nName').value.trim().slice(0, 16) || 'ผู้เล่น'; try { localStorage.setItem('dca-net-name', n); } catch {} return n; };
   const busy = (b, m) => { $('nCreate').disabled = $('nJoin').disabled = $('nBack').disabled = $('nHist').disabled = b; $('nStat').textContent = m || ''; NET.stat = b ? { t: m } : null; netBar(); };
   if ($('nNetRe')) { netCheckShow(); $('nNetRe').onclick = () => netCheckShow(true); }
   $('nBack').onclick = () => { NET.stat = null; netBar(); location.href = '../coach-training/#home'; };  // กลับหน้า Home ของ Drive Team Academy
   $('nHist').onclick = () => showHistory(() => showOnline($('nCode')?.value || code));
+  if ($('nLastRep')) $('nLastRep').onclick = () => window.BBAna?.reopen();  // เปิดกล่องผลประเมินที่ปิดไปแล้วกลับมา (ผู้ชมพิเศษ)
   $('nCreate').onclick = async () => {
     const c = $('nCode').value, ctl = { off: false }, t0 = Date.now(); let why = '', tries = 1;
     const txt = () => `กำลังสร้างห้อง… ${Math.round((Date.now() - t0) / 1000)} วิ` + (why ? ` · ${why} · กำลังลองใหม่ครั้งที่ ${tries} · รอต่อได้เรื่อย ๆ (ไม่มีหมดเวลา) หรือกด “ยกเลิก”` : '');
@@ -2363,6 +2365,7 @@ addEventListener('gamepaddisconnected', e => {  // ไม่ล้าง Joy 1 /
 $('driveHelp').innerHTML = driveSel('driveMode'); $('driveMode').onchange = e => setDriveMode(e.target.value);
 $('padMode').value = DRV.padMode || 'split'; $('padMode').onchange = e => setPadMode(e.target.value);
 window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()), simFrame, net: { get NET() { return NET; }, get ME() { return ME; }, create: netCreate, join: netJoin, start: netStartMatch, preset: netPreset, leave: netLeave, back: netBack, hostMsg: netHostMsg, lobbyPush: netLobbyPush, showOnline, showLobby, showHistory, histLoad, rec: netRec } };
+if (/^[A-Za-z0-9_-]{8,48}$/.test(Q.get('hist') || '')) setTimeout(() => window.BBAna?.openHistory(Q.get('hist')).catch(e => sayMe(String(e?.message || e), 5)), 0);  // เปิดจาก History การฝึก (หน้า Home → ตั้งค่า)
 renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else if (Q.get('mode') === 'online') showOnline(); else if (/^\d{6}$/.test(Q.get('room') || '')) showOnline(Q.get('room'), '', Q.get('watch') === '1'); else showMenu();
 if (SCN_ID && !SCN) $('ovBox').insertAdjacentHTML('afterbegin', `<p class="bad" style="font-weight:700">ไม่พบสถานการณ์ “${esc(SCN_ID)}” (ลิงก์เก่าหรือพิมพ์ผิด) · เลือกจากรายการด้านล่าง</p>`);
 document.getElementById('loadFail')?.remove();
