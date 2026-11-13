@@ -188,9 +188,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=4.8"></script>
-<script src="live-rooms.js?v=4.8"></script>
-<script src="analyst.js?v=4.8"></script>
+<script src="scenarios.js?v=4.9"></script>
+<script src="live-rooms.js?v=4.9"></script>
+<script src="analyst.js?v=4.9"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -985,17 +985,20 @@ F.flowers.forEach(f => {
 });
 const ballMeshes = S.balls.map(b => { const m = new THREE.Mesh(new THREE.SphereGeometry(rad(b), 20, 14), b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue)); m.castShadow = true; scene.add(m); return m; });
 function makeLabel(text, color) { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, 0, 256, 96); x.font = 'bold 60px Sarabun, sans-serif'; x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 48); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.scale.set(0.4, 0.15, 1); return s; }
+// ปืนยิง: ปลายปืนอยู่ตรงจุดปล่อยลูกจริง (ความสูง lh, หน้าศูนย์กลางหุ่น 5 ซม. เหมือน shotStart / launch) และเงยขึ้นไปทางด้านหน้าหุ่น (ฝั่ง intake) ตามมุมยิง
+const BARREL = 0.16;
+function aimBarrel(sh, elevDeg, lh) { const el = elevDeg * Math.PI / 180; sh.rotation.set(-(Math.PI / 2 - el), 0, 0); sh.position.set(0, lh - Math.sin(el) * BARREL / 2, -0.05 + Math.cos(el) * BARREL / 2); }
 const robotMeshes = S.robots.map(r => {
   const g = new THREE.Group(); scene.add(g);
   const body = new THREE.Mesh(new THREE.BoxGeometry(ROBOT.size, 0.18, ROBOT.size), M.dark); body.position.y = 0.11; body.castShadow = true; g.add(body);
   const plate = new THREE.Mesh(new THREE.BoxGeometry(ROBOT.size + 0.01, 0.06, ROBOT.size + 0.01), r.alliance === 'red' ? M.red : M.blue); plate.position.y = 0.05; g.add(plate);
   const hop = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.2), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 })); hop.position.set(0, 0.27, 0.02); g.add(hop);
-  const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.16, 16), M.pipe); sh.rotation.x = Math.PI / 2 - ROBOT.elevDeg * Math.PI / 180; sh.position.set(0, 0.34, -0.1); g.add(sh);
+  const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, BARREL, 16), M.pipe); g.add(sh); aimBarrel(sh, ROBOT.elevDeg, ROBOT.launchH);
   const intake = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, ROBOT.size - 0.08, 12), new THREE.MeshStandardMaterial({ color: 0x4ad66d })); intake.rotation.z = Math.PI / 2; intake.position.set(0, 0.05, -HS - 0.02); g.add(intake);
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 16), M.frame); w.rotation.z = Math.PI / 2; w.position.set(sx * 0.19, 0.052, sz * 0.168); g.add(w); }
   const carried = []; for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), M.yellow); m.position.set(-0.08 + i * 0.04, 0.3, 0.02); g.add(m); carried.push(m); }
   const label = makeLabel(r.id, r.alliance === 'red' ? '#e4453c' : '#3a7bd5'), deadLabel = makeLabel('ดับ', '#bbbbbb'); label.position.y = deadLabel.position.y = 0.5; deadLabel.visible = false; g.add(label); g.add(deadLabel);
-  g.userData = { carried, intake, body, label, deadLabel }; return g;
+  g.userData = { carried, intake, body, label, deadLabel, barrel: sh, bk: '' }; return g;
 });
 const gateRing = new THREE.Mesh(new THREE.RingGeometry(DRV.gateMin, DRV.gateMax, 48), M.zone); gateRing.rotation.x = -Math.PI / 2; gateRing.position.y = 0.003; scene.add(gateRing);
 let gateKey = DRV.gateMin + ',' + DRV.gateMax;
@@ -1104,6 +1107,7 @@ function sync() {
   S.robots.forEach((r, i) => {
     const g = robotMeshes[i]; g.visible = !r.off; const sk = r.shake > 0 ? r.shake : 0, st = performance.now() / 1000 * 38 + i * 2; g.position.set(r.x + Math.sin(st) * 0.008 * sk, Math.abs(Math.sin(st * 0.7)) * 0.012 * sk, r.z + Math.cos(st * 1.3) * 0.008 * sk); g.rotation.set(Math.sin(st * 0.9) * 0.06 * sk, r.th, Math.cos(st * 1.1) * 0.06 * sk);
     g.userData.carried.forEach((m, k) => { const bi = r.load[k]; m.visible = bi != null; if (bi != null) { const b = S.balls[bi]; m.material = b.kind === 'pollen' ? M.yellow : (b.color === 'red' ? M.red : M.blue); } });
+    { const D = r.human ? drvOf(r) : null, el = +(D?.elev ?? ROBOT.elevDeg) || ROBOT.elevDeg, lh = +(D?.lh ?? ROBOT.launchH) || ROBOT.launchH, k = el + ',' + lh; if (g.userData.bk !== k) { g.userData.bk = k; aimBarrel(g.userData.barrel, el, lh); } }  // มุมปืนตามค่าที่ตั้งของหุ่นตัวนั้น
     g.userData.intake.material.color.set(r.intake ? 0x4ad66d : 0x555555); g.userData.body.material = r.dead ? M.dead : M.dark; g.userData.deadLabel.visible = r.dead; g.userData.label.visible = !r.dead;
   });
   for (const c of ['red', 'blue']) hiveG[c].rotation.x = S.hives[c].angle;
@@ -1362,7 +1366,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v4.8</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v4.9</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button>${window.BBAna?.reports?.length ? '<button id="mLastRep" class="sec">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>
     <div id="mcfg" class="mcfg"></div>
