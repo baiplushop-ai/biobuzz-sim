@@ -180,8 +180,8 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=3.0"></script>
-<script src="live-rooms.js?v=3.0"></script>
+<script src="scenarios.js?v=3.1"></script>
+<script src="live-rooms.js?v=3.1"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1353,7 +1353,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.0</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.1</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1689,7 +1689,7 @@ function netLeave(why, code) {
   try { if (role === 'host') { netCast({ t: 'bye' }); const tp = NET.tp; setTimeout(() => { try { tp?.close(); } catch {} }, 300); } else { NET.conn.onclose = null; NET.conn.close(); } } catch {}
   if (bgW) { bgW.terminate(); bgW = null; }
   Object.assign(NET, { role: null, room: null, playing: false, peers: {}, conn: null, tp: null, inputs: {}, says: [], spec: false, res: false, busy: false, lastR: null, tgt: null, pred: false, saved: false, lastRec: null }); ME = 0;
-  NET.stat = null; S = newState(); renderPanels(); showMenu(); netBar(); if (why) $('ovBox').insertAdjacentHTML('afterbegin', `<p class="bad" style="font-weight:700">${esc(why)}</p>`);
+  NET.stat = null; S = newState(); renderPanels(); showOnline('', why || ''); netBar();  // ปิด / ออกจากห้อง = กลับหน้าเล่นออนไลน์ (สร้างห้อง / เข้าร่วม / รายการห้อง)
   wn?.(new Error(why || 'ออกจากห้องแล้ว'));
 }
 
@@ -1883,8 +1883,7 @@ function showLobby() {
       ${host ? `<div class="mrow"><label>จำนวนผู้เล่น (เครื่อง) <select id="lbN"><option value="" ${pre ? '' : 'selected'}>กำหนดเอง</option>${[2, 3, 4].map(n => `<option value="${n}" ${String(n) === pre ? 'selected' : ''}>${n} เครื่อง</option>`).join('')}</select></label><span class="mut">หรือเลือกทีละตำแหน่งด้านล่าง: คนจริง / Bot / ไม่มีหุ่น</span></div>` : ''}
       <table>${rows}</table>
       <div id="lbSpec" style="font-size:13px;margin:4px 0"></div>
-      <p class="mut" style="font-size:12px">📶 ping = เวลาไป-กลับของสัญญาณถึงเครื่องแม่ (host) วัดทุก 1 วิ · <b style="color:var(--grn)">เขียว &lt; 80 ms ดี</b> · <b style="color:var(--yel)">เหลือง 80–180 ms เริ่มช้า</b> · <b style="color:#ff7b6b">แดง &gt; 180 ms ช้า</b> · relay = ต่อผ่านตัวส่งต่อ · เครื่องแม่ = เวลาไป-กลับถึงเว็บไซต์ (อินเทอร์เน็ตของเครื่องแม่)</p>
-      <p class="mut lbNote" style="font-size:12px">ตำแหน่ง “คนจริง” ที่ยังว่างตอนกดเริ่ม จะให้ Bot ขับแทน · ทีมน้ำเงินเห็นสนามจากฝั่งตัวเอง</p></div>
+</div>
     ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 8px"><span style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]}${host ? ' (host)' : ''} · สถานะของคุณ:` : host ? 'คุณยังไม่ได้นั่งตำแหน่ง (เป็นผู้ชม)' : NET.watch ? '👁 คุณเข้ามาเป็นผู้ชม · รอ host เริ่มแมตช์ (อยากลงเล่นกด “นั่งตำแหน่งนี้”)' : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</span>${mySlot >= 0 && R.slots[mySlot].type === 'human' ? `<span class="rdyCtl"><button data-rdy="1" class="${R.slots[mySlot].rdy === true ? 'on' : 'sec'}">✅ พร้อมเล่น</button><button data-rdy="0" class="${R.slots[mySlot].rdy === false ? 'on wait' : 'sec'}">⏸ รอก่อน</button></span>` : ''}</div>`}
     <div style="display:flex;gap:8px;flex-wrap:wrap">${host ? '<button id="lbStart">▶ เริ่มแมตช์</button>' : ''}<button class="sec" id="lbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button></div>
     <div class="mcfg" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap"><div class="mut" title="ส่งรหัสหรือลิงก์ให้เพื่อนเพื่อเข้าร่วม">รหัสห้อง</div><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:var(--yel);line-height:1.1" id="lbCode">${esc(R.code)}</div>
