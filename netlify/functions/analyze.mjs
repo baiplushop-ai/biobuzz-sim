@@ -6,7 +6,7 @@
 // ตั้งค่าทั้งหมดที่ Netlify → Project configuration → Environment variables (ไม่เก็บในรีโป · ตั้งแล้วกด Deploy ใหม่ 1 ครั้ง)
 //   OPENROUTER_API_KEY = คีย์ OpenRouter (จำเป็น · ใช้ทางนี้ทางเดียว · ค่าใช้จ่ายตัดจาก credit ที่เติมไว้ใน OpenRouter)
 //   OPENROUTER_MODEL   = รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-opus-5.5 · เช่น anthropic/claude-sonnet-5.5, anthropic/claude-haiku-5.5)
-//   AI_HOURLY_LIMIT    = จำนวนครั้งสูงสุดต่อชั่วโมงทั้งเว็บ (ไม่ตั้ง = 120) กันค่าใช้จ่ายบานปลาย
+//   AI_HOURLY_LIMIT    = จำนวนครั้งสูงสุดต่อชั่วโมงทั้งเว็บ (ไม่ตั้ง = 600 · โหมด AI สดใช้ ~15–25 ครั้ง/แมตช์) กันค่าใช้จ่ายบานปลาย
 import { isMaster } from '../lib/master.mjs';
 
 const MAX_BODY = 40000, BUDGET = 54000;  // function ทำงานได้ไม่เกิน 60 วิ
@@ -50,7 +50,7 @@ const BRIEF = `นี่คือข้อมูลระหว่างแม�
 - **<ตำแหน่ง>** 🟢/🟡/🔴 สิ่งที่เห็นชัดที่สุดตอนนี้ (อ้างตัวเลข 1 ตัว) → คำแนะนำสั้น ๆ ที่โค้ชพูดได้ทันที
 ไม่เกิน 30 คำต่อคน ไม่ต้องมีหัวข้อหรือคำนำ`;
 
-const hourly = () => Math.max(1, Math.min(2000, parseInt(env('AI_HOURLY_LIMIT') || '120', 10) || 120));
+const hourly = () => Math.max(1, Math.min(2000, parseInt(env('AI_HOURLY_LIMIT') || '600', 10) || 600));
 async function quota(n = 1) {  // นับครั้งที่เรียก AI ใน 1 ชม. ที่ผ่านมา (ทั้งเว็บ)
   try {
     const st = await store(), now = Date.now(), o = (await st.get('ai/h', { type: 'json' }).catch(() => null)) || { t: [] };
@@ -69,12 +69,12 @@ async function viaOpenRouter(model, content, maxTok, effort, ms) {
       body: JSON.stringify({ model, max_tokens: maxTok, reasoning: { effort }, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] }) });
     d = await q.json().catch(() => null);
   } catch (e) { throw e?.name === 'TimeoutError' ? new AIErr('timeout', 'ตอบไม่ทันเวลา', 504, false) : new AIErr('conn', 'ต่อไม่ได้', 502); }
-  const em = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 160);
+  const em = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 160), emFull = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 600);
   if (!q.ok || d?.error) {
     const s = q.ok ? (+d?.error?.code || 502) : q.status;
     if (s === 401) throw new AIErr('aikey', 'คีย์ไม่ถูกต้องหรือถูกยกเลิก', 502);
     if (s === 402) throw new AIErr('credit', 'credit หมด / ไม่พอ (เติมที่ openrouter.ai)', 502);
-    if (s === 404 && /guardrail|data policy/i.test(em)) throw new AIErr('policy', 'บัญชี OpenRouter บล็อกรุ่น ' + model + ' ด้วยการตั้งค่า Privacy / Guardrails · แก้ที่ openrouter.ai/settings/privacy', 502);
+    if (s === 404 && /guardrail|data policy/i.test(em)) throw new AIErr('policy', 'บัญชี OpenRouter บล็อกรุ่น ' + model + ' ด้วยการตั้งค่า Privacy / Guardrails · แก้ที่ openrouter.ai/settings/privacy · OpenRouter แจ้ง: ' + emFull, 502);
     if (s === 404) throw new AIErr('model', 'ใช้รุ่น ' + model + ' ไม่ได้' + (em ? ' · ' + em : ' (ตรวจ OPENROUTER_MODEL)'), 502);  // เช่น ตั้งค่าความเป็นส่วนตัวใน OpenRouter บล็อกผู้ให้บริการ
     if (s === 429) throw new AIErr('ai', 'ถูกจำกัดความถี่ (rate limit)', 429);
     if (s === 403) throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);

@@ -18,8 +18,8 @@
   };
 
   let M = null, P = {}, reports = [], cur = -1, uiT = 0, panelEl = null;
-  // โหมด: rec = แนะนำ (ตัวเลขสด + AI เมื่อกด) · live = AI สรุปสั้นทุก ~30 วิตลอดแมตช์ + วิเคราะห์ละเอียดเองตอนจบ
-  const MODE_KEY = 'bb-ana-mode', LIVE_GAP = 30000;
+  // โหมด: rec = แนะนำ (ตัวเลขสด + AI เมื่อกด) · live = AI สรุปสั้นทุก ~5 วิตลอดแมตช์ (นับหลังคำตอบก่อนหน้ามาถึง ไม่ยิงซ้อนกัน) + วิเคราะห์ละเอียดเองตอนจบ
+  const MODE_KEY = 'bb-ana-mode', LIVE_GAP = 5000;
   let mode = 'rec'; try { if (localStorage.getItem(MODE_KEY) === 'live') mode = 'live'; } catch {}
   const LV = { busy: false, at: 0, list: [], msg: '', off: '' };
   let autoEnd = true; try { autoEnd = localStorage.getItem('bb-ana-auto') !== '0'; } catch {}
@@ -36,7 +36,7 @@
     s0: null, h0: null, c0: null, hit0: null, wall0: null, shots: 0, hits: 0, cyc: [], hitN: 0, wallN: 0, lastShots: null,
     bk: [], fouls: [], ping: 0, miss: 0, from: el, to: el, human: true, gone: false, ser: [], serT: 0 });
 
-  function reset(meta = {}) { M = { kind: meta.kind || '', code: meta.code || '', ts: Date.now(), lastEl: null, endEl: null, done: false, startEl: null, score: { red: 0, blue: 0 } }; P = {}; Object.assign(LV, { busy: false, at: Date.now() - LIVE_GAP + 20000, list: [], msg: '', off: '' }); }
+  function reset(meta = {}) { M = { kind: meta.kind || '', code: meta.code || '', ts: Date.now(), lastEl: null, endEl: null, done: false, startEl: null, score: { red: 0, blue: 0 } }; P = {}; Object.assign(LV, { busy: false, at: 0, list: [], msg: '', off: '' }); }
 
   function bucketOf(p) { const i = Math.floor(p.T / BUCKET); while (p.bk.length <= i) p.bk.push({ t: 0, mv: 0, pick: 0, shots: 0, walls: 0, coll: 0 }); return p.bk[i]; }
   function endIdle(p) { if (p.idle >= 6) { p.idleN++; p.idleMax = Math.max(p.idleMax, p.idle); } p.idle = 0; }
@@ -107,7 +107,7 @@
     LV.busy = true; LV.at = Date.now(); const s = snapshot(), el = M?.lastEl;
     const [code, res] = await callAI(k, 'brief', s);
     LV.busy = false; LV.at = Date.now();
-    if (res?.ok && typeof res.text === 'string') { LV.list.push({ el, at: Date.now(), text: res.text.slice(0, 4000) }); if (LV.list.length > 12) LV.list.shift(); LV.msg = ''; }
+    if (res?.ok && typeof res.text === 'string') { LV.list.push({ el, at: Date.now(), text: res.text.slice(0, 4000) }); if (LV.list.length > 40) LV.list.shift(); LV.msg = ''; }
     else { LV.msg = aiErr(code, res); if ([403, 501, 413].includes(code) || (code === 429 && res?.why !== 'ai') || ['aikey', 'perm', 'model', 'bad', 'credit', 'fail', 'nokey', 'policy'].includes(res?.why)) LV.off = LV.msg; }  // แก้เองไม่ได้ = หยุดเรียกซ้ำ (ไม่เปลืองโควตา)
     paintPanel();
   }
@@ -175,13 +175,16 @@
 .anaP h4 { margin:0 0 4px !important; color:var(--yel,#f5c518) !important } .anaP .anaHd { display:flex; align-items:center; gap:6px; flex-wrap:wrap }
 .anaP .anaHd button, .anaD button { font:inherit; font-size:12px; font-weight:700; padding:3px 9px; border-radius:6px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.1); color:inherit; cursor:pointer; width:auto; margin:0 }
 .anaD button.go { background:var(--yel,#f5c518); color:#111; border-color:transparent } .anaD button:disabled { opacity:.5; cursor:default }
-.anaC { border-top:1px solid rgba(255,255,255,.1); padding:6px 0 2px; font-size:12px; line-height:1.35 } .anaC .nm { font-weight:700; font-size:13px }
+.anaC { border-top:1px solid rgba(255,255,255,.1); padding:4px 0 2px; font-size:11px; line-height:1.3 } .anaC .nm { font-weight:700; font-size:12px }
 .anaC .r { color:var(--red,#e4453c) } .anaC .b { color:#6aa2ff } .anaC .vt { font-weight:700 } .anaC .mut, .anaD .mut { color:var(--mut,#9aa4b2) }
 .anaBar { display:flex; align-items:center; gap:6px; margin:2px 0 } .anaBar span { width:54px; flex:0 0 54px; color:var(--mut,#9aa4b2) } .anaBar i { flex:1; height:7px; border-radius:4px; background:rgba(255,255,255,.12); overflow:hidden; display:block }
 .anaBar i b { display:block; height:100% } .anaBar em { width:24px; text-align:right; font-style:normal; font-weight:700 }
 .anaC ul, .anaD ul { margin:3px 0 0; padding-left:16px } .anaC li { margin:1px 0 }
 .anaD { position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.55); padding:14px; font-family:Sarabun,system-ui,sans-serif; color:#e9edf3 }
-.anaD .bx { background:#151a22; border:1px solid rgba(245,197,24,.55); border-radius:14px; width:min(980px,100%); max-height:100%; overflow:auto; padding:16px 18px }
+.anaD .bx { background:#151a22; border:1px solid rgba(245,197,24,.55); border-radius:14px; width:min(1500px,100%); max-height:100%; overflow:auto; padding:12px 16px }
+.anaD .gr4 { display:grid; gap:10px; margin:8px 0 } .anaD .cd { container-type:inline-size } .anaD .cdT, .anaD .cdC { display:grid; gap:4px 12px; align-items:start }
+@container (min-width:460px) { .anaD .cdT { grid-template-columns:minmax(180px,240px) 1fr } .anaD .cdC { grid-template-columns:1fr 1fr; align-items:end } } .anaD .cd ul { font-size:12px } .anaD .cd .anaBig b { font-size:26px }
+.anaD .ai.cols { columns:3 300px; column-gap:22px } .anaD .ai.cols h4 { break-after:avoid } .anaD .ai.cols > b:first-child { column-span:all; display:block }
 .anaD h2 { margin:0 0 4px; color:var(--yel,#f5c518); font-size:22px } .anaD h3 { margin:0 0 4px; font-size:16px } .anaD .meta { font-size:13px; color:var(--mut,#9aa4b2) }
 .anaD .gr { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:10px; margin:10px 0 } .anaD .cd { border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:9px 11px; font-size:13px }
 .anaD table { width:100%; border-collapse:collapse; font-size:12px; margin:4px 0 } .anaD td { padding:2px 0; border-bottom:1px solid rgba(255,255,255,.07) } .anaD td:last-child { text-align:right; font-weight:700 }
@@ -190,10 +193,10 @@
 .anaD .ft { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px } .anaD .sp { flex:1 } .anaD .err { color:#ff7b6b; font-weight:700 } .anaD select { font:inherit; font-size:12px }
 .anaT { border-top:1px solid rgba(255,255,255,.1); padding:4px 0 } .anaT > summary { cursor:pointer; font-size:13px; padding:2px 0 } .anaT > summary .mut { font-size:11px; font-variant-numeric:tabular-nums }
 .anaT .anaC:first-of-type { border-top:0 } .anaW > summary { margin:2px 0 }
-.anaBig { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:4px 0 3px } .anaBig > div { border:1px solid rgba(255,255,255,.12); border-left-width:4px; border-radius:8px; padding:3px 8px 5px; background:rgba(255,255,255,.04) }
-.anaBig .lb { display:block; font-size:11px; color:var(--mut,#9aa4b2) } .anaBig b { font-size:34px; line-height:1.05; font-weight:800; font-variant-numeric:tabular-nums; color:#e9edf3 } .anaBig em { font-style:normal; font-size:12px; font-weight:700; margin-left:4px }
+.anaBig { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:3px 0 2px } .anaBig > div { border:1px solid rgba(255,255,255,.12); border-left-width:4px; border-radius:7px; padding:2px 7px 3px; background:rgba(255,255,255,.04) }
+.anaBig .lb { display:block; font-size:10px; color:var(--mut,#9aa4b2) } .anaBig b { font-size:27px; line-height:1; font-weight:800; font-variant-numeric:tabular-nums; color:#e9edf3 } .anaBig em { font-style:normal; font-size:12px; font-weight:700; margin-left:4px }
 .anaBig i { display:block; height:4px; border-radius:2px; background:rgba(255,255,255,.12); margin-top:3px; overflow:hidden } .anaBig i s { display:block; height:100%; text-decoration:none }
-@media (max-width:600px) { .anaD .bx { padding:12px } .anaD .gr { grid-template-columns:1fr } }`;
+@media (max-width:700px) { .anaD .bx { padding:12px } .anaD .gr, .anaD .gr4 { grid-template-columns:1fr !important } }`;
   const addCss = () => { if (document.getElementById('anaCss')) return; const s = document.createElement('style'); s.id = 'anaCss'; s.textContent = css; document.head.appendChild(s); };
   const col = v => v == null ? '#9aa4b2' : v >= 65 ? '#3ec97a' : v >= 40 ? '#f5c518' : '#ff7b6b';
   const bar = (t, v) => `<div class="anaBar"><span>${t}</span><i><b style="width:${v ?? 0}%;background:${col(v)}"></b></i><em style="color:${col(v)}">${v ?? '—'}</em></div>`;
@@ -204,7 +207,7 @@
   const legend = () => `<div style="display:flex;gap:12px;font-size:11px;color:${MUTE};margin:6px 0 2px"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${CI};vertical-align:-1px"></i> ความตั้งใจ</span><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${CS};vertical-align:-1px"></i> ฝีมือ</span></div>`;
   function lineSvg(ser) {
     if (!ser || ser.length < 2) return '';
-    const W = 300, H = 118, L = 24, R = 62, T = 8, B = 18, x0 = ser[0].el, x1 = ser.at(-1).el;
+    const W = 300, H = 104, L = 24, R = 62, T = 8, B = 18, x0 = ser[0].el, x1 = ser.at(-1).el;
     const X = t => L + (t - x0) / Math.max(1, x1 - x0) * (W - L - R), Y = v => T + (100 - v) / 100 * (H - T - B);
     const path = k => ser.map((p, i) => `${i ? 'L' : 'M'}${X(p.el).toFixed(1)},${Y(p[k]).toFixed(1)}`).join('');
     const grid = [0, 40, 65, 100].map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${GRID}" ${v === 40 || v === 65 ? 'stroke-dasharray="3 3"' : ''}/><text x="${L - 4}" y="${Y(v) + 3}" text-anchor="end" font-size="9" fill="${MUTE}">${v}</text>`).join('');
@@ -217,7 +220,7 @@
       <text x="${L}" y="${H - 4}" font-size="9" fill="${MUTE}">${fmtEl(x0)}</text><text x="${W - R}" y="${H - 4}" font-size="9" fill="${MUTE}" text-anchor="end">${fmtEl(x1)} (เวลาที่เหลือ)</text>${hit}</svg>`;
   }
   function barsSvg(items) {  // items: [{ lab, i, s, cur }] เรียงเก่า → ใหม่
-    const W = 300, H = 118, L = 24, R = 6, T = 14, B = 20, n = items.length, gw = (W - L - R) / n, bw = Math.min(16, gw * 0.32), Y = v => T + (100 - v) / 100 * (H - T - B), base = Y(0);
+    const W = 300, H = 104, L = 24, R = 6, T = 14, B = 20, n = items.length, gw = (W - L - R) / n, bw = Math.min(16, gw * 0.32), Y = v => T + (100 - v) / 100 * (H - T - B), base = Y(0);
     const rb = (x, v, c, t) => { const y = Math.min(Y(v), base - 2), h = base - y, r = Math.min(4, h / 2, bw / 2); return `<path d="M${x},${base}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${base}Z" fill="${c}"><title>${t}</title></path>`; };
     const grid = [0, 40, 65, 100].map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${GRID}" ${v === 40 || v === 65 ? 'stroke-dasharray="3 3"' : ''}/><text x="${L - 4}" y="${Y(v) + 3}" text-anchor="end" font-size="9" fill="${MUTE}">${v}</text>`).join('');
     const g = items.map((it, k) => { const cx = L + gw * k + gw / 2, xi = cx - bw - 1, xs = cx + 1;
@@ -257,7 +260,7 @@
     return `<div class="anaC"><div class="nm">${who(p)}${p.gone ? ' <span class="mut" style="font-weight:400">(ออกแล้ว → Bot)</span>' : ''}</div>${big(p)}<div class="vt">${p.vt} <span class="mut" style="font-weight:400">· ฝีมือ ${p.sl}</span></div>
       <details class="anaW" data-k="why" ${op('why')}><summary class="mut" style="cursor:pointer;font-size:11px">ข้อความ (${p.why.length})</summary>
       <div class="mut">ยิง ${p.m.hits}/${p.m.shots}${p.m.acc != null ? ` (${p.m.acc}%)` : ''} · ขยับ ${p.m.mv}% · เก็บ ${p.m.pickPm}/นาที${p.m.cyc ? ` · cycle ${p.m.cycAvg} วิ` : ''}</div>
-      <ul>${p.why.slice(0, 3).map(w => `<li>${esc(w)}</li>`).join('')}</ul></details></div>`;
+      <ul>${p.why.slice(0, 2).map(w => `<li>${esc(w)}</li>`).join('')}</ul></details></div>`;
   }
   function paintPanel() {
     if (!panelEl || !panelEl.isConnected) return;
@@ -270,8 +273,8 @@
     if (box && panelEl.dataset.ck === ck) { box.innerHTML = dyn; return; }  // อัปเดตเฉพาะคะแนน: เมนูโหมดไม่หุบเองระหว่างเลือก
     panelEl.dataset.ck = ck;
     panelEl.innerHTML = `<div class="anaP"><div class="anaHd"><h4>📊 วิเคราะห์ผู้เล่น (เห็นเฉพาะคุณ)</h4><span style="flex:1"></span><button data-ana="open">รายงาน + AI</button></div><div class="anaDyn">${dyn}</div>
-      <details class="anaT" data-k="ctl" ${op('ctl')}><summary class="mut">⚙️ ตั้งค่าการวิเคราะห์ · ${mode === 'live' ? 'AI สดตลอดแมตช์' : 'แนะนำ'}</summary><div class="anaC" style="border:0"><label style="display:flex;gap:6px;align-items:center;margin:0">โหมด <select data-ana="mode" style="font:inherit;font-size:12px;flex:1"><option value="rec" ${mode === 'rec' ? 'selected' : ''}>แนะนำ: ตัวเลขสด + AI เมื่อกด</option><option value="live" ${mode === 'live' ? 'selected' : ''}>AI สดตลอดแมตช์ (ทุก ~30 วิ)</option></select></label>
-        <div class="mut" style="font-size:11px;margin-top:2px">${mode === 'live' ? 'AI สรุปสั้นทุก ~30 วิ และสรุปละเอียดตอนจบ · ประมาณ 5–8 ครั้ง/แมตช์' : `ระหว่างแมตช์ไม่เรียก AI · ${autoEnd ? 'AI สรุปตอนจบให้เอง 1 ครั้ง' : 'กด “รายงาน + AI” เมื่อต้องการ'}`}</div>
+      <details class="anaT" data-k="ctl" ${op('ctl')}><summary class="mut">⚙️ ตั้งค่าการวิเคราะห์ · ${mode === 'live' ? 'AI สดตลอดแมตช์' : 'แนะนำ'}</summary><div class="anaC" style="border:0"><label style="display:flex;gap:6px;align-items:center;margin:0">โหมด <select data-ana="mode" style="font:inherit;font-size:12px;flex:1"><option value="rec" ${mode === 'rec' ? 'selected' : ''}>แนะนำ: ตัวเลขสด + AI เมื่อกด</option><option value="live" ${mode === 'live' ? 'selected' : ''}>AI สดตลอดแมตช์ (ทุก ~5 วิ)</option></select></label>
+        <div class="mut" style="font-size:11px;margin-top:2px">${mode === 'live' ? 'AI สรุปสั้นทุก ~5 วิ (หลังคำตอบก่อนหน้ามาถึง) และสรุปละเอียดตอนจบ · ประมาณ 15–25 ครั้ง/แมตช์' : `ระหว่างแมตช์ไม่เรียก AI · ${autoEnd ? 'AI สรุปตอนจบให้เอง 1 ครั้ง' : 'กด “รายงาน + AI” เมื่อต้องการ'}`}</div>
         ${mode === 'rec' ? `<label style="display:flex;gap:6px;align-items:center;margin:3px 0 0;font-size:12px"><input type="checkbox" data-ana="auto" ${autoEnd ? 'checked' : ''}> ให้ AI สรุปผลตอนจบแมตช์อัตโนมัติ</label>` : ''}
         <div class="mut" style="font-size:11px;margin-top:4px">เกณฑ์เป็นค่าประมาณของ simulator ไว้ช่วยโค้ชดู ไม่ใช่กติกา · ผู้เล่นไม่เห็นแผงนี้ · คำนวณในเครื่องนี้ ไม่ทำให้เครื่องผู้เล่นช้า · Bot แสดงไว้เทียบเท่านั้น</div></div></details></div>`;
     panelEl.querySelector('[data-ana="open"]').onclick = () => openDlg(null);
@@ -295,6 +298,21 @@
   const rep = () => cur >= 0 && reports[cur] ? reports[cur] : live;
   function openDlg(i) { addCss(); if (i == null) { live = snapshot(); cur = -1; } aiMsg = ''; paintDlg(); }
   function closeDlg() { dlg?.remove(); dlg = null; }
+  // รายงานพอดี 1 หน้าจอ (ไม่ต้องเลื่อน): วัดความสูงจริง ถ้าเกินจอให้ย่อทั้งกล่องลง (ไม่ต่ำกว่า 50% · จอเล็กมากค่อยเลื่อนได้)
+  function fitDlg() {
+    const bx = dlg?.querySelector('.bx'); if (!bx) return;
+    const aw = innerWidth - 24, ah = innerHeight - 24;
+    Object.assign(bx.style, { zoom: '', width: '', maxHeight: 'none', overflow: 'visible' });
+    let z = 1;
+    for (let k = 0; k < 4; k++) {  // ย่อแล้วกล่องแคบลงด้วย = ขยายความกว้างกลับให้เต็มจอ แล้ววัดใหม่ (กว้างขึ้น = เตี้ยลง = ย่อน้อยลง)
+      const h = bx.scrollHeight * z; if (h <= ah) break;
+      z = Math.max(0.5, Math.floor(z * ah / h * 100) / 100);
+      Object.assign(bx.style, { zoom: String(z), width: Math.min(1500 / z, aw / z) + 'px' });
+      if (z === 0.5) break;
+    }
+    Object.assign(bx.style, z < 1 ? { maxHeight: Math.floor(ah / z) + 'px', overflow: 'auto' } : { width: '', maxHeight: '', overflow: '' });
+  }
+  addEventListener('resize', () => { if (dlg) fitDlg(); });
   function mdLite(t) {  // ข้อความจาก AI: escape ก่อน แล้วแปลงหัวข้อ / รายการ / ตัวหนาแบบง่าย
     return esc(t).split('\n').map(l => { l = l.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
       if (/^#{1,4}\s/.test(l)) return `<h4>${l.replace(/^#{1,4}\s/, '')}</h4>`; if (/^\s*[-•*]\s/.test(l)) return `<div style="padding-left:14px;text-indent:-10px">• ${l.replace(/^\s*[-•*]\s/, '')}</div>`; return l.trim() ? `<div>${l}</div>` : ''; }).join('');
@@ -310,26 +328,29 @@
         ['เก็บลูก', m.pickPm + ' /นาที'], ['cycle', m.cyc ? `${m.cyc} รอบ · เฉลี่ย ${m.cycAvg} วิ` : '—'], ['ชนผนัง / ชนหุ่น', `${m.walls} / ${m.coll} ครั้ง`], ['เปลี่ยนทิศกะทันหัน', m.revPm + ' /นาที'],
         ['จอดนิ่งเกิน 6 วิ', m.idleN ? `${m.idleN} ครั้ง (นานสุด ${m.idleMax} วิ)` : '—'], ['ถือลูกค้างเกิน 25 วิ', m.holdN ? `${m.holdN} ครั้ง` : '—'], ['FOUL', p.fouls.length ? esc(fgroup(p.fouls)) : 'ไม่มี'],
         ['PARK ตอนจบ', p.park == null ? '—' : p.park ? 'ใช่' : 'ไม่'], ['ping เฉลี่ย', m.ping ? m.ping + ' ms' : '—']];
+      const li = w => `<li>${esc(w)}</li>`, more = p.why.slice(4);
       return `<div class="cd"><h3 class="anaC" style="border:0;padding:0">${who(p)}${p.gone ? ' <span class="mut">(ออกกลางแมตช์ → Bot)</span>' : ''}</h3>
-        <div style="font-weight:700">${p.vt} · ฝีมือ ${p.sl}</div><div class="anaC" style="border:0;padding:2px 0">${bar('ตั้งใจ', p.intent)}${bar('ฝีมือ', p.skill)}</div>
-        <ul>${p.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>${lineSvg(p.ser)}${cmpBlock(p)}${tr}<table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></div>`; }).join('');
+        <div style="font-weight:700;font-size:13px">${p.vt} · ฝีมือ ${p.sl}</div>
+        <div class="cdT"><div>${big(p)}</div><div><ul>${p.why.slice(0, 4).map(li).join('')}</ul>${more.length ? (forFile ? `<ul>${more.map(li).join('')}</ul>` : `<details><summary class="mut" style="cursor:pointer;font-size:11px">อีก ${more.length} ข้อ</summary><ul>${more.map(li).join('')}</ul></details>`) : ''}</div></div>
+        <div class="cdC"><div>${lineSvg(p.ser)}</div><div>${cmpBlock(p)}</div></div>${tr}<details ${forFile ? 'open' : ''}><summary class="mut" style="cursor:pointer;font-size:12px">📋 ตัวเลขทั้งหมด</summary><table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></details></div>`; }).join('');
     const lv = r.aiLive?.length ? `<details class="ai"><summary style="cursor:pointer"><b>🤖 AI สดระหว่างแมตช์</b> <span class="mut" style="font-size:12px">${r.aiLive.length} ครั้ง</span></summary>${r.aiLive.map(x => `<h4>เวลาในแมตช์ ${fmtEl(x.el)}</h4>${mdLite(x.text)}`).join('')}</details>` : '';
-    const ai = r.ai ? `<div class="ai"><b>🤖 ผลวิเคราะห์จาก AI</b> <span class="mut" style="font-size:12px">${esc(r.ai.model || '')} · ${esc(new Date(r.ai.at).toLocaleTimeString('th-TH'))}</span>${mdLite(r.ai.text)}</div>` : '';
-    return head + (hum.length ? `<div class="gr">${cards}</div>` : '<p class="mut">ไม่มีคนจริงในแมตช์นี้ (Bot ไม่วิเคราะห์)</p>') + botBox + ai + lv +
+    const ai = r.ai ? `<div class="ai cols"><b>🤖 ผลวิเคราะห์จาก AI</b> <span class="mut" style="font-size:12px">${esc(r.ai.model || '')} · ${esc(new Date(r.ai.at).toLocaleTimeString('th-TH'))}</span>${mdLite(r.ai.text)}</div>` : '';
+    return head + (hum.length ? `<div class="gr4" style="grid-template-columns:repeat(${forFile ? 'auto-fill' : hum.length}, minmax(${forFile ? '300px' : '0'}, 1fr))">${cards}</div>` : '<p class="mut">ไม่มีคนจริงในแมตช์นี้ (Bot ไม่วิเคราะห์)</p>') + ai + lv + botBox +
       `<p class="mut" style="font-size:12px">เกณฑ์เป็นค่าประมาณของ simulator ไว้ช่วยโค้ชดู ไม่ใช่กติกา FTC · “วงยิง” และ “หยุดนิ่งก่อนยิง” เป็นแนวฝึกของทีม${forFile ? '' : ' · ผู้เล่นไม่เห็นรายงานนี้'}</p>`;
   }
   function paintDlg() {
     const r = rep(); if (!r) return;
-    if (!dlg) { dlg = document.createElement('div'); dlg.className = 'anaD'; document.body.appendChild(dlg); }
+    if (!dlg) { dlg = document.createElement('div'); dlg.className = 'anaD'; document.body.appendChild(dlg); dlg.addEventListener('toggle', fitDlg, true); }
     const opts = reports.map((x, i) => `<option value="${i}" ${i === cur ? 'selected' : ''}>แมตช์ ${i + 1} · ${new Date(x.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} · ${x.score.red}-${x.score.blue}</option>`).join('');
     dlg.innerHTML = `<div class="bx" role="dialog" aria-label="ผลประเมินผู้เล่น"><h2>📊 ผลประเมินผู้เล่น</h2><div class="meta">เห็นเฉพาะผู้ชมพิเศษเครื่องนี้ · ผู้เล่นและ host ไม่ได้รับข้อมูลนี้</div>
       ${body(r)}
       <div class="ft"><button class="go" data-a="ai" ${aiBusy || !r.players.some(p => !p.bot) ? 'disabled' : ''}>${aiBusy ? '🤖 AI กำลังวิเคราะห์… (ไม่เกิน 1 นาที)' : r.ai ? '🤖 ให้ AI วิเคราะห์ใหม่' : '🤖 ให้ AI วิเคราะห์ละเอียด'}</button>
-        <span class="${/ไม่|ผิด|เกิน|หลุด/.test(aiMsg) ? 'err' : 'mut'}" style="font-size:13px">${esc(aiMsg)}</span></div>
-      <div class="ft"><button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูลดิบ (.json)</button>
+        <span class="${/ไม่|ผิด|เกิน|หลุด/.test(aiMsg) ? 'err' : 'mut'}" style="font-size:13px">${esc(aiMsg)}</span>
+      <button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูลดิบ (.json)</button>
         ${cur < 0 ? '<button data-a="refresh">🔄 อัปเดตตัวเลขล่าสุด</button>' : ''}${reports.length > 1 || (cur < 0 && reports.length) ? `<select data-a="pick"><option value="-1" ${cur < 0 ? 'selected' : ''}>ตอนนี้ (สด)</option>${opts}</select>` : ''}
         <span class="sp"></span><button data-a="hclear" title="ลบประวัติที่ใช้เทียบแมตช์ก่อนหน้า (เก็บในเครื่องนี้)">🗑 ล้างประวัติเทียบ (${hist.load().length})</button><button data-a="logout" title="ลบรหัสพิเศษออกจากเครื่องนี้">🚪 ออกจากโหมดผู้ชมพิเศษ</button><button class="go" data-a="close">✕ ปิด</button></div></div>`;
     const on = (a, fn) => { const b = dlg.querySelector(`[data-a="${a}"]`); if (b) b[a === 'pick' ? 'onchange' : 'onclick'] = fn; };
+    fitDlg(); requestAnimationFrame(fitDlg);
     on('close', closeDlg); on('html', () => save(r, 'html')); on('json', () => save(r, 'json')); on('ai', () => askAI(r));
     on('refresh', () => { live = snapshot(); paintDlg(); });
     on('hclear', () => { if (!confirm('ลบประวัติแมตช์ที่ใช้เทียบทั้งหมดในเครื่องนี้?\n(รายงานที่เปิดอยู่ไม่หาย)')) return; hist.clear(); paintDlg(); });
