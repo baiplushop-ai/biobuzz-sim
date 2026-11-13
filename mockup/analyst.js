@@ -408,7 +408,7 @@
   }
   // รุ่น AI และคีย์ตั้งที่ Netlify (OPENROUTER_API_KEY · OPENROUTER_MODEL) · ทดสอบได้ที่หน้า home → ตั้งค่า
   async function callAI(k, kind, r) {
-    try { const q = await fetch(AI_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k, mode: kind, report: forAI(r, kind === 'brief') }), signal: AbortSignal.timeout(70000) }); return [q.status, await q.json().catch(() => null)]; }
+    try { const q = await fetch(AI_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k, mode: kind, report: forAI(r, kind === 'brief') }), signal: AbortSignal.timeout(70000) }); const d = await q.json().catch(() => null); return [q.status === 200 && d && typeof d.status === 'number' ? d.status : q.status, d]; }  // ผลแบบ stream บอกรหัสจริงใน status
     catch { return [0, null]; }
   }
   const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]

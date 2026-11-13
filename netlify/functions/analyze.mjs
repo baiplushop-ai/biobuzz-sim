@@ -138,20 +138,33 @@ export default async req => {
   if (!d.report || typeof d.report !== 'object' || !Array.isArray(d.report.players) || !d.report.players.length) return json({ ok: false, why: 'report' }, 400);
   if (!(await quota())) return json({ ok: false, why: 'quota', msg: `เกินโควตา ${hourly()} ครั้ง/ชม.` }, 429);
   const brief = d.mode === 'brief', content = `${brief ? BRIEF : FULL}\n\nข้อมูล (JSON):\n${JSON.stringify(d.report)}`;
-  const t0 = Date.now(), fails = [];
-  for (const p of ps) {
-    const left = BUDGET - (Date.now() - t0); if (left < 8000) break;
-    try {
-      const r = await run(p, content, brief ? 2000 : 8000, brief ? 'low' : 'medium', left);
-      if (!r.text) { fails.push(`${PROV[p].name}: ไม่ได้ข้อความกลับมา`); continue; }
-      return json({ ok: true, via: PROV[p].name + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') });
-    } catch (e) {
-      const er = e instanceof AIErr ? e : new AIErr('err', 'ขัดข้อง', 500);
-      fails.push(`${PROV[p].name}: ${er.message}`);
-      if (!er.retry) return json({ ok: false, why: er.why, msg: fails.join(' · ') }, er.status);
+  // AI อาจใช้เวลา 20-40 วิ แต่ Netlify ตัดการเชื่อมต่อที่เงียบเกิน ~26 วิ → ตอบแบบ stream: ส่งช่องว่าง 1 ตัวทุก 5 วิระหว่างรอ แล้วต่อด้วย JSON
+  // (JSON.parse ข้ามช่องว่างนำหน้าได้) · ผลผิดพลาดหลังเริ่ม stream บอกรหัสใน status แทน HTTP status
+  const work = async () => {
+    const t0 = Date.now(), fails = [];
+    for (const p of ps) {
+      const left = BUDGET - (Date.now() - t0); if (left < 8000) break;
+      try {
+        const r = await run(p, content, brief ? 2000 : 8000, brief ? 'low' : 'medium', left);
+        if (!r.text) { fails.push(`${PROV[p].name}: ไม่ได้ข้อความกลับมา`); continue; }
+        return { ok: true, status: 200, via: PROV[p].name + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') };
+      } catch (e) {
+        const er = e instanceof AIErr ? e : new AIErr('err', 'ขัดข้อง', 500);
+        fails.push(`${PROV[p].name}: ${er.message}`);
+        if (!er.retry) return { ok: false, status: er.status, why: er.why, msg: fails.join(' · ') };
+      }
     }
-  }
-  return json({ ok: false, why: 'fail', msg: fails.join(' · ') || 'AI ไม่ตอบ' }, 502);
+    return { ok: false, status: 502, why: 'fail', msg: fails.join(' · ') || 'AI ไม่ตอบ' };
+  };
+  const enc = new TextEncoder();
+  const body = new ReadableStream({
+    async start(ctl) {
+      const iv = setInterval(() => { try { ctl.enqueue(enc.encode(' ')); } catch {} }, 5000);
+      let out; try { out = await work(); } catch { out = { ok: false, status: 500, why: 'err', msg: 'ขัดข้อง' }; }
+      clearInterval(iv); ctl.enqueue(enc.encode(JSON.stringify(out))); ctl.close();
+    },
+  });
+  return new Response(body, { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 };
 
 export const config = { path: '/api/analyze' };
