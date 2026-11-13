@@ -1649,7 +1649,7 @@ const anaOn = () => !!(NET.ana && NET.spec && NET.role === 'client' && window.BB
 function anaStart() {
   const box = $('anaBox'); if (!box) return;
   if (!anaOn()) { box.innerHTML = ''; $('right').classList.remove('ana'); return; }
-  try { if (BBAna.live?.players?.length) BBAna.finish({ reason: 'lost' });  // แมตช์ก่อนหน้ายังไม่จบแต่ host เริ่มใหม่ = เก็บผลถึงตอนนั้น (สกอร์ล่าสุดที่ตัววิเคราะห์จำไว้) BBAna.reset({ kind: NET.room?.cfg?.kind || '' }); BBAna.mount(box); $('right').classList.add('ana'); } catch (e) { console.warn('analyst', e); }
+  try { if (BBAna.live?.players?.length) BBAna.finish({ reason: 'lost' }); /* แมตช์ก่อนหน้ายังไม่จบแต่ host เริ่มใหม่ = เก็บผลถึงตอนนั้น */ BBAna.reset({ kind: NET.room?.cfg?.kind || '' }); BBAna.mount(box); $('right').classList.add('ana'); } catch (e) { console.warn('analyst', e); }
 }
 function anaTick() {
   if (!anaOn()) return; const now = performance.now(); if (now - (NET.anaT || 0) < 50) return; NET.anaT = now;  // 20 ครั้ง/วิ พอสำหรับสถิติ
