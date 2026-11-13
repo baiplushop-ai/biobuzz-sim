@@ -104,6 +104,12 @@
 #gateRow { cursor:pointer } #gateRow:hover #gateTog { color:var(--fg, #fff) }
 #right.mini #freeBox, #right.mini #help, #right.mini #simNote { display:none }
 #right.ana { width:310px }
+#rpBar { position:fixed; left:50%; bottom:10px; transform:translateX(-50%); width:min(980px, calc(100% - 20px)); z-index:7; pointer-events:auto; padding:8px 12px; font-size:13px }
+#rpBar .rpTop, #rpBar .rpRow { display:flex; align-items:center; gap:8px; flex-wrap:wrap } #rpBar .rpRow { margin-top:6px } #rpBar .rpT { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums }
+#rpBar button { padding:4px 10px } #rpBar select { font:inherit; font-size:12px } #rpBar .rpTrack { position:relative; flex:1; min-width:220px; height:30px }
+#rpBar .rpMarks { position:absolute; left:8px; right:8px; top:0; height:12px } #rpBar .rpMarks i { position:absolute; top:0; width:6px; height:12px; margin-left:-3px; border-radius:2px; cursor:pointer }
+#rpBar input[type=range] { position:absolute; left:0; right:0; bottom:0; width:100% } #rpBar .rpLeg { font-size:11px; margin-top:2px } #rpBar .rpLeg i { display:inline-block; width:8px; height:8px; border-radius:2px; margin:0 3px 0 8px }
+body:has(#rpBar) #bottom, body:has(#rpBar) #msg { display:none }
 </style>
 </head>
 <body>
@@ -182,9 +188,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=4.3"></script>
-<script src="live-rooms.js?v=4.3"></script>
-<script src="analyst.js?v=4.3"></script>
+<script src="scenarios.js?v=4.4"></script>
+<script src="live-rooms.js?v=4.4"></script>
+<script src="analyst.js?v=4.4"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1356,14 +1362,18 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v4.3</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v4.4</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button></div>
     <div id="mcfg" class="mcfg"></div>
     ${Object.entries(groups).filter(([, l]) => l.length).map(([k, l]) => `<h4>สถานการณ์ฝึก · ${ROLE_TH[k]}</h4><div class="grid">${l.join('')}</div>`).join('')}
     <p><a href="../coach-training/index.html" style="color:var(--yel)">← ไปหน้าบทเรียน (เลือกบทบาท Coach / Driver / Human Player)</a></p>`);
   $('mFree').onclick = () => startMatch('free'); $('mTele').onclick = () => startMatch('tele'); $('mFull').onclick = () => startMatch('full', { R1: 0, R2: 0 });
   $('mNet').onclick = () => showOnline(); $('mHist').onclick = () => showHistory(showMenu);
+  $('mOpen').onclick = () => { const f = document.createElement('input'); f.type = 'file'; f.accept = '.json,application/json';
+    f.onchange = async () => { const x = f.files?.[0]; if (!x) return; if (x.size > 40e6) return sayMe('ไฟล์ใหญ่เกินไป', 3);
+      try { window.BBAna.importReport(JSON.parse(await x.text())); } catch (e) { sayMe('เปิดไฟล์ไม่ได้: ' + String(e?.message || e).slice(0, 80), 4); } };
+    f.click(); };
   const mc = $('mcfg'), lvOpt = v => Object.entries(BOT_LV).map(([k, l]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l.th}</option>`).join('');
   mc.innerHTML = `<h4>ตั้งค่าแมตช์ (ใช้กับแมตช์ TELEOP, แมตช์เต็ม และหุ่น AI ใน Free Control)</h4>
     <div class="mrow"><label>บอทคู่แข่ง (BLUE 1, BLUE 2) <select id="cfgOpp">${lvOpt(MCFG.opp)}</select></label><span class="mut" id="cfgOppD"></span></div>
@@ -1618,15 +1628,16 @@ async function netJoin(code, name, spec = false) {
 function netClientMsg(d) {
   if (!d || typeof d !== 'object' || NET.role !== 'client') return;
   d = netSan(d);
-  if (d.t === 'lobby') { if (d.n <= NET.lN) return; NET.lN = d.n; NET.room = d.room; NET.id = d.you; NET.busy = !!d.playing; if (NET.wait) { NET.wait(); NET.wait = null; } if (!NET.playing && !NET.res) showLobby(); }
+  if (d.t === 'lobby') { if (d.n <= NET.lN) return; NET.lN = d.n; NET.room = d.room; NET.id = d.you; NET.busy = !!d.playing; if (NET.wait) { NET.wait(); NET.wait = null; } if (!NET.playing && !NET.res && !RP.on) showLobby(); }
   else if (d.t === 'bye') netLeave('host ปิดห้องแล้ว', 'hostleft');
   else if (d.t === 'full') netLeave(`ห้องนี้เต็มแล้ว (เชื่อมต่อได้สูงสุด ${NET_MAX} เครื่อง)`);
   else if (d.t === 'po') { const p = performance.now() - d.c; NET.ping = NET.ping ? NET.ping * 0.7 + p * 0.3 : p; }
-  else if (d.t === 'cd' && !NET.playing) showCountdown(clamp(Math.round(+d.n) || CD_N, 1, 9));
+  else if (d.t === 'cd' && !NET.playing) { if (RP.on) replayClose(true); showCountdown(clamp(Math.round(+d.n) || CD_N, 1, 9)); }
   else if (d.t === 'cm' && d.m && NET.room) { (NET.room.chat ||= []).push(d.m); if (NET.room.chat.length > CHAT_MAX) NET.room.chat.shift(); chatPaint(); }
   else if (d.t === 'hp') NET.conn.send({ t: 'hq', c: d.c, r: NET.relay ? 1 : 0 });
   else if (d.t === 'pm' && d.m && typeof d.m === 'object') { NET.pings = d.m; NET.pingAt = Date.now(); pingPaint(); }
   else if (d.t === 'start') {
+    if (RP.on) replayClose(true);  // host เริ่มแมตช์ใหม่ = ปิด Replay ก่อน
     if (NET.wait) { NET.wait(); NET.wait = null; }
     S = d.S; Object.assign(NET, { res: false, busy: false, lastR: null, tgt: null, fN: d.n, sN: d.n, bN: d.n, bq: [], age: 0, pred: false, spec: !(d.me >= 0), playing: true, saved: false, lastRec: null, t0: Date.now() }); ME = NET.spec ? 0 : d.me;
     S.msg = ''; S.msgT = 0; ov(false); renderPanels(); anaStart(); say(NET.spec ? (NET.watch ? '👁 กำลังชมการแข่งสด (ผู้ชม)' : 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)') : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
@@ -1649,7 +1660,7 @@ const anaOn = () => !!(NET.ana && NET.spec && NET.role === 'client' && window.BB
 function anaStart() {
   const box = $('anaBox'); if (!box) return;
   if (!anaOn()) { window.BBAna?.unmount(); box.innerHTML = ''; $('right').classList.remove('ana'); return; }
-  try { if (BBAna.live?.players?.length) BBAna.finish({ reason: 'lost' }); /* แมตช์ก่อนหน้ายังไม่จบแต่ host เริ่มใหม่ = เก็บผลถึงตอนนั้น */ BBAna.reset({ kind: NET.room?.cfg?.kind || '' }); BBAna.mount(box); $('right').classList.add('ana'); } catch (e) { console.warn('analyst', e); }
+  try { recReset(); if (BBAna.live?.players?.length) BBAna.finish({ reason: 'lost' }); /* แมตช์ก่อนหน้ายังไม่จบแต่ host เริ่มใหม่ = เก็บผลถึงตอนนั้น */ BBAna.reset({ kind: NET.room?.cfg?.kind || '' }); BBAna.mount(box); $('right').classList.add('ana'); } catch (e) { console.warn('analyst', e); }
 }
 function anaTick() {
   if (!anaOn()) return; const now = performance.now(); if (now - (NET.anaT || 0) < 50) return; NET.anaT = now;  // 20 ครั้ง/วิ พอสำหรับสถิติ
@@ -1659,9 +1670,107 @@ function anaTick() {
         return { id: r.id, al: r.alliance, human: !!r.human && !r.off, name: r.pname || '', x: r.x, z: r.z, vx: r.vx, vz: r.vz, w: r.w, hitN: r.hitN || 0, wallN: r.wallN || 0,
           load: Array.isArray(r.load) ? r.load.length : 0, dead: !!r.dead, shots: r.shots || 0, hits: r.hits || 0, cyc: r.cycles || [], d,
           brg: Math.acos(clamp((f[0] * dx + f[1] * dz) / Math.max(d, 1e-3), -1, 1)) * 180 / Math.PI, gmin: lim.min, gmax: lim.max, own: r.alliance === 'red' ? r.x < 0 : r.x > 0, lz: overlapLZ(r, r.alliance), wall: touchingWall(r), ping: r.pingS?.n ? r.pingS.sum / r.pingS.n : 0, miss: r.pingS?.miss || 0 }; }) });
+    recTick();
   } catch (e) { if (!NET.anaErr) { NET.anaErr = 1; console.warn('analyst', e); } }
 }
-function anaEnd(reason) { if (!anaOn()) return; try { BBAna.finish({ score: S.end?.score || { red: total('red'), blue: total('blue') }, park: S.end?.park, reason }); } catch (e) { console.warn('analyst', e); } }
+function anaEnd(reason) { if (!anaOn()) return; try { BBAna.finish({ score: S.end?.score || { red: total('red'), blue: total('blue') }, park: S.end?.park, reason, replay: recTake() }); REC.meta = null; } catch (e) { console.warn('analyst', e); } }
+
+// ---- Replay (ผู้ชมพิเศษ): บันทึกภาพรวมสนามทุก 0.125 วิของเวลาในแมตช์ไว้ในเครื่องนี้ แล้วเล่นย้อนด้วยตัววาดสนาม 3D เดิม ----
+// ระหว่างดู Replay ไม่คำนวณสนามและไม่ส่งอะไรเข้าห้อง (นอกจาก ping เดิมทุก 2 วิ) · host / ผู้เล่นไม่รู้และไม่ช้าลง
+const RP_DT = 0.125, RP_MAX = 2600, WC = { floor: 'f', air: 'a', cell: 'c', flower: 'l', carried: 'k', staged: 's', out: 'o' }, WR = Object.fromEntries(Object.entries(WC).map(([k, v]) => [v, k]));
+const r2 = v => Math.round((+v || 0) * 100) / 100;
+const REC = { frames: [], meta: null, lastEl: -1 };
+function recReset() { REC.frames = []; REC.lastEl = -1; REC.meta = { v: 1, mode: S.mode, kind: NET.room?.cfg?.kind || '', balls: S.balls.map(b => [b.kind, b.color]), robots: S.robots.map(r => ({ id: r.id, name: r.pname || '', human: !!r.human })) }; }
+function recTick() {
+  if (!REC.meta || !S.running || S.el - REC.lastEl < RP_DT - 1e-6 || REC.frames.length >= RP_MAX) return; REC.lastEl = S.el;
+  const ids = S.robots.map(r => r.id);
+  REC.frames.push({ e: r2(S.el), p: [S.pts.red | 0, S.pts.blue | 0], h: [r2(S.hives.red.angle), r2(S.hives.blue.angle), S.hives.red.up, S.hives.blue.up],
+    r: S.robots.map(r => [r2(r.x), r2(r.z), r2(r.th), (r.dead ? 1 : 0) | (r.off ? 2 : 0) | (r.intake ? 4 : 0) | (r.human ? 8 : 0), r.hp | 0, ...(Array.isArray(r.load) ? r.load : [])]),
+    b: S.balls.map(b => { const c = WC[b.where] || 'o'; return c === 'f' || c === 'a' ? [c, r2(b.x), r2(b.y), r2(b.z)] : c === 'c' ? [c, b.hive === 'blue' ? 1 : 0] : c === 'l' ? [c, b.flower | 0, b.order | 0] : c === 'k' ? [c, Math.max(0, ids.indexOf(b.owner))] : [c]; }) });
+}
+const recTake = () => REC.meta && REC.frames.length > 8 ? { ...REC.meta, fouls: S.fouls.map(f => ({ all: f.all, rule: f.rule, sev: f.sev, pts: f.pts, rem: f.rem, by: f.by, why: f.why, card: f.card || null })), frames: REC.frames.slice() } : null;
+// ข้อมูล Replay อาจมาจากไฟล์ = ตรวจชนิด / ขนาดทุกช่องก่อนใช้
+function rpClean(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.frames) || d.frames.length < 2) return null;
+  const nb = Math.min(80, nA(d.balls).length), num = v => Number.isFinite(+v) ? +v : 0;
+  const frames = d.frames.slice(0, RP_MAX).filter(f => f && Array.isArray(f.r) && Array.isArray(f.b)).map(f => ({ e: num(f.e), p: [num(f.p?.[0]), num(f.p?.[1])], h: [num(f.h?.[0]), num(f.h?.[1]), num(f.h?.[2]) < 0 ? -1 : 1, num(f.h?.[3]) < 0 ? -1 : 1],
+    r: f.r.slice(0, 4).map(a => nA(a).slice(0, 12).map(num)), b: f.b.slice(0, nb).map(a => [WR[a?.[0]] ? a[0] : 'o', ...nA(a).slice(1, 4).map(num)]) })).sort((a, b) => a.e - b.e);
+  if (frames.length < 2) return null;
+  return { mode: ['match', 'teleop', 'free'].includes(d.mode) ? d.mode : 'teleop', kind: nT(d.kind, 8), balls: nA(d.balls).slice(0, nb).map(x => [x?.[0] === 'nectar' ? 'nectar' : 'pollen', ['red', 'blue', 'yellow'].includes(x?.[1]) ? x[1] : 'yellow']),
+    robots: nA(d.robots).slice(0, 4).map(x => ({ id: SLOT_ID.includes(x?.id) ? x.id : 'R1', name: nT(x?.name, 24) })),
+    fouls: nA(d.fouls).slice(0, 120).map(f => ({ all: f?.all === 'blue' ? 'blue' : 'red', rule: nT(f?.rule, 8), sev: nT(f?.sev, 6), pts: num(f?.pts), rem: num(f?.rem), by: nT(f?.by, 4), why: nT(f?.why, 80), card: f?.card === 'red' ? 'red' : f?.card ? 'yellow' : null })), frames };
+}
+const RP = { on: false, d: null, t: 0, play: true, speed: 1, back: null, opts: null, ui: 0, k: 0 };
+function replayOpen(raw, el, opts = {}) {
+  const d = rpClean(raw); if (!d) return sayMe('ไฟล์ / ข้อมูล Replay ไม่ถูกต้อง', 3);
+  if (NET.playing) return sayMe('ดู Replay ได้หลังแมตช์จบ', 3);
+  if (!RP.on) RP.back = { S, ME, cam: S.cam, ovHidden: $('overlay').classList.contains('hidden') };
+  const st = newState(); st.mode = d.mode; st.running = true; st.over = false; st.cam = 1; st.opt = { ...st.opt, hideClock: false, gate: false, traj: false };
+  st.balls.forEach((b, i) => { const m = d.balls[i]; if (m) { b.kind = m[0]; b.color = m[1]; } });
+  st.robots.forEach((r, i) => { const m = d.robots[i]; r.pname = m?.name || r.id; });
+  Object.assign(RP, { on: true, d, opts, t: clamp(el ?? d.frames[0].e, d.frames[0].e, d.frames.at(-1).e), play: true, k: 0 });
+  S = st; ME = RP.follow >= 0 ? RP.follow : 0; ov(false); rpApply(); rpBar();
+}
+function replayClose(quiet) {
+  if (!RP.on) return; RP.on = false; $('rpBar')?.remove();
+  const b = RP.back; RP.back = null; if (b) { S = b.S; ME = b.ME; S.cam = b.cam; if (!b.ovHidden) $('overlay').classList.remove('hidden'); }
+  renderPanels(); if (!quiet) RP.opts?.onClose?.();
+}
+function rpIdx(t) { const f = RP.d.frames; let lo = 0, hi = f.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (f[m].e <= t) lo = m; else hi = m - 1; } return lo; }
+function rpApply() {
+  const fr = RP.d.frames, k = rpIdx(RP.t), f0 = fr[k], f1 = fr[k + 1] || f0, u = f1 === f0 ? 0 : clamp((RP.t - f0.e) / Math.max(1e-3, f1.e - f0.e), 0, 1), L = (a, b) => a + (b - a) * u;
+  S.el = RP.t; S.pts = { red: f0.p[0], blue: f0.p[1] };
+  S.hives.red.angle = L(f0.h[0], f1.h[0]); S.hives.blue.angle = L(f0.h[1], f1.h[1]); S.hives.red.up = f0.h[2]; S.hives.blue.up = f0.h[3];
+  S.robots.forEach((r, i) => { const a = f0.r[i], b = f1.r[i] || a; if (!a) { r.off = true; return; }
+    r.x = L(a[0], b[0]); r.z = L(a[1], b[1]); r.th = a[2] + wrap(b[2] - a[2]) * u; r.dead = !!(a[3] & 1); r.off = !!(a[3] & 2); r.intake = !!(a[3] & 4); r.human = !!(a[3] & 8); r.hp = a[4];
+    r.load = a.slice(5).filter(j => j >= 0 && j < S.balls.length); r.vx = r.vz = r.w = 0; r.shake = 0; });
+  S.balls.forEach((bl, i) => { const a = f0.b[i], b = f1.b[i]; if (!a) return; bl.where = WR[a[0]] || 'out';
+    if (a[0] === 'f' || a[0] === 'a') { const same = b && b[0] === a[0]; bl.x = same ? L(a[1], b[1]) : a[1]; bl.y = same ? L(a[2], b[2]) : a[2]; bl.z = same ? L(a[3], b[3]) : a[3]; }
+    else if (a[0] === 'c') bl.hive = a[1] ? 'blue' : 'red'; else if (a[0] === 'l') { bl.flower = clamp(a[1] | 0, 0, 3); bl.order = a[2] | 0; } else if (a[0] === 'k') bl.owner = SLOT_ID[a[1] | 0] || 'R1'; });
+  S.fouls = RP.d.fouls.filter(f => S.mode === 'free' || f.rem >= MATCH_LEN - RP.t - 0.05);
+}
+function replayStep(now) {
+  const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
+  const end = RP.d.frames.at(-1).e;
+  if (RP.play) { RP.t = Math.min(end, RP.t + dt * RP.speed); if (RP.t >= end) RP.play = false; }
+  rpApply(); hudT += dt; if (hudT > 0.1) { hudT = 0; hud(emptyInput()); rpBarSync(); }
+  if (NET.role === 'client' && NET.conn && now - (NET.tP || 0) >= 2000) { NET.tP = now; try { NET.conn.send({ t: 'pg', c: now }); } catch {} }  // ping เดิมของเครื่องนี้ (ห้องเห็นว่ายังต่ออยู่)
+  return dt;
+}
+const rpClock = t => RP.d?.mode === 'free' ? '+' + fmt(t - RP.d.frames[0].e) : t < AUTO_LEN ? 'AUTO ' + fmt(AUTO_LEN - t) : t < AUTO_LEN + TRANS_LEN ? 'เปลี่ยนช่วง' : fmt(MATCH_LEN - t);
+function rpSeek(t) { RP.t = clamp(t, RP.d.frames[0].e, RP.d.frames.at(-1).e); rpApply(); rpBarSync(); }
+function rpBar() {
+  $('rpBar')?.remove(); const f = RP.d.frames, t0 = f[0].e, t1 = f.at(-1).e, span = Math.max(1, t1 - t0);
+  const mk = (RP.opts?.markers || []).filter(m => Number.isFinite(+m.el) && m.el >= t0 && m.el <= t1).slice(0, 300);
+  const el = document.createElement('div'); el.id = 'rpBar'; el.className = 'panel';
+  el.innerHTML = `<div class="rpTop"><b style="color:var(--yel)">🎬 Replay</b><span id="rpT" class="rpT"></span><span class="mut" id="rpWho"></span><span style="flex:1"></span>
+      <label class="mut">กล้อง <select id="rpCam"><option value="1">รอบสนาม (ลากเมาส์หมุน)</option><option value="2">Driver Station</option>${S.robots.map((r, i) => `<option value="f${i}">ตาม ${esc(SLOT_TH[r.id])}${r.pname && r.pname !== r.id ? ' · ' + esc(r.pname) : ''}</option>`).join('')}</select></label>
+      <button class="sec" id="rpX">✕ ปิด Replay</button></div>
+    <div class="rpRow"><button id="rpPlay"></button><button class="sec" id="rpB">⏪ 5 วิ</button><button class="sec" id="rpF">5 วิ ⏩</button>
+      <select id="rpSpd">${[0.25, 0.5, 1, 2, 4].map(v => `<option value="${v}" ${v === RP.speed ? 'selected' : ''}>${v}×</option>`).join('')}</select>
+      <div class="rpTrack"><div class="rpMarks">${mk.map(m => `<i title="${esc(m.title || '')}" data-t="${+m.el}" style="left:${((m.el - t0) / span * 100).toFixed(2)}%;background:${/^#[0-9a-f]{6}$/i.test(m.c || '') ? m.c : '#9aa4b2'}"></i>`).join('')}</div>
+        <input type="range" id="rpSl" min="${t0}" max="${t1}" step="0.05" value="${RP.t}"></div></div>
+    <div class="mut rpLeg">จุดบนแถบ: <i style="background:#3ec97a"></i>ยิงเข้า <i style="background:#f5a524"></i>ยิงพลาด <i style="background:#ff6b6b"></i>FOUL <i style="background:#9aa4b2"></i>จอดนิ่ง · กดจุดเพื่อกระโดดไป 2 วิก่อนเหตุการณ์ · Space = เล่น/หยุด · ← → = 5 วิ</div>`;
+  document.body.appendChild(el);
+  $('rpPlay').onclick = () => { if (!RP.play && RP.t >= t1 - 0.01) RP.t = t0; RP.play = !RP.play; rpBarSync(); };
+  $('rpB').onclick = () => rpSeek(RP.t - 5); $('rpF').onclick = () => rpSeek(RP.t + 5); $('rpX').onclick = () => replayClose();
+  $('rpSpd').onchange = e => { RP.speed = +e.target.value || 1; };
+  $('rpSl').oninput = e => { RP.play = false; rpSeek(+e.target.value); };
+  el.querySelectorAll('.rpMarks i').forEach(i => i.onclick = () => { rpSeek(+i.dataset.t - 2); RP.play = true; rpBarSync(); });
+  const cam = $('rpCam'); cam.value = RP.follow >= 0 ? 'f' + RP.follow : String(S.cam === 2 ? 2 : 1);
+  cam.onchange = e => { const v = e.target.value; if (v[0] === 'f') { RP.follow = +v.slice(1); ME = RP.follow; S.cam = 0; } else { RP.follow = -1; S.cam = +v; } S.opt.lockCam = null; rpBarSync(); };
+  if (RP.follow >= 0) { ME = RP.follow; S.cam = 0; }
+  rpBarSync();
+}
+function rpBarSync() {
+  if (!RP.on || !$('rpBar')) return;
+  $('rpT').textContent = rpClock(RP.t) + (RP.d.mode === 'free' ? '' : ' (เวลาที่เหลือ)'); $('rpPlay').textContent = RP.play ? '⏸ หยุด' : '▶ เล่น';
+  const sl = $('rpSl'); if (document.activeElement !== sl) sl.value = RP.t;
+  $('rpWho').textContent = RP.follow >= 0 ? 'กล้องตาม ' + (SLOT_TH[S.robots[RP.follow]?.id] || '') : '';
+}
+addEventListener('keydown', e => { if (!RP.on || e.target.closest?.('input,select,textarea,.anaD')) return;
+  if (e.code === 'Space') { e.preventDefault(); RP.play = !RP.play; rpBarSync(); } else if (e.code === 'ArrowLeft') { e.preventDefault(); rpSeek(RP.t - 5); } else if (e.code === 'ArrowRight') { e.preventDefault(); rpSeek(RP.t + 5); } else if (e.code === 'Escape') replayClose(); }, true);
+window.BBReplay = { open: replayOpen, close: replayClose, get active() { return RP.on; } };
 function netRobots(keep) {  // ค่าที่เปลี่ยนเร็วของหุ่นมาจากข้อความถี่ · ตำแหน่งบนจอค่อย ๆ ไล่ตามเป้า NET.tgt (ไม่กระโดด) · หุ่นของเราเองใช้ความเร็วที่คำนวณในเครื่อง (ตอบสนองทันที)
   (NET.lastR || []).forEach((a, i) => { const r = S.robots[i]; if (!r) return;
     if (keep?.[i]) [r.x, r.z, r.th, r.vx, r.vz, r.w] = keep[i];
@@ -2226,7 +2335,7 @@ function simFrame(now) {  // เดินสนาม + รับส่งข้
 }
 let frameErr = 0;
 function frame(now) {  // ข้อผิดพลาดในเฟรมเดียวต้องไม่ทำให้ทั้งจอค้าง: จับไว้ แจ้งผู้ใช้ แล้วเดินเฟรมถัดไปเสมอ
-  try { const dt = simFrame(now); fxWatch(); sync(); updateCamera(dt); renderer.render(scene, camera); autoQuality(now); }
+  try { const dt = RP.on ? replayStep(now) : simFrame(now); if (!RP.on) fxWatch(); sync(); updateCamera(dt); renderer.render(scene, camera); autoQuality(now); }
   catch (e) { if (frameErr++ < 5) console.error(e); if (frameErr === 1 || frameErr % 600 === 0) sayMe('โปรแกรมขัดข้อง: ' + String(e?.message || e).slice(0, 80) + ' · ถ้าจอค้างให้รีเฟรชหน้า', 6); $('msg').textContent = S.msg; $('msg').style.opacity = 1; }
   requestAnimationFrame(frame);
 }

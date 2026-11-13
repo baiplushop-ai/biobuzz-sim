@@ -42,7 +42,7 @@
   function reset(meta = {}) { M = { kind: meta.kind || '', code: meta.code || '', ts: Date.now(), lastEl: null, endEl: null, done: false, startEl: null, score: { red: 0, blue: 0 } }; P = {}; Object.assign(LV, { busy: false, at: 0, list: [], msg: '', off: '' }); }
 
   function bucketOf(p) { const i = Math.floor(p.T / BUCKET); while (p.bk.length <= i) p.bk.push({ t: 0, mv: 0, pick: 0, shots: 0, walls: 0, coll: 0 }); return p.bk[i]; }
-  function endIdle(p) { if (p.idle >= 6) { p.idleN++; p.idleMax = Math.max(p.idleMax, p.idle); if (M?.lastEl != null) evPush(p, { t: fmtEl(M.lastEl - p.idle), k: 'idle', sec: Math.round(p.idle) }); } p.idle = 0; }
+  function endIdle(p) { if (p.idle >= 6) { p.idleN++; p.idleMax = Math.max(p.idleMax, p.idle); if (M?.lastEl != null) evPush(p, { t: fmtEl(M.lastEl - p.idle), el: r1(M.lastEl - p.idle), k: 'idle', sec: Math.round(p.idle) }); } p.idle = 0; }
   function endHold(p) { if (p.hold >= 25) { p.holdN++; } p.holdMax = Math.max(p.holdMax, p.hold); p.hold = 0; }
 
   // f: ภาพรวมสนามในเฟรมนี้ (index.html สร้างให้จากข้อมูลที่เครื่องผู้ชมมีอยู่แล้ว)
@@ -62,13 +62,13 @@
       if (!p) p = P[r.id] = Object.assign(newP(r, f.el), { bot: !r.human });
       p.name = p.bot ? 'Bot' : r.name || p.name; p.gone = false; p.ping = r.ping || 0; p.miss = r.miss || 0;
       p.fouls = (f.fouls || []).filter(x => x.by === r.id).map(x => ({ rule: x.rule, sev: x.sev, pts: x.pts, rem: Math.round(x.rem), why: String(x.why || '').slice(0, 70) }));
-      for (; p.nf < p.fouls.length; p.nf++) { const x = p.fouls[p.nf]; evPush(p, { t: fmt(x.rem), k: 'foul', rule: x.rule, sev: x.sev, why: x.why }); }
+      for (; p.nf < p.fouls.length; p.nf++) { const x = p.fouls[p.nf]; evPush(p, { t: fmt(x.rem), el: r1(f.el), k: 'foul', rule: x.rule, sev: x.sev, why: x.why }); }
       p.gmin = r.gmin; p.gmax = r.gmax;
       if (play && p.s0 == null) { p.s0 = r.shots; p.h0 = r.hits; p.c0 = r.cyc.length; p.hit0 = r.hitN; p.wall0 = r.wallN; p.lastShots = r.shots; M.startEl ??= f.el; }
       const spd = Math.hypot(r.vx, r.vz), w = Math.abs(r.w);
       // ลูกในหุ่นลดลง = ยิง / วาง / คาย · จำตำแหน่งตอนนั้นไว้ แล้วจับคู่กับจำนวนนัดยิงที่ host นับ
       if (p.load != null && r.load < p.load) for (let k = p.load - r.load; k > 0; k--) p.drops.push({ el: f.el, d: r.d, brg: r.brg, v: spd, w, gmin: r.gmin, gmax: r.gmax, used: false });
-      if (p.load != null && r.load > p.load && play) { p.pick += r.load - p.load; bucketOf(p).pick += r.load - p.load; evPush(p, { t: fmtEl(f.el), k: 'pick', n: r.load }); }
+      if (p.load != null && r.load > p.load && play) { p.pick += r.load - p.load; bucketOf(p).pick += r.load - p.load; evPush(p, { t: fmtEl(f.el), el: r1(f.el), k: 'pick', n: r.load }); }
       p.load = r.load;
       if (p.drops.length > 40) p.drops.splice(0, p.drops.length - 40);
       if (p.lastShots != null && r.shots > p.lastShots) {
@@ -110,7 +110,7 @@
       // อยู่ตรงไหนของสนาม (วินาที) · ช่วงท้าย 30 วิ · เข้า/ออก LOADING ZONE ช่วงท้าย (เกี่ยวกับ PARK)
       if (r.own) p.zt.own += dt; else p.zt.opp += dt; if (r.d >= r.gmin && r.d <= r.gmax) p.zt.ring += dt; if (r.lz) p.zt.lz += dt; if (r.wall) p.zt.wall += dt;
       if (f.rem <= 30) { p.eg.t += dt; if (moving) p.eg.mv += dt; if (r.lz) p.eg.lz += dt; }
-      if (p.lzPrev != null && r.lz !== p.lzPrev && f.rem <= 40) evPush(p, { t: fmtEl(f.el), k: r.lz ? 'lzIn' : 'lzOut' }); p.lzPrev = r.lz;
+      if (p.lzPrev != null && r.lz !== p.lzPrev && f.rem <= 40) evPush(p, { t: fmtEl(f.el), el: r1(f.el), k: r.lz ? 'lzIn' : 'lzOut' }); p.lzPrev = r.lz;
       if (p.T >= 20 && p.T - p.serT >= 10) { p.serT = p.T; const c = calc(p); p.ser.push({ el: r1(f.el), i: c.intent, s: c.skill }); if (p.ser.length > 40) p.ser.shift(); }  // คะแนนทุก 10 วิ (กราฟตอนจบ)
     }
     if (mode === 'live' && play && !LV.busy && !LV.off && Date.now() - LV.at > LIVE_GAP && Object.values(P).some(p => !p.gone && !p.bot && p.T >= 20)) liveAsk();
@@ -207,6 +207,7 @@
 .anaD table { width:100%; border-collapse:collapse; font-size:12px; margin:4px 0 } .anaD td { padding:2px 0; border-bottom:1px solid rgba(255,255,255,.07) } .anaD td:last-child { text-align:right; font-weight:700 }
 .anaD .tr { display:flex; gap:2px; align-items:flex-end; height:26px; margin:4px 0 } .anaD .tr i { flex:1; background:#3ec97a; min-height:2px; border-radius:2px 2px 0 0; display:block }
 .anaD .ai { border:1px solid rgba(106,162,255,.5); border-radius:10px; padding:9px 12px; margin:8px 0; font-size:14px; line-height:1.5; background:rgba(106,162,255,.06) } .anaD .ai h4 { margin:8px 0 2px; font-size:14px; color:#9cc0ff }
+.anaD a.rtL { color:#9cc0ff; text-decoration:underline; cursor:pointer; font-weight:700 }
 .anaD .ft { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px } .anaD .sp { flex:1 } .anaD .err { color:#ff7b6b; font-weight:700 } .anaD select { font:inherit; font-size:12px }
 .anaT { border-top:1px solid rgba(255,255,255,.1); padding:4px 0 } .anaT > summary { cursor:pointer; font-size:13px; padding:2px 0 } .anaT > summary .mut { font-size:11px; font-variant-numeric:tabular-nums }
 .anaT .anaC:first-of-type { border-top:0 } .anaW > summary { margin:2px 0 }
@@ -304,7 +305,7 @@
     if (!M || M.done) return null; M.done = true; M.endEl = M.lastEl;
     for (const p of Object.values(P)) { endIdle(p); endHold(p); }
     const s = snapshot(fin); if (!s.players.some(p => !p.bot)) return null;  // ไม่มีคนจริงเลย = ไม่ต้องมีรายงาน
-    s.aiLive = LV.list.map(x => ({ el: x.el, text: x.text }));
+    s.aiLive = LV.list.map(x => ({ el: x.el, text: x.text })); s.replay = fin.replay || null;  // ภาพรวมสนามทุก 0.125 วิ (สำหรับ Replay · ไม่ส่งให้ AI ไม่เก็บในประวัติ)
     { const sm = summ(s); if (sm.players.length) hist.save([...hist.load(), sm]); }  // เก็บไว้เทียบแมตช์ถัดไป
     reports.push(s); if (reports.length > 20) reports.shift(); cur = reports.length - 1; openDlg(cur);
     if ((autoEnd || mode === 'live') && !LV.off && s.players.some(p => !p.bot && p.intent != null)) askAI(s);  // จบแมตช์: AI สรุปผล + เทียบแมตช์ก่อนหน้าให้เลย
@@ -331,10 +332,43 @@
     Object.assign(bx.style, z < 1 ? { maxHeight: Math.floor(ah / z) + 'px', overflow: 'auto' } : { width: '', maxHeight: '', overflow: '' });
   }
   addEventListener('resize', () => { if (dlg) fitDlg(); });
-  function mdLite(t) {  // ข้อความจาก AI: escape ก่อน แล้วแปลงหัวข้อ / รายการ / ตัวหนาแบบง่าย
+  function mdLite(t, rp) {  // ข้อความจาก AI: escape ก่อน แล้วแปลงหัวข้อ / รายการ / ตัวหนาแบบง่าย · rp = มี Replay: เวลา (เช่น 1:57) กดแล้วกระโดดไปดู
     const S = window.SCENARIOS || {}, base = location.origin + location.pathname;  // รหัสบทฝึก (เช่น D1.5) = ลิงก์เปิดบทนั้นในแท็บใหม่
-    return esc(t).split('\n').map(l => { l = l.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\b([DOH]\d\.\d)\b/g, m => S[m] ? `<a href="${base}?s=${m}" target="_blank" rel="noopener" style="color:#9cc0ff">${m}</a>` : m);
+    return esc(t).split('\n').map(l => { l = l.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); if (rp) l = l.replace(/(^|[^\d:.])(\+?)(\d):([0-5]\d)(?![\d:])/g, (m0, a, pl, mm, ss) => `${a}<a class="rtL" data-rt="${pl}${mm}:${ss}">${pl}${mm}:${ss}</a>`); l = l.replace(/\b([DOH]\d\.\d)\b/g, m => S[m] ? `<a href="${base}?s=${m}" target="_blank" rel="noopener" style="color:#9cc0ff">${m}</a>` : m);
       if (/^#{1,4}\s/.test(l)) return `<h4>${l.replace(/^#{1,4}\s/, '')}</h4>`; if (/^\s*[-•*]\s/.test(l)) return `<div style="padding-left:14px;text-indent:-10px">• ${l.replace(/^\s*[-•*]\s/, '')}</div>`; return l.trim() ? `<div>${l}</div>` : ''; }).join('');
+  }
+  // จังหวะสำคัญของผู้เล่น (จาก events): FOUL · ยิงพลาดแบบไม่หันเข้า CELL / นอกวง · จอดนิ่งนาน · ยิงเข้า — กดเวลาแล้วไปดู Replay ช่วงนั้น
+  const evTxt = e => e.k === 'shot' ? `${e.hit ? '✅ ยิงเข้า' : '❌ ยิงพลาด'} ระยะ ${(+e.d || 0).toFixed(1)} ม.${e.aim === false ? ' · ไม่หันเข้า CELL' : ''}${e.gate === false ? ' · นอกวง' : ''}${e.still === false ? ' · ยังไม่หยุด' : ''}`
+    : e.k === 'foul' ? `🟥 ${e.rule} ${e.sev}${e.why ? ' · ' + e.why : ''}` : e.k === 'idle' ? `⏸ จอดนิ่ง ${e.sec} วิ` : e.k === 'lzIn' ? '🅿️ เข้า LOADING ZONE' : e.k === 'lzOut' ? 'ออกจาก LOADING ZONE' : `เก็บลูก (มี ${e.n} ลูก)`;
+  const evScore = e => e.k === 'foul' ? 5 : e.k === 'shot' ? (e.hit ? 1 : 2 + (e.aim === false) + (e.gate === false)) : e.k === 'idle' ? 3 : 0;
+  function moments(p, link) {
+    const ev = (p.ev || []).filter(e => evScore(e) > 0);
+    if (!ev.length) return '';
+    const top = ev.map((e, i) => [evScore(e), i, e]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, 6).sort((a, b) => a[1] - b[1]).map(x => x[2]);
+    return `<div style="margin-top:6px;font-size:12px"><b>🎯 จังหวะสำคัญ</b>${link ? ' <span class="mut">(กดเวลาเพื่อดู Replay)</span>' : ''}<ul>${top.map(e => `<li>${link && Number.isFinite(+e.el) ? `<a class="rtL" data-el="${+e.el}">${esc(e.t)}</a>` : `<b>${esc(e.t)}</b>`} ${esc(evTxt(e))}</li>`).join('')}</ul></div>`;
+  }
+  const clockToEl = (r, s) => { const m = /^(\+)?(\d+):(\d\d)$/.exec(String(s || '')); if (!m) return NaN; const sec = +m[2] * 60 + +m[3]; return m[1] ? (r.startEl ?? r.replay?.frames?.[0]?.e ?? 38) + sec : 158 - sec; };
+  const markersOf = r => r.players.filter(p => !p.bot).flatMap(p => (p.ev || []).filter(e => Number.isFinite(+e.el) && ['shot', 'foul', 'idle'].includes(e.k)).map(e => ({ el: +e.el, c: e.k === 'foul' ? '#ff6b6b' : e.k === 'idle' ? '#9aa4b2' : e.hit ? '#3ec97a' : '#f5a524', title: `${p.id} ${e.t} ${evTxt(e)}` })));
+  function openReplay(r, el) {
+    if (!r?.replay || !window.BBReplay) return; closeDlg();
+    window.BBReplay.open(r.replay, el, { markers: markersOf(r), onClose: () => { const i = reports.indexOf(r); if (i >= 0) cur = i; else { reports.push(r); cur = reports.length - 1; } paintDlg(); } });
+  }
+  // เปิดไฟล์รายงาน (.json ที่บันทึกไว้) · ข้อมูลจากไฟล์ = บังคับชนิดทุกช่องก่อนแสดง (กันข้อความแปลกปลอมกลายเป็น HTML)
+  const VTXT = { wait: '⏳ กำลังเก็บข้อมูล', afk: '⚪ แทบไม่ได้ขับ', good: '🟢 ตั้งใจเล่น', mid: '🟡 ตั้งใจบ้าง ไม่สม่ำเสมอ', bad: '🔴 น่าจะเล่นมั่ว / ไม่ตั้งใจ' };
+  function importReport(o) {
+    if (!o || typeof o !== 'object' || !Array.isArray(o.players)) throw new Error('ไม่ใช่ไฟล์รายงานของระบบนี้');
+    const N = v => Number.isFinite(+v) ? +v : 0, Nn = v => v == null || v === '' ? null : N(v), T = (v, n) => String(v ?? '').slice(0, n), A = v => Array.isArray(v) ? v : [], B = v => v === true;
+    const nums = (o2, n = 60) => Object.fromEntries(Object.entries(o2 && typeof o2 === 'object' ? o2 : {}).slice(0, n).map(([k, v]) => [T(k, 20), Nn(v)]));
+    const ev = e => ({ t: T(e?.t, 12), el: Nn(e?.el), k: ['pick', 'shot', 'foul', 'idle', 'lzIn', 'lzOut'].includes(e?.k) ? e.k : 'pick', n: N(e?.n), d: N(e?.d), sec: N(e?.sec), hit: e?.hit == null ? null : B(e.hit), aim: e?.aim == null ? null : B(e.aim), gate: e?.gate == null ? null : B(e.gate), still: e?.still == null ? null : B(e.still), rule: T(e?.rule, 8), sev: T(e?.sev, 6), why: T(e?.why, 80) });
+    const r = { v: 1, ts: N(o.ts) || Date.now(), at: Date.now(), kind: ['tele', 'full', 'free'].includes(o.kind) ? o.kind : '', score: { red: N(o.score?.red), blue: N(o.score?.blue) }, end: ['end', 'lost', 'live'].includes(o.end) ? o.end : 'end',
+      startEl: Nn(o.startEl), endEl: Nn(o.endEl), scoreTimeline: A(o.scoreTimeline).slice(0, 40).map(x => ({ el: N(x?.el), t: T(x?.t, 12), red: N(x?.red), blue: N(x?.blue) })),
+      players: A(o.players).slice(0, 8).map(p => { const v = VTXT[p?.v] ? p.v : 'wait', skill = Nn(p?.skill), intent = Nn(p?.intent);
+        return { id: SID.includes(p?.id) ? p.id : 'R1', alliance: p?.alliance === 'blue' ? 'blue' : 'red', name: T(p?.name, 24), gone: B(p?.gone), bot: B(p?.bot), intent, skill, v, vt: VTXT[v],
+          sl: skill == null ? '—' : skill >= 65 ? 'ดี' : skill >= 40 ? 'พอใช้' : 'ต้องฝึก', m: nums(p?.m), why: A(p?.why).slice(0, 20).map(w => T(w, 160)), ser: A(p?.ser).slice(0, 60).map(x => ({ el: N(x?.el), i: N(x?.i), s: N(x?.s) })),
+          prev: A(p?.prev).slice(0, 5).map(q => ({ ...nums(q, 20), name: T(q?.name, 24), v: T(q?.v, 6) })), bk: A(p?.bk).slice(0, 20).map(b => nums(b, 8)), fouls: A(p?.fouls).slice(0, 80).map(f => ({ rule: T(f?.rule, 8), sev: T(f?.sev, 6), pts: N(f?.pts), rem: N(f?.rem), why: T(f?.why, 80) })),
+          shotsEv: A(p?.shotsEv).slice(0, 60).map(ev), ev: A(p?.ev).slice(0, 80).map(ev), zones: p?.zones ? nums(p.zones, 8) : null, ring: A(p?.ring).slice(0, 2).map(N), endgame: p?.endgame ? nums(p.endgame, 8) : null, park: p?.park == null ? null : B(p.park), from: N(p?.from), to: N(p?.to) }; }),
+      ai: o.ai && typeof o.ai.text === 'string' ? { text: T(o.ai.text, 20000), model: T(o.ai.model, 80), at: N(o.ai.at) } : null, aiLive: A(o.aiLive).slice(0, 40).map(x => ({ el: N(x?.el), text: T(x?.text, 4000) })), replay: o.replay && typeof o.replay === 'object' ? o.replay : null };
+    reports.push(r); if (reports.length > 20) reports.shift(); cur = reports.length - 1; addCss(); aiMsg = 'เปิดจากไฟล์แล้ว' + (r.replay ? ' · กด “▶ ดู Replay” ได้' : ' (ไฟล์นี้ไม่มี Replay)'); paintDlg(); return r;
   }
   function body(r, forFile) {
     const sc = r.score || {}, t = new Date(r.ts);
@@ -351,9 +385,9 @@
       return `<div class="cd"><h3 class="anaC" style="border:0;padding:0">${who(p)}${p.gone ? ' <span class="mut">(ออกกลางแมตช์ → Bot)</span>' : ''}</h3>
         <div style="font-weight:700;font-size:13px">${p.vt} · ฝีมือ ${p.sl}</div>
         <div class="cdT"><div>${big(p)}</div><div><ul>${p.why.slice(0, 4).map(li).join('')}</ul>${more.length ? (forFile ? `<ul>${more.map(li).join('')}</ul>` : `<details><summary class="mut" style="cursor:pointer;font-size:11px">อีก ${more.length} ข้อ</summary><ul>${more.map(li).join('')}</ul></details>`) : ''}</div></div>
-        <div class="cdC"><div>${lineSvg(p.ser)}</div><div>${cmpBlock(p)}</div></div>${tr}<details ${forFile ? 'open' : ''}><summary class="mut" style="cursor:pointer;font-size:12px">📋 ตัวเลขทั้งหมด</summary><table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></details></div>`; }).join('');
-    const lv = r.aiLive?.length ? `<details class="ai"><summary style="cursor:pointer"><b>🤖 AI สดระหว่างแมตช์</b> <span class="mut" style="font-size:12px">${r.aiLive.length} ครั้ง</span></summary>${r.aiLive.map(x => `<h4>เวลาในแมตช์ ${fmtEl(x.el)}</h4>${mdLite(x.text)}`).join('')}</details>` : '';
-    const ai = r.ai ? `<div class="ai cols"><b>🤖 ผลวิเคราะห์จาก AI</b> <span class="mut" style="font-size:12px">${esc(r.ai.model || '')} · ${esc(new Date(r.ai.at).toLocaleTimeString('th-TH'))}</span>${mdLite(r.ai.text)}</div>` : '';
+        ${moments(p, !!r.replay && !forFile)}<div class="cdC"><div>${lineSvg(p.ser)}</div><div>${cmpBlock(p)}</div></div>${tr}<details ${forFile ? 'open' : ''}><summary class="mut" style="cursor:pointer;font-size:12px">📋 ตัวเลขทั้งหมด</summary><table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></details></div>`; }).join('');
+    const lv = r.aiLive?.length ? `<details class="ai"><summary style="cursor:pointer"><b>🤖 AI สดระหว่างแมตช์</b> <span class="mut" style="font-size:12px">${r.aiLive.length} ครั้ง</span></summary>${r.aiLive.map(x => `<h4>เวลาในแมตช์ ${fmtEl(x.el)}</h4>${mdLite(x.text, !!r.replay && !forFile)}`).join('')}</details>` : '';
+    const ai = r.ai ? `<div class="ai cols"><b>🤖 ผลวิเคราะห์จาก AI</b> <span class="mut" style="font-size:12px">${esc(r.ai.model || '')} · ${esc(new Date(r.ai.at).toLocaleTimeString('th-TH'))}</span>${mdLite(r.ai.text, !!r.replay && !forFile)}</div>` : '';
     return head + (hum.length ? `<div class="gr4" style="grid-template-columns:repeat(${forFile ? 'auto-fill' : hum.length}, minmax(${forFile ? '300px' : '0'}, 1fr))">${cards}</div>` : '<p class="mut">ไม่มีคนจริงในแมตช์นี้ (Bot ไม่วิเคราะห์)</p>') + ai + lv + botBox +
       `<p class="mut" style="font-size:12px">เกณฑ์เป็นค่าประมาณของ simulator ไว้ช่วยโค้ชดู ไม่ใช่กติกา FTC · “วงยิง” และ “หยุดนิ่งก่อนยิง” เป็นแนวฝึกของทีม${forFile ? '' : ' · ผู้เล่นไม่เห็นรายงานนี้'}</p>`;
   }
@@ -365,11 +399,13 @@
       ${body(r)}
       <div class="ft"><button class="go" data-a="ai" ${aiBusy || !r.players.some(p => !p.bot) ? 'disabled' : ''}>${aiBusy ? '🤖 AI กำลังวิเคราะห์… (ไม่เกิน 1 นาที)' : r.ai ? '🤖 ให้ AI วิเคราะห์ใหม่' : '🤖 ให้ AI วิเคราะห์ละเอียด'}</button>
         <span class="${/ไม่|ผิด|เกิน|หลุด/.test(aiMsg) ? 'err' : 'mut'}" style="font-size:13px">${esc(aiMsg)}</span>
-      <button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูลดิบ (.json)</button>
+      ${r.replay && window.BBReplay ? '<button class="go" data-a="replay">▶ ดู Replay</button>' : ''}<button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูล${r.replay ? ' + Replay' : 'ดิบ'} (.json)</button>
         ${cur < 0 ? '<button data-a="refresh">🔄 อัปเดตตัวเลขล่าสุด</button>' : ''}${reports.length > 1 || (cur < 0 && reports.length) ? `<select data-a="pick"><option value="-1" ${cur < 0 ? 'selected' : ''}>ตอนนี้ (สด)</option>${opts}</select>` : ''}
         <span class="sp"></span><button data-a="hclear" title="ลบประวัติที่ใช้เทียบแมตช์ก่อนหน้า (เก็บในเครื่องนี้)">🗑 ล้างประวัติเทียบ (${hist.load().length})</button><button data-a="logout" title="ลบรหัสพิเศษออกจากเครื่องนี้">🚪 ออกจากโหมดผู้ชมพิเศษ</button><button class="go" data-a="close">✕ ปิด</button></div></div>`;
     const on = (a, fn) => { const b = dlg.querySelector(`[data-a="${a}"]`); if (b) b[a === 'pick' ? 'onchange' : 'onclick'] = fn; };
     fitDlg(); requestAnimationFrame(fitDlg);
+    on('replay', () => openReplay(r, r.startEl));
+    dlg.onclick = e => { const a = e.target.closest?.('[data-rt],[data-el]'); if (!a || !r.replay) return; e.preventDefault(); const el = a.dataset.el != null ? +a.dataset.el : clockToEl(r, a.dataset.rt); if (Number.isFinite(el)) openReplay(r, el - 2); };
     on('close', closeDlg); on('html', () => save(r, 'html')); on('json', () => save(r, 'json')); on('ai', () => askAI(r));
     on('refresh', () => { live = snapshot(); paintDlg(); });
     on('hclear', () => { if (!confirm('ลบประวัติแมตช์ที่ใช้เทียบทั้งหมดในเครื่องนี้?\n(รายงานที่เปิดอยู่ไม่หาย)')) return; hist.clear(); paintDlg(); });
@@ -378,7 +414,7 @@
   }
   function save(r, kind) {
     const d = new Date(r.ts), stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
-    const txt = kind === 'json' ? JSON.stringify(r, null, 2) : `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BIOBUZZ ผลประเมินผู้เล่น ${stamp}</title>
+    const txt = kind === 'json' ? (r.replay ? JSON.stringify(r) : JSON.stringify(r, null, 2)) : `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BIOBUZZ ผลประเมินผู้เล่น ${stamp}</title>
 <style>body{margin:0;background:#151a22;color:#e9edf3;font-family:Sarabun,system-ui,sans-serif}${css.replace(/\.anaD \{[^}]*\}/, '.anaD{padding:16px}')}@media print{body,.anaD .bx{background:#fff;color:#000}.anaD .cd,.anaD .ai{border-color:#999}}</style></head>
 <body><div class="anaD" style="position:static;background:none"><div class="bx" style="max-height:none"><h2>📊 BIOBUZZ ผลประเมินผู้เล่น</h2>${body(r, true)}</div></div></body></html>`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: kind === 'json' ? 'application/json' : 'text/html' }));
@@ -418,5 +454,5 @@
   const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]
     || (code === 504 || !code ? 'AI ตอบไม่ทันเวลา / เน็ตหลุด ลองกดใหม่' : 'เรียก AI ไม่ได้ (' + code + ') ลองใหม่ภายหลัง'));
 
-  window.BBAna = { key, reset, feed, mount, unmount, finish, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
+  window.BBAna = { key, reset, feed, mount, unmount, finish, importReport, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
 })();
