@@ -5,7 +5,7 @@
 //
 // ตั้งค่าทั้งหมดที่ Netlify → Project configuration → Environment variables (ไม่เก็บในรีโป · ตั้งแล้วกด Deploy ใหม่ 1 ครั้ง)
 //   OPENROUTER_API_KEY = คีย์ OpenRouter (จำเป็น · ใช้ทางนี้ทางเดียว · ค่าใช้จ่ายตัดจาก credit ที่เติมไว้ใน OpenRouter)
-//   OPENROUTER_FREE_MODEL = รุ่นฟรีที่ลองก่อน (ไม่ตั้ง = google/gemma-4-31b-it:free · ใส่ off = ไม่ใช้รุ่นฟรี)
+//   OPENROUTER_FREE_MODEL = รุ่นฟรีที่ลองก่อน คั่นหลายรุ่นด้วย , (ไม่ตั้ง = google/gemma-4-31b-it:free,baidu/ernie-5.5-flash-preview:free · ใส่ off = ไม่ใช้รุ่นฟรี)
 //                        รุ่นฟรีจำกัด 20 ครั้ง/นาที และ 50 ครั้ง/วัน (เคยซื้อ credit รวม ≥ $10 = 1,000 ครั้ง/วัน) · เต็มโควตาหรือใช้ไม่ได้ = ใช้รุ่นเสียเงินต่ออัตโนมัติ
 //   OPENROUTER_MODEL   = รุ่นเสียเงิน (ไม่ตั้ง = anthropic/claude-haiku-5.5 เร็วและถูก · ละเอียดขึ้นใช้ anthropic/claude-sonnet-5.5 หรือ anthropic/claude-opus-5.5)
 //   AI_HOURLY_LIMIT    = จำนวนครั้งสูงสุดต่อชั่วโมงทั้งเว็บ (ไม่ตั้ง = 600 · โหมด AI สดใช้ ~15–25 ครั้ง/แมตช์) กันค่าใช้จ่ายบานปลาย
@@ -19,7 +19,8 @@ const cleanKey = k => k.replace(/^["'\s]+|["'\s]+$/g, '').replace(/^Bearer\s+/i,
 const keyShape = raw => { const k = cleanKey(raw); return { prefixOk: /^sk-or-/.test(k), prefix: /^sk-or-/.test(k) ? k.slice(0, 9) : '', len: k.length, last4: k.length > 12 ? k.slice(-4) : '', fixed: k !== raw.trim() }; };
 const PROV = {
   openrouter: { name: 'OpenRouter', key: () => cleanKey(env('OPENROUTER_API_KEY')), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-haiku-5.5',
-    free: () => { const v = env('OPENROUTER_FREE_MODEL'); return /^(off|none|no|0)$/i.test(v) ? '' : /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(v) ? v : 'google/gemma-4-31b-it:free'; } },
+    // รุ่นฟรี: ใส่ได้หลายรุ่นคั่นด้วย , (ตัวแรกติด rate limit = OpenRouter ลองตัวถัดไปเอง) · ใส่ off = ไม่ใช้รุ่นฟรี
+    free: () => { const v = env('OPENROUTER_FREE_MODEL'); if (/^(off|none|no|0)$/i.test(v)) return []; const l = v.split(',').map(x => x.trim()).filter(x => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(x)).slice(0, 3); return l.length ? l : ['google/gemma-4-31b-it:free', 'baidu/ernie-5.5-flash-preview:free']; } },
 };
 const order = () => ['openrouter'].filter(p => PROV[p].key());
 
@@ -119,13 +120,15 @@ export default async req => {
   if (d.op === 'test') {  // ทดสอบทุกทางที่ตั้งคีย์ไว้พร้อมกัน (คำถามสั้นมาก ใช้ token น้อย)
     const set = ps.filter(Boolean);
     if (set.length && !(await quota(2))) return json({ ok: false, why: 'quota', msg: `เกินโควตา ${hourly()} ครั้ง/ชม.` }, 429);
-    const P = PROV.openrouter, list = [P.free() && { id: 'free', name: 'OpenRouter รุ่นฟรี', model: P.free() }, { id: 'paid', name: 'OpenRouter รุ่นเสียเงิน', model: P.model() }].filter(Boolean);
+    const P = PROV.openrouter, fl = P.free(), list = [fl.length && { id: 'free', name: 'OpenRouter รุ่นฟรี', model: fl.join(' / '), models: fl }, { id: 'paid', name: 'OpenRouter รุ่นเสียเงิน', model: P.model(), models: [P.model()] }].filter(Boolean);
     const providers = await Promise.all(list.map(async (it, k) => {
       const o = { ...it, set: !!P.key(), ok: false, ms: 0, msg: '' };
       if (!o.set) { o.msg = 'ยังไม่ได้ตั้ง OPENROUTER_API_KEY ใน Netlify'; return o; }
       if (k === 0) o.key = keyShape(env('OPENROUTER_API_KEY'));
       const t0 = Date.now();
-      try { const r = await viaOpenRouter([it.model], 'ทดสอบการเชื่อมต่อ ตอบกลับคำเดียวว่า OK', 600, 'low', 25000); o.ok = !!r.text; o.model = r.model || o.model; o.msg = o.ok ? (it.id === 'free' ? 'ใช้งานได้ (ฟรี จำกัดจำนวนครั้งต่อวัน)' : 'ใช้งานได้') : 'ไม่ได้ข้อความกลับมา'; }
+      const { models, ...rest } = it; Object.assign(o, rest); delete o.models;
+      // จำกัด 15 วิ: ต่ำกว่าเวลาที่ Netlify ตัดการเชื่อมต่อที่เงียบ (~26 วิ)
+      try { const r = await viaOpenRouter(models, 'ทดสอบการเชื่อมต่อ ตอบกลับคำเดียวว่า OK', 600, 'low', 15000); o.ok = !!r.text; o.model = r.model || o.model; o.msg = o.ok ? (it.id === 'free' ? 'ใช้งานได้ (ฟรี จำกัดจำนวนครั้งต่อวัน)' : 'ใช้งานได้') : 'ไม่ได้ข้อความกลับมา'; }
       catch (e) { o.msg = e instanceof AIErr ? e.message : 'ทดสอบไม่ผ่าน'; }
       o.ms = Date.now() - t0; return o;
     }));
@@ -141,16 +144,16 @@ export default async req => {
   // ลองรุ่นฟรีก่อนโดยจำกัดเวลา (ช้า / ตอบว่าง / เต็มโควตา = ใช้รุ่นเสียเงินต่อทันทีด้วยเวลาที่เหลือ) · คิดเงินเฉพาะรุ่นที่ตอบจริง
   const work = async () => {
     const t0 = Date.now(), fails = [], P = PROV.openrouter, free = P.free(), paid = P.model();
-    const tries = [free && { m: free, name: 'รุ่นฟรี', cap: brief ? 9000 : 22000 }, { m: paid, name: 'รุ่นเสียเงิน', cap: BUDGET }].filter(Boolean);
+    const tries = [free.length && { m: free, name: 'รุ่นฟรี', cap: brief ? 9000 : 22000 }, { m: [paid], name: 'รุ่นเสียเงิน', cap: BUDGET }].filter(Boolean);
     for (const [i, t] of tries.entries()) {
       const left = BUDGET - (Date.now() - t0), ms = Math.min(t.cap, left), last = i === tries.length - 1; if (ms < 6000) break;
       try {
-        const r = await viaOpenRouter([t.m], content, brief ? 2000 : 8000, 'low', ms);  // effort low: ระดับ medium ทำให้ Haiku คิดจนหมด token ไม่เหลือเขียนคำตอบ (finish = length)
-        if (!r.text) { fails.push(`${t.name} ${t.m}: ไม่ได้ข้อความกลับมา${r.finish ? ' (' + r.finish + ')' : ''}`); continue; }
+        const r = await viaOpenRouter(t.m, content, brief ? 2000 : 8000, 'low', ms);  // effort low: ระดับ medium ทำให้ Haiku คิดจนหมด token ไม่เหลือเขียนคำตอบ (finish = length)
+        if (!r.text) { fails.push(`${t.name} ${r.model}: ไม่ได้ข้อความกลับมา${r.finish ? ' (' + r.finish + ')' : ''}`); continue; }
         return { ok: true, status: 200, via: 'OpenRouter' + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') };
       } catch (e) {
         const er = e instanceof AIErr ? e : new AIErr('err', 'ขัดข้อง', 500);
-        fails.push(`${t.name} ${t.m}: ${er.message}`);
+        fails.push(`${t.name} ${t.m.join(' / ')}: ${er.message}`);
         if (last) return { ok: false, status: er.status, why: er.why, msg: fails.join(' · ') };  // รุ่นฟรีผิดพลาดแบบใดก็ตาม = ลองรุ่นเสียเงินต่อ
       }
     }

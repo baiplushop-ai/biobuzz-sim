@@ -7,13 +7,13 @@
   const SLOT_TH = { R1: 'แดง 1', R2: 'แดง 2', B1: 'น้ำเงิน 1', B2: 'น้ำเงิน 2' }, KIND_TH = { tele: 'TELEOP 2:00', full: 'แมตช์เต็ม', free: 'ซ้อมอิสระ' };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v)), r1 = v => Math.round(v * 10) / 10, pc = v => Math.round(v * 100);
-  const fmtEl = el => el == null ? '—' : el < 30 ? 'AUTO ' + Math.floor(el) + ' วิ' : (() => { const r = Math.max(0, 158 - el); return Math.floor(r / 60) + ':' + String(Math.floor(r % 60)).padStart(2, '0'); })();  // เวลาที่เหลือในแมตช์ (แบบนาฬิกาบนจอ)
+  const fmtEl = el => el == null ? '—' : M?.kind === 'free' ? '+' + fmt(el - (M.startEl ?? el)) : el < 30 ? 'AUTO ' + Math.floor(el) + ' วิ' : (() => { const r = Math.max(0, 158 - el); return Math.floor(r / 60) + ':' + String(Math.floor(r % 60)).padStart(2, '0'); })();  // เวลาที่เหลือในแมตช์ (แบบนาฬิกาบนจอ)
   const fgroup = fs => { const c = {}; for (const f of fs) { const k = f.rule + (f.sev === 'MAJOR' ? ' MAJOR' : f.sev === 'MINOR' ? ' MINOR' : ' เตือน'); c[k] = (c[k] || 0) + 1; } return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, n]) => n > 1 ? `${k} ×${n}` : k).join(', '); };  // FOUL ซ้ำ = รวมเป็น ×จำนวน
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   // รหัสพิเศษเก็บในเครื่องนี้ 12 ชม. (ใช้ยืนยันกับเซิร์ฟเวอร์ตอนกดให้ AI วิเคราะห์) · กด “ออกจากโหมดผู้ชมพิเศษ” เพื่อลบ
   const key = {
     get() { try { const o = JSON.parse(localStorage.getItem(MK) || 'null'); if (o && typeof o.k === 'string' && o.exp > Date.now()) return o.k; localStorage.removeItem(MK); } catch {} return ''; },
-    set(k) { try { localStorage.setItem(MK, JSON.stringify({ k: String(k).slice(0, 40), exp: Date.now() + MK_TTL })); } catch {} },
+    set(k) { try { localStorage.setItem(MK, JSON.stringify({ k: String(k).slice(0, 128), exp: Date.now() + MK_TTL })); } catch {} },
     clear() { try { localStorage.removeItem(MK); } catch {} },
   };
 
@@ -30,7 +30,8 @@
     save(a) { HC = a.slice(-HMAX); try { localStorage.setItem(HK, JSON.stringify(HC)); } catch {} }, clear() { HC = []; try { localStorage.removeItem(HK); } catch {} } };
   const summ = r => ({ ts: r.ts, kind: r.kind, end: r.end, score: r.score, players: r.players.filter(p => !p.bot && p.intent != null && p.m.T >= 40).map(p => ({ name: p.name, id: p.id, al: p.alliance, i: p.intent, s: p.skill, v: p.v,
     acc: p.m.acc, shots: p.m.shots, hits: p.m.hits, cyc: p.m.cycAvg, mv: p.m.mv, idle: p.m.idleN, wall: p.m.wallPm, fouls: p.fouls.length, T: p.m.T })) });
-  const prevOf = (name, before) => !nkey(name) ? [] : hist.load().filter(h => h.ts < before).flatMap(h => h.players.filter(q => nkey(q.name) === nkey(name)).map(q => ({ ...q, ts: h.ts }))).slice(-5);
+  const GENERIC = new Set(['', 'ผู้เล่น', 'player', 'bot']);  // ชื่อกลาง ๆ ไม่ใช้เทียบประวัติ (หลายคนใช้ชื่อเดียวกัน)
+  const prevOf = (name, before) => GENERIC.has(nkey(name)) ? [] : hist.load().filter(h => h.ts < before).flatMap(h => h.players.filter(q => nkey(q.name) === nkey(name)).map(q => ({ ...q, ts: h.ts }))).slice(-5);
   const newP = (r, el) => ({ id: r.id, al: r.al, name: r.name, T: 0, mv: 0, spin: 0, path: 0, win: null, stSum: 0, stN: 0, aimless: 0,
     idle: 0, idleN: 0, idleMax: 0, hold: 0, holdN: 0, holdMax: 0, rev: 0, revCd: 0, vh: [], pick: 0, load: null, drops: [], shotsEv: [],
     s0: null, h0: null, c0: null, hit0: null, wall0: null, shots: 0, hits: 0, cyc: [], hitN: 0, wallN: 0, lastShots: null,
@@ -57,6 +58,7 @@
       // Bot: คำนวณคะแนนไว้เทียบในแผง (ไม่ส่งให้ AI ไม่เก็บประวัติ) · คนออกกลางแมตช์ (Bot ขับแทน) = เก็บผลของคนไว้ หยุดนับต่อ
       if (!r.human && p && !p.bot) { p.gone = true; continue; }
       if (r.human && p?.bot) p = null;  // คนกลับมาขับตำแหน่งที่เคยเป็น Bot = เริ่มนับใหม่เป็นของคน
+      if (r.human && p?.gone) { (M.arch ||= []).push(p); p = null; }  // คนที่ออกไปแล้วกลับมา (หรือคนใหม่มานั่งแทน) = เก็บผลเดิมแยกไว้ นับใหม่ ไม่เอาช่วงที่ Bot ขับมารวม
       if (!p) p = P[r.id] = Object.assign(newP(r, f.el), { bot: !r.human });
       p.name = p.bot ? 'Bot' : r.name || p.name; p.gone = false; p.ping = r.ping || 0; p.miss = r.miss || 0;
       p.fouls = (f.fouls || []).filter(x => x.by === r.id).map(x => ({ rule: x.rule, sev: x.sev, pts: x.pts, rem: Math.round(x.rem), why: String(x.why || '').slice(0, 70) }));
@@ -81,14 +83,14 @@
           endIdle(p); endHold(p);
         }
       }
-      if (r.hits > p.hits && p.shotsEv.length) for (let k = r.hits - p.hits, i = p.shotsEv.length - 1; k > 0 && i >= 0; i--) { const s = p.shotsEv[i]; if (s.hit == null && f.el - s.el < 5) { s.hit = true; k--; } }  // ลูกเข้า CELL ภายใน ~5 วิหลังยิง = นัดนั้นเข้า
+      if (r.hits > p.hits && p.shotsEv.length) { let k = r.hits - p.hits; for (const s of p.shotsEv) { if (!k) break; if (s.hit == null && f.el - s.el < 5) { s.hit = true; k--; } } }  // ลูกเข้า CELL ภายใน ~5 วิหลังยิง = นัดที่ยิงก่อน (ยังไม่รู้ผล) เข้า
       for (const s of p.shotsEv) if (s.hit == null && f.el - s.el >= 5) s.hit = false;
       p.lastShots = r.shots; p.shots = r.shots; p.hits = r.hits; p.cyc = r.cyc;
       if (play) {
         const b = bucketOf(p); p.to = f.el;
-        if (r.hitN > p.hitN && p.hitN) b.coll += r.hitN - p.hitN; if (r.wallN > p.wallN && p.wallN) b.walls += r.wallN - p.wallN;
+        if (p.hitSeen && r.hitN > p.hitN) b.coll += r.hitN - p.hitN; if (p.hitSeen && r.wallN > p.wallN) b.walls += r.wallN - p.wallN;
       }
-      p.hitN = r.hitN; p.wallN = r.wallN;
+      p.hitN = r.hitN; p.wallN = r.wallN; p.hitSeen = true;
       if (!dt || r.dead) continue;
       const b = bucketOf(p); p.T += dt; b.t += dt;
       const moving = spd > 0.12 || w > 0.6; if (moving) { p.mv += dt; b.mv += dt; }
@@ -116,11 +118,12 @@
   }
   async function liveAsk() {
     const k = key.get(); if (!k) { LV.off = 'ไม่พบรหัสพิเศษในเครื่องนี้'; return; }
-    LV.busy = true; LV.at = Date.now(); const s = snapshot(), el = M?.lastEl;
+    LV.busy = true; LV.at = Date.now(); const s = snapshot(), el = M?.lastEl, m0 = M;
     const [code, res] = await callAI(k, 'brief', s);
+    if (M !== m0) return;  // แมตช์เปลี่ยนไประหว่างรอ = ทิ้งคำตอบเก่า (reset() ล้าง busy แล้ว)
     LV.busy = false; LV.at = Date.now();
     if (res?.ok && typeof res.text === 'string') { LV.list.push({ el, at: Date.now(), text: res.text.slice(0, 4000) }); if (LV.list.length > 40) LV.list.shift(); LV.msg = ''; }
-    else { LV.msg = aiErr(code, res); if ([403, 501, 413].includes(code) || (code === 429 && res?.why !== 'ai') || ['aikey', 'perm', 'model', 'bad', 'credit', 'fail', 'nokey', 'policy'].includes(res?.why)) LV.off = LV.msg; }  // แก้เองไม่ได้ = หยุดเรียกซ้ำ (ไม่เปลืองโควตา)
+    else { LV.msg = aiErr(code, res); if ([403, 501, 413].includes(code) || (code === 429 && res?.why !== 'ai') || ['aikey', 'perm', 'model', 'bad', 'credit', 'nokey', 'policy'].includes(res?.why)) LV.off = LV.msg; }  // แก้เองไม่ได้ = หยุดเรียกซ้ำ (ไม่เปลืองโควตา)
     paintPanel();
   }
 
@@ -176,7 +179,7 @@
   }
 
   function snapshot(fin) {
-    const players = SID.filter(id => P[id]).map(id => { const p = P[id], c = calc(p);
+    const players = [...SID.filter(id => P[id]).map(id => P[id]), ...(M?.arch || [])].map(p => { const id = p.id, c = calc(p);
       return { id, alliance: p.al, name: p.name, gone: p.gone, bot: !!p.bot, ...c, ser: p.ser.slice(), prev: p.bot ? [] : prevOf(p.name, M?.ts || Date.now()), bk: p.bk.map(b => ({ t: Math.round(b.t), mv: b.t ? pc(b.mv / b.t) : 0, pick: b.pick, shots: b.shots, walls: b.walls, coll: b.coll })), fouls: p.fouls, shotsEv: p.shotsEv.slice(-40), park: fin?.park ? !!fin.park[id] : null, from: r1(p.from), to: r1(p.to),
         ev: p.ev.slice(), zones: p.T ? Object.fromEntries(Object.entries(p.zt).map(([k, v]) => [k, pc(v / p.T)])) : null, ring: [p.gmin, p.gmax],
         endgame: p.eg.t ? { sec: Math.round(p.eg.t), moving: pc(p.eg.mv / p.eg.t), inLoadingZone: pc(p.eg.lz / p.eg.t), shots: p.shotsEv.filter(s => s.el >= 128).length, hits: p.shotsEv.filter(s => s.el >= 128 && s.hit).length } : null }; });
@@ -254,6 +257,7 @@
     return `<div style="margin-top:8px;font-size:12px"><b>เทียบแมตช์ก่อนหน้า</b> <span class="mut">(${prev.length} แมตช์ · ชื่อเดียวกันในเครื่องนี้)</span><br>เทียบค่าเฉลี่ย: ตั้งใจ ${sg(di)} · ฝีมือ ${sg(ds)}${accD != null ? ` · ความแม่น ${sg(accD)}%` : ''}</div>${barsSvg(items)}`;
   }
 
+  function unmount() { panelEl = null; }
   function mount(el) {
     addCss(); panelEl = el;
     if (!el.dataset.tg) { el.dataset.tg = '1'; el.addEventListener('toggle', e => { const k = e.target?.dataset?.k; if (!k || !(k in OPEN) || OPEN[k] === e.target.open) return; OPEN[k] = e.target.open; try { localStorage.setItem('bb-ana-open', JSON.stringify(OPEN)); } catch {} if (k === 'why') el.querySelectorAll('details[data-k="why"]').forEach(d => { d.open = OPEN.why; }); }, true); }  // toggle ไม่ bubble = ดักแบบ capture
@@ -334,7 +338,7 @@
   }
   function body(r, forFile) {
     const sc = r.score || {}, t = new Date(r.ts);
-    const head = `<div class="meta">${esc(t.toLocaleString('th-TH'))} · ${esc(KIND_TH[r.kind] || r.kind || '')} · สกอร์ <b style="color:#e4453c">${sc.red ?? 0}</b> – <b style="color:#6aa2ff">${sc.blue ?? 0}</b> · ${r.end === 'end' ? 'จบแมตช์' : r.end === 'lost' ? 'ห้องปิด / หลุดก่อนจบ (ข้อมูลไม่ครบแมตช์)' : 'ระหว่างแมตช์ (ข้อมูลถึงตอนนี้)'}</div>`;
+    const head = `<div class="meta">${esc(t.toLocaleString('th-TH'))} · ${esc(KIND_TH[r.kind] || r.kind || '')} · สกอร์ <b style="color:#e4453c">${+sc.red || 0}</b> – <b style="color:#6aa2ff">${+sc.blue || 0}</b> · ${r.end === 'end' ? 'จบแมตช์' : r.end === 'lost' ? 'ห้องปิด / หลุดก่อนจบ (ข้อมูลไม่ครบแมตช์)' : 'ระหว่างแมตช์ (ข้อมูลถึงตอนนี้)'}</div>`;
     const hum = r.players.filter(p => !p.bot), bots = r.players.filter(p => p.bot);
     const botBox = bots.length ? `<details class="cd" style="margin:0 0 10px"><summary style="cursor:pointer"><b>🤖 Bot ${bots.length} ตัว</b> <span class="mut">(อ้างอิงไว้เทียบ ไม่ประเมิน ไม่ส่งให้ AI)</span></summary><div class="gr">${bots.map(p => `<div>${who(p)}${big(p)}</div>`).join('')}</div></details>` : '';
     const cards = hum.map(p => { const m = p.m, tr = p.bk.length ? `<div class="mut" style="font-size:11px;margin-top:4px">การขยับทุก 20 วิ (ช่วงหลังตกลง = ล้า / เลิกพยายาม)</div><div class="tr">${p.bk.map(b => `<i title="${b.mv}% · เก็บ ${b.pick} · ยิง ${b.shots}" style="height:${Math.max(4, b.mv)}%;background:${CI}"></i>`).join('')}</div>` : '';
@@ -356,7 +360,7 @@
   function paintDlg() {
     const r = rep(); if (!r) return;
     if (!dlg) { dlg = document.createElement('div'); dlg.className = 'anaD'; document.body.appendChild(dlg); dlg.addEventListener('toggle', fitDlg, true); }
-    const opts = reports.map((x, i) => `<option value="${i}" ${i === cur ? 'selected' : ''}>แมตช์ ${i + 1} · ${new Date(x.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} · ${x.score.red}-${x.score.blue}</option>`).join('');
+    const opts = reports.map((x, i) => `<option value="${i}" ${i === cur ? 'selected' : ''}>แมตช์ ${i + 1} · ${new Date(x.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} · ${+x.score?.red || 0}-${+x.score?.blue || 0}</option>`).join('');
     dlg.innerHTML = `<div class="bx" role="dialog" aria-label="ผลประเมินผู้เล่น"><h2>📊 ผลประเมินผู้เล่น</h2><div class="meta">เห็นเฉพาะผู้ชมพิเศษเครื่องนี้ · ผู้เล่นและ host ไม่ได้รับข้อมูลนี้</div>
       ${body(r)}
       <div class="ft"><button class="go" data-a="ai" ${aiBusy || !r.players.some(p => !p.bot) ? 'disabled' : ''}>${aiBusy ? '🤖 AI กำลังวิเคราะห์… (ไม่เกิน 1 นาที)' : r.ai ? '🤖 ให้ AI วิเคราะห์ใหม่' : '🤖 ให้ AI วิเคราะห์ละเอียด'}</button>
@@ -392,10 +396,10 @@
   const forAI = (r, brief) => {
     const hum = r.players.filter(p => !p.bot);
     if (brief) return { kind: r.kind, now: fmtEl(r.endEl), score: r.score, benchmark: benchmark(r), players: hum.map(p => ({ id: p.id, alliance: p.alliance, verdict: p.v, intent: p.intent, skill: p.skill, notes: p.why.slice(0, 4),
-      last20s: p.bk.slice(-2), recentEvents: p.ev.slice(-10), zones: p.zones, shots: p.m.shots, hits: p.m.hits, ping: p.m.ping })) };
+      last20s: p.bk.length > 1 && (p.bk.at(-1).t || 0) < 10 ? p.bk.slice(-2) : p.bk.slice(-1), recentEvents: p.ev.slice(-10), zones: p.zones, shots: p.m.shots, hits: p.m.hits, ping: p.m.ping })) };
     return { kind: r.kind, end: r.end, score: r.score, window: { from: fmtEl(r.startEl), to: fmtEl(r.endEl) }, scoreTimeline: r.scoreTimeline, benchmark: benchmark(r), drills: DRILLS(),
       players: hum.map(p => ({ id: p.id, alliance: p.alliance, leftMidMatch: p.gone, verdict: p.v, intent: p.intent, skill: p.skill, teamRing: p.ring, metrics: p.m, notes: p.why, every20s: p.bk, zones: p.zones, endgame: p.endgame,
-        events: p.ev, fouls: p.fouls, park: p.park, scoreEvery10s: p.ser, previousMatches: prevAI(p) })) };
+        events: p.ev, fouls: p.fouls.slice(-40), park: p.park, scoreEvery10s: p.ser, previousMatches: prevAI(p) })) };
   };
   async function askAI(r) {
     if (aiBusy) return; const k = key.get(); if (!k) { aiMsg = 'ไม่พบรหัสพิเศษในเครื่องนี้ (หมดอายุ 12 ชม.) ออกแล้วเข้าชมใหม่ด้วยรหัสพิเศษ'; return paintDlg(); }
@@ -414,5 +418,5 @@
   const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]
     || (code === 504 || !code ? 'AI ตอบไม่ทันเวลา / เน็ตหลุด ลองกดใหม่' : 'เรียก AI ไม่ได้ (' + code + ') ลองใหม่ภายหลัง'));
 
-  window.BBAna = { key, reset, feed, mount, finish, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
+  window.BBAna = { key, reset, feed, mount, unmount, finish, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
 })();

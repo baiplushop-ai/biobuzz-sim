@@ -48,7 +48,7 @@ export default async req => {
   }
   if (d?.op === 'del') { if (tok) await st.delete('r/' + await sha(tok)).catch(() => {}); return json({ ok: true }); }
   if (d?.op === 'key') {
-    const id = typeof d.id === 'string' && /^[0-9a-f]{16}$/.test(d.id) ? d.id : '', key = str(d.key, 40);
+    const id = typeof d.id === 'string' && /^[0-9a-f]{16}$/.test(d.id) ? d.id : '', key = str(d.key, 128);
     const r = id && await st.get('r/' + id, { type: 'json' }).catch(() => null);
     if (!r || now - r.at > TTL) return json({ ok: false, why: 'gone' }, 404);
     if (key && key === r.code) return json({ ok: true, code: r.code, master: false });

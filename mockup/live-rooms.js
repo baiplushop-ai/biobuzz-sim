@@ -50,7 +50,7 @@
       <span class="lrClock" data-clk="${esc(r.id)}">${clock(r)}</span><span class="lrV" title="เครื่องที่ต่ออยู่ (ผู้เล่น + ผู้ชม) ไม่นับ host">🔗 ${r.np} · 👁 ${r.nv}</span>
       <button class="${open ? '' : 'go'}" data-watch="${esc(r.id)}">${open ? 'ปิด' : '👁 เข้าชม'}</button></div>
       <div class="lrTeams">${team(r, 0, 'r', '🔴')}<em>vs</em>${team(r, 2, 'b', '🔵')}</div>
-      ${open ? `<div class="lrKey"><input data-key placeholder="รหัสห้อง 6 หลัก หรือรหัสพิเศษ" maxlength="40" autocomplete="off" value="${esc(st.key)}"><button class="go" data-go ${st.busy ? 'disabled' : ''}>${st.busy ? 'กำลังตรวจ…' : 'เข้าชม'}</button>
+      ${open ? `<div class="lrKey"><input data-key placeholder="รหัสห้อง 6 หลัก หรือรหัสพิเศษ" maxlength="128" autocomplete="off" value="${esc(st.key)}"><button class="go" data-go ${st.busy ? 'disabled' : ''}>${st.busy ? 'กำลังตรวจ…' : 'เข้าชม'}</button>
         ${st.msg ? `<span class="lrErr">${esc(st.msg)}</span>` : '<span class="lrNote">ขอรหัสห้องจาก host · เข้าเป็นผู้ชม ไม่รบกวนผู้เล่น</span>'}</div>` : ''}</div>`;
   };
   function paint() {
@@ -77,7 +77,7 @@
     try { const r = await fetch(API, { method: 'POST', body: JSON.stringify({ op: 'key', id, key }), signal: AbortSignal.timeout(8000) }); code = r.status; d = await r.json().catch(() => null); } catch {}
     st.busy = false;
     // รหัสพิเศษถูก: จำไว้ในเครื่องนี้ 12 ชม. ให้หน้า simulator เปิดแผงวิเคราะห์ผู้เล่น (เห็นเฉพาะเครื่องนี้) และใช้ยืนยันตอนเรียก AI
-    if (d?.ok && d.master) try { localStorage.setItem('bb-mk', JSON.stringify({ k: key.slice(0, 40), exp: Date.now() + 12 * 3600e3 })); } catch {}
+    if (d?.ok && d.master) try { localStorage.setItem('bb-mk', JSON.stringify({ k: key.slice(0, 128), exp: Date.now() + 12 * 3600e3 })); } catch {}
     if (d?.ok && /^\d{6}$/.test(d.code)) { const room = rooms().find(r => r.id === id); st.open = null; st.key = ''; st.msg = ''; paint(); m.opt.onWatch?.(d.code, room, !!d.master); return; }
     st.msg = code === 403 ? 'รหัสไม่ถูกต้อง' : code === 404 ? 'ห้องนี้ปิดไปแล้ว' : 'ตรวจรหัสไม่ได้ (เน็ต / เซิร์ฟเวอร์) ลองใหม่'; paint();
     if (code === 404) refresh();
