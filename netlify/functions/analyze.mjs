@@ -5,7 +5,9 @@
 //
 // ตั้งค่าทั้งหมดที่ Netlify → Project configuration → Environment variables (ไม่เก็บในรีโป · ตั้งแล้วกด Deploy ใหม่ 1 ครั้ง)
 //   OPENROUTER_API_KEY = คีย์ OpenRouter (จำเป็น · ใช้ทางนี้ทางเดียว · ค่าใช้จ่ายตัดจาก credit ที่เติมไว้ใน OpenRouter)
-//   OPENROUTER_MODEL   = รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-haiku-5.5 เร็วและถูก · ละเอียดขึ้นใช้ anthropic/claude-sonnet-5.5 หรือ anthropic/claude-opus-5.5)
+//   OPENROUTER_FREE_MODEL = รุ่นฟรีที่ลองก่อน (ไม่ตั้ง = google/gemma-4-31b-it:free · ใส่ off = ไม่ใช้รุ่นฟรี)
+//                        รุ่นฟรีจำกัด 20 ครั้ง/นาที และ 50 ครั้ง/วัน (เคยซื้อ credit รวม ≥ $10 = 1,000 ครั้ง/วัน) · เต็มโควตาหรือใช้ไม่ได้ = ใช้รุ่นเสียเงินต่ออัตโนมัติ
+//   OPENROUTER_MODEL   = รุ่นเสียเงิน (ไม่ตั้ง = anthropic/claude-haiku-5.5 เร็วและถูก · ละเอียดขึ้นใช้ anthropic/claude-sonnet-5.5 หรือ anthropic/claude-opus-5.5)
 //   AI_HOURLY_LIMIT    = จำนวนครั้งสูงสุดต่อชั่วโมงทั้งเว็บ (ไม่ตั้ง = 600 · โหมด AI สดใช้ ~15–25 ครั้ง/แมตช์) กันค่าใช้จ่ายบานปลาย
 import { isMaster } from '../lib/master.mjs';
 
@@ -16,7 +18,8 @@ const cleanKey = k => k.replace(/^["'\s]+|["'\s]+$/g, '').replace(/^Bearer\s+/i,
 // รูปร่างของคีย์ไว้ช่วยหาสาเหตุ (ไม่ส่งตัวคีย์): ขึ้นต้นถูกไหม ยาวเท่าไร 4 ตัวท้าย · ตัวคีย์ไม่ออกจากเซิร์ฟเวอร์
 const keyShape = raw => { const k = cleanKey(raw); return { prefixOk: /^sk-or-/.test(k), prefix: /^sk-or-/.test(k) ? k.slice(0, 9) : '', len: k.length, last4: k.length > 12 ? k.slice(-4) : '', fixed: k !== raw.trim() }; };
 const PROV = {
-  openrouter: { name: 'OpenRouter', key: () => cleanKey(env('OPENROUTER_API_KEY')), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-haiku-5.5' },
+  openrouter: { name: 'OpenRouter', key: () => cleanKey(env('OPENROUTER_API_KEY')), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-haiku-5.5',
+    free: () => { const v = env('OPENROUTER_FREE_MODEL'); return /^(off|none|no|0)$/i.test(v) ? '' : /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(v) ? v : 'google/gemma-4-31b-it:free'; } },
 };
 const order = () => ['openrouter'].filter(p => PROV[p].key());
 
@@ -76,12 +79,13 @@ async function quota(n = 1) {  // นับครั้งที่เรีย�
 }
 class AIErr extends Error { constructor(why, msg, status, retry = true) { super(msg); Object.assign(this, { why, status, retry }); } }  // retry = ลองทางสำรองได้
 
-async function viaOpenRouter(model, content, maxTok, effort, ms) {
+async function viaOpenRouter(models, content, maxTok, effort, ms) {  // models = [รุ่นฟรี, รุ่นเสียเงิน] · OpenRouter ลองตามลำดับในคำขอเดียว คิดเงินตามรุ่นที่ตอบจริง
+  const model = models[0], pick = models.length > 1 ? { models } : { model };
   let q, d;
   try {
     q = await fetch((env('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1') + '/chat/completions', { method: 'POST', signal: AbortSignal.timeout(ms),
       headers: { authorization: 'Bearer ' + PROV.openrouter.key(), 'content-type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: maxTok, reasoning: { effort }, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] }) });
+      body: JSON.stringify({ ...pick, max_tokens: maxTok, reasoning: { effort }, messages: [{ role: 'system', content: SYS }, { role: 'user', content }] }) });
     d = await q.json().catch(() => null);
   } catch (e) { throw e?.name === 'TimeoutError' ? new AIErr('timeout', 'ตอบไม่ทันเวลา', 504, false) : new AIErr('conn', 'ต่อไม่ได้', 502); }
   const em = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 160), emFull = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 600);
@@ -99,7 +103,9 @@ async function viaOpenRouter(model, content, maxTok, effort, ms) {
   if (c?.finish_reason === 'content_filter') throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);
   return { text, model: String(d?.model || model), cut: c?.finish_reason === 'length' };
 }
-const run = (p, ...a) => viaOpenRouter(PROV[p].model(), ...a);
+const chain = () => [PROV.openrouter.free(), PROV.openrouter.model()].filter(Boolean);
+const run = (p, ...a) => viaOpenRouter(chain(), ...a);
+const isFree = m => /:free$/.test(String(m || ''));
 
 export default async req => {
   if (req.method !== 'POST') return json({ ok: false, why: 'method' }, 405);
@@ -110,17 +116,18 @@ export default async req => {
 
   if (d.op === 'test') {  // ทดสอบทุกทางที่ตั้งคีย์ไว้พร้อมกัน (คำถามสั้นมาก ใช้ token น้อย)
     const set = ps.filter(Boolean);
-    if (set.length && !(await quota(set.length))) return json({ ok: false, why: 'quota', msg: `เกินโควตา ${hourly()} ครั้ง/ชม.` }, 429);
-    const providers = await Promise.all(['openrouter'].map(async id => {
-      const P = PROV[id], o = { id, name: P.name, set: !!P.key(), model: P.model(), ok: false, ms: 0, msg: '' };
+    if (set.length && !(await quota(2))) return json({ ok: false, why: 'quota', msg: `เกินโควตา ${hourly()} ครั้ง/ชม.` }, 429);
+    const P = PROV.openrouter, list = [P.free() && { id: 'free', name: 'OpenRouter รุ่นฟรี', model: P.free() }, { id: 'paid', name: 'OpenRouter รุ่นเสียเงิน', model: P.model() }].filter(Boolean);
+    const providers = await Promise.all(list.map(async (it, k) => {
+      const o = { ...it, set: !!P.key(), ok: false, ms: 0, msg: '' };
       if (!o.set) { o.msg = 'ยังไม่ได้ตั้ง OPENROUTER_API_KEY ใน Netlify'; return o; }
-      o.key = keyShape(env('OPENROUTER_API_KEY'));
+      if (k === 0) o.key = keyShape(env('OPENROUTER_API_KEY'));
       const t0 = Date.now();
-      try { const r = await run(id, 'ทดสอบการเชื่อมต่อ ตอบกลับคำเดียวว่า OK', 600, 'low', 25000); o.ok = !!r.text; o.model = r.model || o.model; o.msg = o.ok ? 'ใช้งานได้' : 'ไม่ได้ข้อความกลับมา'; }
+      try { const r = await viaOpenRouter([it.model], 'ทดสอบการเชื่อมต่อ ตอบกลับคำเดียวว่า OK', 600, 'low', 25000); o.ok = !!r.text; o.model = r.model || o.model; o.msg = o.ok ? (it.id === 'free' ? 'ใช้งานได้ (ฟรี จำกัดจำนวนครั้งต่อวัน)' : 'ใช้งานได้') : 'ไม่ได้ข้อความกลับมา'; }
       catch (e) { o.msg = e instanceof AIErr ? e.message : 'ทดสอบไม่ผ่าน'; }
       o.ms = Date.now() - t0; return o;
     }));
-    return json({ ok: providers.some(p => p.ok), primary: ps[0] || null, providers });
+    return json({ ok: providers.some(p => p.ok), primary: providers[0]?.id || null, providers });
   }
 
   if (!ps.length) return json({ ok: false, why: 'nokey', msg: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)' }, 501);
@@ -133,7 +140,7 @@ export default async req => {
     try {
       const r = await run(p, content, brief ? 2000 : 8000, brief ? 'low' : 'medium', left);
       if (!r.text) { fails.push(`${PROV[p].name}: ไม่ได้ข้อความกลับมา`); continue; }
-      return json({ ok: true, via: PROV[p].name, model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') });
+      return json({ ok: true, via: PROV[p].name + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') });
     } catch (e) {
       const er = e instanceof AIErr ? e : new AIErr('err', 'ขัดข้อง', 500);
       fails.push(`${PROV[p].name}: ${er.message}`);

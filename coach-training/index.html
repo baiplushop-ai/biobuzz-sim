@@ -115,7 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.7</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.8</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -148,7 +148,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
     <p class="mut" style="margin:6px 0;font-size:13px">ใช้ตอนเข้าชมห้องออนไลน์ด้วยรหัสพิเศษ: แผงวิเคราะห์ผู้เล่นและผลจาก AI เห็นเฉพาะเครื่องผู้ชมพิเศษ ไม่ทำให้เครื่องผู้เล่นช้า</p>
     <p class="mut" style="margin:6px 0;font-size:13px">AI เรียกผ่าน OpenRouter อย่างเดียว (ตัด credit ที่เติมไว้ใน OpenRouter) · ตั้งที่ Netlify → Project configuration → Environment variables แล้ว Deploy ใหม่ 1 ครั้ง (หน้านี้ไม่เห็นคีย์):<br>
       • <code>OPENROUTER_API_KEY</code> คีย์จาก openrouter.ai/settings/keys (จำเป็น)<br>
-      • <code>OPENROUTER_MODEL</code> รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-haiku-5.5)</p>
+      • ใช้ <b>รุ่นฟรี</b> ก่อน: <code>OPENROUTER_FREE_MODEL</code> (ไม่ตั้ง = google/gemma-4-31b-it:free · ใส่ <code>off</code> = ไม่ใช้) จำกัด 50 ครั้ง/วัน (เคยซื้อ credit รวม ≥ $10 = 1,000 ครั้ง/วัน)<br>
+      • เต็มโควตาฟรีหรือใช้ไม่ได้ ใช้ <b>รุ่นเสียเงิน</b> ต่ออัตโนมัติ: <code>OPENROUTER_MODEL</code> (ไม่ตั้ง = anthropic/claude-haiku-5.5)</p>
     <div id="aiProv" style="margin:6px 0;font-size:14px"></div>
     <p style="margin:8px 0 2px">รหัสพิเศษ (ใช้ยืนยันตอนทดสอบ)</p>
     <input type="password" id="aiKey" maxlength="40" autocomplete="off">
@@ -184,8 +185,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=3.7"></script>
-<script src="../mockup/live-rooms.js?v=3.7"></script>
+<script src="../mockup/scenarios.js?v=3.8"></script>
+<script src="../mockup/live-rooms.js?v=3.8"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
