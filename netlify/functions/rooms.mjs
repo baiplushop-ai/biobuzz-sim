@@ -4,9 +4,8 @@
 //   POST { op:'beat', tok, code, info } host อัปเดตป้ายห้อง · tok = ความลับของ host (id ห้อง = hash ของ tok คนอื่นจึงเขียนทับไม่ได้)
 //   POST { op:'del', tok }              host ปิดห้อง
 //   POST { op:'key', id, key }          ขอเข้าชม: key ต้องเป็นรหัสห้องของห้องนั้น หรือรหัสพิเศษ (เข้าชมได้ทุกห้อง) → { ok, code }
-// รหัสพิเศษ (เข้าชมได้ทุกห้อง): รีโปนี้เปิดสาธารณะ จึงเก็บแค่ค่า hash แบบย้อนกลับไม่ได้ (PBKDF2) ไม่เก็บตัวรหัส · ไม่สนตัวพิมพ์เล็ก/ใหญ่
-// เปลี่ยนรหัสได้ที่ Netlify → Environment variables: WATCH_MASTER_KEY = รหัสใหม่ (ตั้งแล้วใช้รหัสนั้นแทนค่าเริ่มต้น)
-const MASTER_SALT = 'biobuzz-watch-v1', MASTER_HASH = '1e1e41864429ddd4cbf92c1f3677fcdda853168f4c8ada7ec5427a6636553883';
+// รหัสพิเศษ (เข้าชมได้ทุกห้อง): ตรวจด้วย ../lib/master.mjs (เก็บแค่ hash · เปลี่ยนได้ด้วย WATCH_MASTER_KEY)
+import { isMaster } from '../lib/master.mjs';
 const TTL = 45e3;  // host เงียบไปนานกว่านี้ = ถือว่าห้องปิดแล้ว (ปิดแท็บ / เน็ตหลุด)
 const KIND = ['tele', 'full', 'free'], ST = ['lobby', 'play', 'res'], TYPE = ['human', 'bot', 'none'];
 
@@ -15,9 +14,6 @@ const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { statu
 const str = (v, n) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
 const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(+v) || 0));
 const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
-const pbk = async k => { const b = await crypto.subtle.importKey('raw', new TextEncoder().encode(k), 'PBKDF2', false, ['deriveBits']);
-  return [...new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode(MASTER_SALT), iterations: 120000 }, b, 256))].map(x => x.toString(16).padStart(2, '0')).join(''); };
-const isMaster = async k => { const env = (process.env.WATCH_MASTER_KEY || '').trim(); k = k.toLowerCase(); return env ? k === env.toLowerCase() : await pbk(k) === MASTER_HASH; };
 const clean = i => ({
   host: str(i?.host, 16) || 'host', st: ST.includes(i?.st) ? i.st : 'lobby', kind: KIND.includes(i?.kind) ? i.kind : 'tele',
   sl: (Array.isArray(i?.sl) ? i.sl : []).slice(0, 4).map(s => ({ t: TYPE.includes(s?.t) ? s.t : 'none', n: str(s?.n, 16) })),

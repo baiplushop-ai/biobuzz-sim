@@ -103,6 +103,7 @@
 #left.mini .lx, #left.nowhy #gateWhy, #left.mini #gateTog { display:none } #left.mini #gateRow { cursor:default }
 #gateRow { cursor:pointer } #gateRow:hover #gateTog { color:var(--fg, #fff) }
 #right.mini #freeBox, #right.mini #help, #right.mini #simNote { display:none }
+#right.ana { width:330px }
 </style>
 </head>
 <body>
@@ -130,6 +131,7 @@
   <div id="right" class="panel">
     <button class="sec" id="rMini" title="หุบ / แสดงการตั้งค่าและคำอธิบายในแผงนี้ (จำไว้ในเครื่อง)">▴ หุบ</button>
     <div id="scnBox"></div>
+    <div id="anaBox"></div>
     <div id="coachBox"></div>
     <div id="freeBox"></div>
     <details id="help"><summary style="cursor:pointer;color:var(--mut)">ปุ่มควบคุม</summary>
@@ -180,8 +182,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=3.1"></script>
-<script src="live-rooms.js?v=3.1"></script>
+<script src="scenarios.js?v=3.2"></script>
+<script src="live-rooms.js?v=3.2"></script>
+<script src="analyst.js?v=3.2"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1353,7 +1356,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.1</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.2</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1606,6 +1609,7 @@ async function netJoin(code, name, spec = false) {
   Object.assign(NET, { role: 'client', conn: c, name, id: c.id, room: null, playing: false, peers: {}, tI: 0, tP: 0, inSeq: 0, lN: 0, ping: 0, relay: false, pings: null, pingAt: 0 }); pingStart();
   c.ondata = netClientMsg; c.onclose = () => netLeave('การเชื่อมต่อกับ host หลุด (host ปิดห้องหรือเน็ตหลุด)');
   c.send({ t: 'hello', name, drv: DRV, spec: spec ? 1 : 0 }); NET.watch = !!spec;
+  NET.ana = !!spec && !!window.BBAna?.key.get();  // ผู้ชมพิเศษ (เข้าด้วยรหัสพิเศษ): เปิดแผงวิเคราะห์ในเครื่องนี้เท่านั้น
   let tm; try { await new Promise((ok, no) => { NET.wait = ok; NET.waitNo = no; tm = setTimeout(() => no(new Error('ไม่พบห้องรหัสนี้ (host ต้องเปิดหน้าห้องค้างไว้)')), 8000); }); }
   catch (e) { if (NET.conn === c) { c.onclose = null; try { c.close(); } catch {} Object.assign(NET, { role: null, conn: null }); } throw e; }
   finally { clearTimeout(tm); if (NET.conn === c || !NET.role) NET.wait = NET.waitNo = null; }
@@ -1625,11 +1629,11 @@ function netClientMsg(d) {
   else if (d.t === 'start') {
     if (NET.wait) { NET.wait(); NET.wait = null; }
     S = d.S; Object.assign(NET, { res: false, busy: false, lastR: null, tgt: null, fN: d.n, sN: d.n, bN: d.n, bq: [], age: 0, pred: false, spec: !(d.me >= 0), playing: true, saved: false, lastRec: null, t0: Date.now() }); ME = NET.spec ? 0 : d.me;
-    S.msg = ''; S.msgT = 0; ov(false); renderPanels(); say(NET.spec ? (NET.watch ? '👁 กำลังชมการแข่งสด (ผู้ชม)' : 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)') : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
+    S.msg = ''; S.msgT = 0; ov(false); renderPanels(); anaStart(); say(NET.spec ? (NET.watch ? '👁 กำลังชมการแข่งสด (ผู้ชม)' : 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)') : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
   }
   else if (d.t === 'f' && NET.playing) netApplyFast(d);
   else if (d.t === 's' && NET.playing) netApplySlow(d);
-  else if (d.t === 'end' && NET.playing) { const cam = S.cam; S = d.S; S.cam = cam; S.over = true; S.running = false; if (Array.isArray(d.log) && NET.room) NET.room.log = d.log; NET.playing = false; NET.res = true; showResult([], false); }
+  else if (d.t === 'end' && NET.playing) { const cam = S.cam; S = d.S; S.cam = cam; S.over = true; S.running = false; if (Array.isArray(d.log) && NET.room) NET.room.log = d.log; NET.playing = false; NET.res = true; showResult([], false); anaEnd('end'); }
 }
 const BK = ['x', 'y', 'z', 'vx', 'vy', 'vz'];
 function netApplyFast(d) {
@@ -1638,8 +1642,26 @@ function netApplyFast(d) {
   for (const a of d.p || []) { const b = S.balls[a[0]]; if (b && d.n > NET.bN && d.n > (NET.bq[a[0]] || 0)) { [, b.x, b.y, b.z, b.vx, b.vy, b.vz] = a; NET.bq[a[0]] = d.n; } }
   if (d.n <= NET.fN) return; NET.fN = d.n; NET.age = 0;
   S.el = d.el; S.running = d.run; [S.hives.red.angle, S.hives.blue.angle, S.hives.red.up, S.hives.blue.up] = d.h;
-  NET.lastR = d.r; NET.tgt = d.r.map(a => a.slice(0, 6)); netRobots();
+  NET.lastR = d.r; NET.tgt = d.r.map(a => a.slice(0, 6)); netRobots(); anaTick();
 }
+// ---- ผู้ชมพิเศษ: ส่งภาพรวมสนามให้ตัววิเคราะห์ (analyst.js) · ใช้ข้อมูลที่เครื่องนี้ได้รับอยู่แล้ว ไม่ส่งอะไรเพิ่มในห้อง ----
+const anaOn = () => !!(NET.ana && NET.spec && NET.role === 'client' && window.BBAna);
+function anaStart() {
+  const box = $('anaBox'); if (!box) return;
+  if (!anaOn()) { box.innerHTML = ''; $('right').classList.remove('ana'); return; }
+  try { if (BBAna.live?.players?.length) BBAna.finish({ reason: 'lost' });  // แมตช์ก่อนหน้ายังไม่จบแต่ host เริ่มใหม่ = เก็บผลถึงตอนนั้น (สกอร์ล่าสุดที่ตัววิเคราะห์จำไว้) BBAna.reset({ kind: NET.room?.cfg?.kind || '' }); BBAna.mount(box); $('right').classList.add('ana'); } catch (e) { console.warn('analyst', e); }
+}
+function anaTick() {
+  if (!anaOn()) return; const now = performance.now(); if (now - (NET.anaT || 0) < 50) return; NET.anaT = now;  // 20 ครั้ง/วิ พอสำหรับสถิติ
+  try {
+    BBAna.feed({ el: S.el, run: S.running && !S.over, ph: phase(), rem: remaining(), kind: NET.room?.cfg?.kind || '', score: { red: total('red'), blue: total('blue') }, fouls: S.fouls,
+      robots: S.robots.map(r => { const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, d = Math.hypot(dx, dz), f = fwdOf(r), lim = gateLim(r);
+        return { id: r.id, al: r.alliance, human: !!r.human && !r.off, name: r.pname || '', x: r.x, z: r.z, vx: r.vx, vz: r.vz, w: r.w, hitN: r.hitN || 0, wallN: r.wallN || 0,
+          load: Array.isArray(r.load) ? r.load.length : 0, dead: !!r.dead, shots: r.shots || 0, hits: r.hits || 0, cyc: r.cycles || [], d,
+          brg: Math.acos(clamp((f[0] * dx + f[1] * dz) / Math.max(d, 1e-3), -1, 1)) * 180 / Math.PI, gmin: lim.min, gmax: lim.max, ping: r.pingS?.n ? r.pingS.sum / r.pingS.n : 0, miss: r.pingS?.miss || 0 }; }) });
+  } catch (e) { if (!NET.anaErr) { NET.anaErr = 1; console.warn('analyst', e); } }
+}
+function anaEnd(reason) { if (!anaOn()) return; try { BBAna.finish({ score: S.end?.score || { red: total('red'), blue: total('blue') }, park: S.end?.park, reason }); } catch (e) { console.warn('analyst', e); } }
 function netRobots(keep) {  // ค่าที่เปลี่ยนเร็วของหุ่นมาจากข้อความถี่ · ตำแหน่งบนจอค่อย ๆ ไล่ตามเป้า NET.tgt (ไม่กระโดด) · หุ่นของเราเองใช้ความเร็วที่คำนวณในเครื่อง (ตอบสนองทันที)
   (NET.lastR || []).forEach((a, i) => { const r = S.robots[i]; if (!r) return;
     if (keep?.[i]) [r.x, r.z, r.th, r.vx, r.vz, r.w] = keep[i];
@@ -1683,7 +1705,8 @@ const askLeave = () => { const host = NET.role === 'host'; if (confirm(host ? '�
 function netLeave(why, code) {
   const role = NET.role; if (!role) return;
   const wn = NET.waitNo; NET.wait = NET.waitNo = null;  // ยังรอเข้าห้องอยู่ = ยกเลิกการรอ
-  if (NET.playing) netHist(code || (why ? 'lost' : 'left'));
+  if (NET.playing) { netHist(code || (why ? 'lost' : 'left')); anaEnd('lost'); }  // ผู้ชมพิเศษ: ห้องปิดกลางแมตช์ = เก็บผลถึงตอนนั้นไว้ (กล่องรายงานไม่ปิดเอง)
+  NET.ana = false; if ($('anaBox')) { $('anaBox').innerHTML = ''; $('right').classList.remove('ana'); }
   // host: ส่ง “ปิดห้อง” ให้ถึงทุกเครื่องก่อน แล้วค่อยปิดช่องสัญญาณ (ปิดทันที ข้อความอาจไปไม่ถึง เครื่องอื่นจะเห็นเป็น “เน็ตหลุด”)
   if (role === 'host') beatStop();
   try { if (role === 'host') { netCast({ t: 'bye' }); const tp = NET.tp; setTimeout(() => { try { tp?.close(); } catch {} }, 300); } else { NET.conn.onclose = null; NET.conn.close(); } } catch {}

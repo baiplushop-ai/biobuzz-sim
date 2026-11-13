@@ -76,6 +76,8 @@
     let d = null, code = 0;
     try { const r = await fetch(API, { method: 'POST', body: JSON.stringify({ op: 'key', id, key }), signal: AbortSignal.timeout(8000) }); code = r.status; d = await r.json().catch(() => null); } catch {}
     st.busy = false;
+    // รหัสพิเศษถูก: จำไว้ในเครื่องนี้ 12 ชม. ให้หน้า simulator เปิดแผงวิเคราะห์ผู้เล่น (เห็นเฉพาะเครื่องนี้) และใช้ยืนยันตอนเรียก AI
+    if (d?.ok && d.master) try { localStorage.setItem('bb-mk', JSON.stringify({ k: key.slice(0, 40), exp: Date.now() + 12 * 3600e3 })); } catch {}
     if (d?.ok && /^\d{6}$/.test(d.code)) { const room = rooms().find(r => r.id === id); st.open = null; st.key = ''; st.msg = ''; paint(); m.opt.onWatch?.(d.code, room, !!d.master); return; }
     st.msg = code === 403 ? 'รหัสไม่ถูกต้อง' : code === 404 ? 'ห้องนี้ปิดไปแล้ว' : 'ตรวจรหัสไม่ได้ (เน็ต / เซิร์ฟเวอร์) ลองใหม่'; paint();
     if (code === 404) refresh();

@@ -115,7 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.1</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.2</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -143,6 +143,17 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   <p style="margin:10px 0 2px">ทีม / เลขทีม (แสดงในผลที่ส่งให้โค้ช)</p>
   <input type="text" id="team" maxlength="60">
   <label class="chk" style="margin-top:10px"><input type="checkbox" id="teacher"> โหมดครู: เปิดทุกบทโดยไม่ต้องผ่านตามลำดับ และเปิดส่วนอ่านไฟล์ผลของนักเรียนที่หน้าแรก (ผลและใบผ่านในโหมดนี้ไม่ใช่ผลจริง)</label>
+  <details id="aiSet" style="margin-top:12px;border:1px solid var(--line,rgba(127,127,127,.3));border-radius:10px;padding:8px 12px">
+    <summary style="cursor:pointer;font-weight:700">🤖 AI วิเคราะห์ผลการฝึก (ผู้ดูแล · ผู้ชมพิเศษ)</summary>
+    <p class="mut" style="margin:6px 0;font-size:13px">ใช้ตอนเข้าชมห้องออนไลน์ด้วยรหัสพิเศษ: แผงวิเคราะห์ผู้เล่นและผลจาก AI เห็นเฉพาะเครื่องผู้ชมพิเศษ ไม่ทำให้เครื่องผู้เล่นช้า</p>
+    <p class="mut" style="margin:6px 0;font-size:13px">คีย์และรุ่น AI ตั้งที่ Netlify → Project configuration → Environment variables แล้ว Deploy ใหม่ 1 ครั้ง (หน้านี้ไม่เห็นคีย์):<br>
+      • <code>ANTHROPIC_API_KEY</code> ทางหลัก · รุ่นตั้งด้วย <code>AI_MODEL</code> (ไม่ตั้ง = claude-opus-5-5)<br>
+      • <code>OPENROUTER_API_KEY</code> ทางสำรอง ใช้อัตโนมัติเมื่อทางหลักใช้ไม่ได้ (เช่น credit หมด) · รุ่นตั้งด้วย <code>OPENROUTER_MODEL</code> (ไม่ตั้ง = anthropic/claude-opus-5.5)</p>
+    <div id="aiProv" style="margin:6px 0;font-size:14px"></div>
+    <p style="margin:8px 0 2px">รหัสพิเศษ (ใช้ยืนยันตอนทดสอบ)</p>
+    <input type="password" id="aiKey" maxlength="40" autocomplete="off">
+    <div class="row" style="margin-top:8px;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="aiTest" type="button">ทดสอบการเชื่อมต่อ AI</button><span id="aiTestMsg" style="font-size:14px"></span></div>
+  </details>
   <div class="row" style="margin-top:12px; justify-content:space-between">
     <button class="btn sec" id="btnReset">ล้างความคืบหน้าของบทบาทนี้</button>
     <button class="btn" id="btnClose">บันทึก</button>
@@ -173,8 +184,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=3.1"></script>
-<script src="../mockup/live-rooms.js?v=3.1"></script>
+<script src="../mockup/scenarios.js?v=3.2"></script>
+<script src="../mockup/live-rooms.js?v=3.2"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1557,7 +1568,25 @@ function teacherCard() {
 }
 
 // ---------------- ตั้งค่า ----------------
-$('btnSettings').onclick = $('teacherChip').onclick = () => { $('mockUrl').value = ST.mockUrl; $('trainee').value = ST.name; $('team').value = ST.team; $('teacher').checked = ST.teacher; $('btnReset').disabled = !ST.role; $('dlg').showModal(); };
+// AI วิเคราะห์ผลการฝึก: แสดงรุ่นที่ใช้งานได้จริง (ตั้งที่ Netlify) + ทดสอบ · รหัสพิเศษเก็บใน bb-mk 12 ชม. เหมือนตอนเข้าชมด้วยรหัสพิเศษ
+const aiStore = { key() { try { const o = JSON.parse(localStorage.getItem('bb-mk') || 'null'); return o && typeof o.k === 'string' && o.exp > Date.now() ? o.k : ''; } catch { return ''; } }, setKey(k) { try { localStorage.setItem('bb-mk', JSON.stringify({ k: k.slice(0, 40), exp: Date.now() + 12 * 3600e3 })); } catch {} } };
+function aiSetOpen() { $('aiProv').innerHTML = '<span class="mut">กด “ทดสอบการเชื่อมต่อ AI” เพื่อดูว่ารุ่นไหนใช้งานได้</span>'; $('aiKey').value = ''; $('aiKey').placeholder = aiStore.key() ? 'ใช้รหัสที่จำไว้ในเครื่องนี้ (เว้นว่างได้)' : 'ใส่รหัสพิเศษ'; $('aiTestMsg').textContent = ''; }
+$('aiTest').onclick = async () => {
+  const k = $('aiKey').value.trim() || aiStore.key(), msg = $('aiTestMsg');
+  if (!k) { msg.className = 'bad'; msg.textContent = 'ใส่รหัสพิเศษก่อน'; return; }
+  $('aiTest').disabled = true; msg.className = 'mut'; msg.textContent = 'กำลังทดสอบ… (ไม่เกิน 1 นาที)'; const t0 = Date.now();
+  let code = 0, d = null; try { const r = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'test', key: k }), signal: AbortSignal.timeout(70000) }); code = r.status; d = await r.json().catch(() => null); } catch {}
+  $('aiTest').disabled = false;
+  if (Array.isArray(d?.providers)) {
+    if ($('aiKey').value.trim()) aiStore.setKey(k);
+    const use = d.providers.find(p => p.ok && p.id === d.primary) || d.providers.find(p => p.ok);
+    $('aiProv').innerHTML = d.providers.map(p => `<div style="margin:3px 0">${p.ok ? '✅' : p.set ? '❌' : '⚪'} <b>${esc(p.name)}</b> · <code>${esc(p.model)}</code> · <span class="${p.ok ? 'ok' : p.set ? 'bad' : 'mut'}">${esc(p.msg)}${p.set ? ` (${(p.ms / 1000).toFixed(1)} วิ)` : ''}</span>${use === p ? ' <b>← ใช้วิเคราะห์</b>' : p.ok ? ' <span class="mut">(สำรอง)</span>' : ''}</div>`).join('');
+    msg.className = d.ok ? 'ok' : 'bad'; msg.textContent = d.ok ? `ใช้งานได้ · วิเคราะห์ด้วย ${use.name}` : '❌ ยังไม่มีทางไหนใช้งานได้'; return;
+  }
+  msg.className = 'bad';
+  msg.textContent = '❌ ' + (code === 403 ? 'รหัสพิเศษไม่ถูกต้อง' : code === 404 || code === 405 ? 'ยังไม่มี /api/analyze บนเว็บนี้ (ต้อง deploy บน Netlify)' : typeof d?.msg === 'string' && d.msg ? d.msg.slice(0, 200) : code ? 'ทดสอบไม่ผ่าน (' + code + ')' : 'ต่อเซิร์ฟเวอร์ไม่ได้ / หมดเวลา');
+};
+$('btnSettings').onclick = $('teacherChip').onclick = () => { aiSetOpen(); $('mockUrl').value = ST.mockUrl; $('trainee').value = ST.name; $('team').value = ST.team; $('teacher').checked = ST.teacher; $('btnReset').disabled = !ST.role; $('dlg').showModal(); };
 $('btnClose').onclick = () => { const u = $('mockUrl').value.trim(); if (u && safeUrl(u)) ST.mockUrl = u; ST.name = $('trainee').value.trim().slice(0, 60); ST.team = $('team').value.trim().slice(0, 60); ST.teacher = $('teacher').checked; save(); $('dlg').close(); render(); };
 // ล้างบทบาท: ล้างผลสถานการณ์ 3D ของบทบาทนี้ด้วย (ทั้งในหน้านี้และ dca-sim-results) ยกเว้นสถานการณ์ที่ใช้ร่วมกับบทบาทอื่นที่ยังมีความคืบหน้า
 $('btnReset').onclick = () => {
