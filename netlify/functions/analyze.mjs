@@ -5,14 +5,14 @@
 //
 // ตั้งค่าทั้งหมดที่ Netlify → Project configuration → Environment variables (ไม่เก็บในรีโป · ตั้งแล้วกด Deploy ใหม่ 1 ครั้ง)
 //   OPENROUTER_API_KEY = คีย์ OpenRouter (จำเป็น · ใช้ทางนี้ทางเดียว · ค่าใช้จ่ายตัดจาก credit ที่เติมไว้ใน OpenRouter)
-//   OPENROUTER_MODEL   = รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-opus-5.5 · เช่น anthropic/claude-sonnet-5.5, anthropic/claude-haiku-5.5)
+//   OPENROUTER_MODEL   = รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-haiku-5.5 เร็วและถูก · ละเอียดขึ้นใช้ anthropic/claude-sonnet-5.5 หรือ anthropic/claude-opus-5.5)
 //   AI_HOURLY_LIMIT    = จำนวนครั้งสูงสุดต่อชั่วโมงทั้งเว็บ (ไม่ตั้ง = 600 · โหมด AI สดใช้ ~15–25 ครั้ง/แมตช์) กันค่าใช้จ่ายบานปลาย
 import { isMaster } from '../lib/master.mjs';
 
 const MAX_BODY = 40000, BUDGET = 54000;  // function ทำงานได้ไม่เกิน 60 วิ
 const env = k => (process.env[k] || '').trim();
 const PROV = {
-  openrouter: { name: 'OpenRouter', key: () => env('OPENROUTER_API_KEY'), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-opus-5.5' },
+  openrouter: { name: 'OpenRouter', key: () => env('OPENROUTER_API_KEY'), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-haiku-5.5' },
 };
 const order = () => ['openrouter'].filter(p => PROV[p].key());
 
