@@ -1,0 +1,9 @@
+{
+  "name": "biobuzz-sim",
+  "private": true,
+  "description": "BIOBUZZ simulator + Drive Team Academy (static site) · package นี้ใช้เฉพาะ Netlify Function /api/rooms (รายชื่อห้องออนไลน์)",
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.9"
+  }
+}

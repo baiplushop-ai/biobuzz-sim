@@ -180,7 +180,8 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=2.9"></script>
+<script src="scenarios.js?v=3.0"></script>
+<script src="live-rooms.js?v=3.0"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1352,7 +1353,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v2.9</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.0</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1498,7 +1499,7 @@ async function netCreate(name, ctl = {}, onWait) {
   }
   if (ctl.off) { try { tp?.close(); } catch {} throw new Error(NET_CANCEL); }
   Object.assign(NET, { role: 'host', id: 'H', name, tp, room, peers: {}, playing: false, res: false, inputs: {}, says: [], seq: 0, lseq: 0 }); netBgTicker(); pingStart();
-  Object.assign(room.slots[0], { who: 'H', name }); netLog(`${name} สร้างห้อง ${room.code}`);
+  Object.assign(room.slots[0], { who: 'H', name }); netLog(`${name} สร้างห้อง ${room.code}`); beatStart();
 }
 function netHostMsg(c, d) {
   if (!d || typeof d !== 'object' || NET.role !== 'host') return;
@@ -1507,17 +1508,18 @@ function netHostMsg(c, d) {
     if (NET.peers[c.id]) return;  // hello ซ้ำจากเครื่องเดิม = ไม่จองที่นั่งเพิ่ม
     if (Object.keys(NET.peers).length >= NET_MAX) { c.send({ t: 'full' }); setTimeout(() => { try { c.close(); } catch {} }, 400); return; }
     const p = NET.peers[c.id] = { conn: c, name: String(d.name || 'ผู้เล่น').slice(0, 16), drv: netDrv(d.drv), inN: 0, ping: null, pAt: performance.now(), relay: false };
-    const s = !NET.playing && NET.room.slots.find(s => s.type === 'human' && !s.who); if (s) { s.who = c.id; s.name = p.name; }
+    const s = !NET.playing && !d.spec && NET.room.slots.find(s => s.type === 'human' && !s.who); if (s) { s.who = c.id; s.name = p.name; }
     // กลับเข้าห้องระหว่างแมตช์ด้วยชื่อเดิม (เน็ตหลุด / เผลอปิดแท็บ) = รับหุ่นตัวเดิมคืนจาก Bot
-    const rb = NET.playing && !S.over && S.robots.find(r => !r.net && !r.human && r.pname === p.name + ' → Bot'), ri = rb ? S.robots.indexOf(rb) : -1;
+    const rb = NET.playing && !S.over && !d.spec && S.robots.find(r => !r.net && !r.human && r.pname === p.name + ' → Bot'), ri = rb ? S.robots.indexOf(rb) : -1;
     if (rb) {
       const rs = NET.room.slots[ri]; if (rs && rs.type === 'human' && !rs.who) { rs.who = c.id; rs.name = p.name; }
       Object.assign(rb, { net: c.id, human: true, drv: p.drv, pname: p.name, cmd: { ...STOP } }); rb.ai.mode = 'human'; NET.inputs[rb.id] = emptyInput();
       const m = `${SLOT_TH[rb.id]} (${p.name}) กลับเข้ามาขับต่อ`; say(m, 3, null); NET.says.push([m, 3, null]);
     }
-    netLog(`${p.name} เข้าห้อง${s ? ' · นั่ง ' + SLOT_TH[SLOT_ID[NET.room.slots.indexOf(s)]] : rb ? ' · กลับมาขับ ' + SLOT_TH[rb.id] + ' ต่อ' : NET.playing ? ' (ระหว่างแมตช์ · รอรอบถัดไป)' : ' (ยังไม่มีตำแหน่ง)'}`);
+    netLog(`${p.name} ${d.spec ? 'เข้าชม 👁' : 'เข้าห้อง'}${s ? ' · นั่ง ' + SLOT_TH[SLOT_ID[NET.room.slots.indexOf(s)]] : rb ? ' · กลับมาขับ ' + SLOT_TH[rb.id] + ' ต่อ' : NET.playing ? ' (ระหว่างแมตช์ · ดูเป็นผู้ชมไปก่อน)' : d.spec ? ' (ผู้ชม)' : ' (ยังไม่มีตำแหน่ง)'}`);
     netLobbyPush();
-    if (rb) c.send({ t: 'start', n: NET.seq, S, me: ri });
+    // เข้ามาระหว่างแมตช์โดยไม่มีหุ่นให้ขับ = ส่งสนามตอนนี้ให้ดูเป็นผู้ชมทันที (ไม่ต้องรอรอบถัดไป)
+    if (rb) c.send({ t: 'start', n: NET.seq, S, me: ri }); else if (NET.playing && !S.over) c.send({ t: 'start', n: NET.seq, S, me: -1 });
   } else if (d.t === 'pick' && !NET.playing) {
     const p = NET.peers[c.id], s = NET.room.slots[d.slot]; if (!p) return;
     if (d.slot === -1 || (s && s.type === 'human' && (!s.who || s.who === c.id))) { NET.room.slots.forEach(x => { if (x.who === c.id) { x.who = null; x.name = ''; } }); if (s) { s.who = c.id; s.name = p.name; } netLog(`${p.name} ${s ? 'เลือกนั่ง ' + SLOT_TH[SLOT_ID[d.slot]] : 'ลุกจากที่นั่ง (เป็นผู้ชม)'}`); }
@@ -1542,7 +1544,7 @@ function netChatAdd(id, name, x) {
   for (const pid in NET.peers) NET.peers[pid].conn.send({ t: 'cm', m });
   chatPaint();
 }
-function netLobbyPush() { NET.room.slots.forEach(s => { if (!s.who || s.type !== 'human') delete s.rdy; }); NET.room.n = 1 + Object.keys(NET.peers).length; for (const id in NET.peers) { NET.lseq++; NET.peers[id].conn.send({ t: 'lobby', n: NET.lseq, room: NET.room, playing: !!NET.playing, you: id }); } if (!NET.playing && !NET.res) showLobby(); }
+function netLobbyPush() { BEAT.dirty = true; NET.room.slots.forEach(s => { if (!s.who || s.type !== 'human') delete s.rdy; }); NET.room.n = 1 + Object.keys(NET.peers).length; for (const id in NET.peers) { NET.lseq++; NET.peers[id].conn.send({ t: 'lobby', n: NET.lseq, room: NET.room, playing: !!NET.playing, you: id }); } if (!NET.playing && !NET.res) showLobby(); }
 function netDrop(id) {
   const p = NET.peers[id]; if (!p) return; delete NET.peers[id];
   NET.room.slots.forEach(s => { if (s.who === id) { s.who = null; s.name = ''; } });
@@ -1592,18 +1594,18 @@ function netEnd() {  // host: ส่งผลให้ทุกเครื่�
   netLog(`จบแมตช์ RED ${S.end.score.red} – BLUE ${S.end.score.blue}`); netFast(); netCast({ t: 'end', S, log: NET.room.log });
   NET.playing = false; NET.res = true; netLobbyPush();
 }
-function netBack() { if (!NET.role) return; NET.res = false; showLobby(); }
+function netBack() { if (!NET.role) return; NET.res = false; BEAT.dirty = true; showLobby(); }
 let bgW = null;
 function netBgTicker() {  // host สลับแท็บ/ย่อหน้าต่าง: เบราว์เซอร์หยุดวาดภาพ → ใช้ Worker จับเวลาให้สนามเดินต่อ เครื่องอื่นจึงไม่ค้าง
   if (bgW) return;
-  try { bgW = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),16)'], { type: 'text/javascript' }))); bgW.onmessage = () => { if (document.hidden && NET.role === 'host' && NET.playing && !S.over) simFrame(performance.now()); }; } catch {}
+  try { bgW = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),16)'], { type: 'text/javascript' }))); bgW.onmessage = () => { if (document.hidden && NET.role === 'host') { if (NET.playing && !S.over) simFrame(performance.now()); beatTick(); } }; } catch {}
 }
 // ---- เครื่องที่เข้าร่วม ----
-async function netJoin(code, name) {
+async function netJoin(code, name, spec = false) {
   const c = await tpJoin(code);
   Object.assign(NET, { role: 'client', conn: c, name, id: c.id, room: null, playing: false, peers: {}, tI: 0, tP: 0, inSeq: 0, lN: 0, ping: 0, relay: false, pings: null, pingAt: 0 }); pingStart();
   c.ondata = netClientMsg; c.onclose = () => netLeave('การเชื่อมต่อกับ host หลุด (host ปิดห้องหรือเน็ตหลุด)');
-  c.send({ t: 'hello', name, drv: DRV });
+  c.send({ t: 'hello', name, drv: DRV, spec: spec ? 1 : 0 }); NET.watch = !!spec;
   let tm; try { await new Promise((ok, no) => { NET.wait = ok; NET.waitNo = no; tm = setTimeout(() => no(new Error('ไม่พบห้องรหัสนี้ (host ต้องเปิดหน้าห้องค้างไว้)')), 8000); }); }
   catch (e) { if (NET.conn === c) { c.onclose = null; try { c.close(); } catch {} Object.assign(NET, { role: null, conn: null }); } throw e; }
   finally { clearTimeout(tm); if (NET.conn === c || !NET.role) NET.wait = NET.waitNo = null; }
@@ -1623,7 +1625,7 @@ function netClientMsg(d) {
   else if (d.t === 'start') {
     if (NET.wait) { NET.wait(); NET.wait = null; }
     S = d.S; Object.assign(NET, { res: false, busy: false, lastR: null, tgt: null, fN: d.n, sN: d.n, bN: d.n, bq: [], age: 0, pred: false, spec: !(d.me >= 0), playing: true, saved: false, lastRec: null, t0: Date.now() }); ME = NET.spec ? 0 : d.me;
-    S.msg = ''; S.msgT = 0; ov(false); renderPanels(); say(NET.spec ? 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)' : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
+    S.msg = ''; S.msgT = 0; ov(false); renderPanels(); say(NET.spec ? (NET.watch ? '👁 กำลังชมการแข่งสด (ผู้ชม)' : 'แมตช์ออนไลน์เริ่มแล้ว (คุณเป็นผู้ชม)') : `แมตช์ออนไลน์เริ่ม! คุณขับ ${SLOT_TH[R1().id]}`, 3, null);
   }
   else if (d.t === 'f' && NET.playing) netApplyFast(d);
   else if (d.t === 's' && NET.playing) netApplySlow(d);
@@ -1683,6 +1685,7 @@ function netLeave(why, code) {
   const wn = NET.waitNo; NET.wait = NET.waitNo = null;  // ยังรอเข้าห้องอยู่ = ยกเลิกการรอ
   if (NET.playing) netHist(code || (why ? 'lost' : 'left'));
   // host: ส่ง “ปิดห้อง” ให้ถึงทุกเครื่องก่อน แล้วค่อยปิดช่องสัญญาณ (ปิดทันที ข้อความอาจไปไม่ถึง เครื่องอื่นจะเห็นเป็น “เน็ตหลุด”)
+  if (role === 'host') beatStop();
   try { if (role === 'host') { netCast({ t: 'bye' }); const tp = NET.tp; setTimeout(() => { try { tp?.close(); } catch {} }, 300); } else { NET.conn.onclose = null; NET.conn.close(); } } catch {}
   if (bgW) { bgW.terminate(); bgW = null; }
   Object.assign(NET, { role: null, room: null, playing: false, peers: {}, conn: null, tp: null, inputs: {}, says: [], spec: false, res: false, busy: false, lastR: null, tgt: null, pred: false, saved: false, lastRec: null }); ME = 0;
@@ -1779,7 +1782,31 @@ function showHistory(back = () => showOnline(), i = -1) {
 // ---- หน้าจอออนไลน์: สร้าง/เข้าห้อง · ห้องรอ · แถบสถานะในเกม ----
 const SLOT_ID = Object.keys(SLOT_TH), TYPE_TH = { human: 'คนจริง', bot: 'Bot', none: 'ไม่มีหุ่น' };
 const NKIND_TH = { tele: 'แมตช์ TELEOP 2:00', full: 'แมตช์เต็ม AUTO 0:30 + TELEOP 2:00', free: 'ซ้อมอิสระ ไม่จับเวลา (host กดจบเอง)' };
-function showOnline(code = '', err = '') {
+// ป้ายห้องบนรายการห้องออนไลน์ (/api/rooms): host ส่งชื่อ ผู้เล่น คะแนน เวลา ทุก 5 วิระหว่างแข่ง / 15 วิตอนรอ · มีอะไรเปลี่ยนในห้อง = ส่งเร็วขึ้น
+// รหัสห้องเก็บที่เซิร์ฟเวอร์ ไม่แสดงในรายการ · tok = ความลับของห้องนี้ (เซิร์ฟเวอร์ใช้ hash ของ tok เป็น id) · เว็บไม่มีบริการนี้ (404) = เลิกส่ง
+const BEAT = { tok: '', iv: null, last: 0, dirty: false, off: false, busy: false };
+function beatStart() {
+  const b = new Uint8Array(18); crypto.getRandomValues(b); BEAT.tok = btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  Object.assign(BEAT, { last: 0, dirty: true, off: false, busy: false }); clearInterval(BEAT.iv); BEAT.iv = setInterval(beatTick, 1000); beatTick();
+}
+function beatInfo() {
+  const R = NET.room, c = R.cfg, on = NET.playing || NET.res, ids = Object.keys(NET.peers);
+  const sc = S.over && S.end ? [S.end.score.red, S.end.score.blue] : on ? [total('red'), total('blue')] : [0, 0];
+  return { host: NET.name, st: NET.playing ? 'play' : NET.res ? 'res' : 'lobby', kind: c.kind, sl: R.slots.map(s => ({ t: on && s.type === 'human' && !s.who ? 'bot' : s.type, n: s.type === 'human' && s.who ? s.name : '' })),  // ระหว่างแข่ง ตำแหน่งคนจริงที่ว่าง = Bot ขับ
+    sc, el: on ? S.el : 0, run: !!(NET.playing && S.running), free: c.kind === 'free', np: ids.length, nv: ids.filter(id => !R.slots.some(s => s.who === id)).length, t0: NET.t0 || 0, loc: LOCALNET };
+}
+function beatTick() {
+  if (NET.role !== 'host' || !NET.room || !BEAT.tok) return beatStop(true);
+  const now = Date.now(), due = NET.playing ? 5000 : 15000; if (BEAT.off || BEAT.busy || now - BEAT.last < (BEAT.dirty ? 1500 : due)) return;
+  BEAT.last = now; BEAT.dirty = false; BEAT.busy = true;
+  fetch('/api/rooms', { method: 'POST', body: JSON.stringify({ op: 'beat', tok: BEAT.tok, code: NET.room.code, info: beatInfo() }), signal: AbortSignal.timeout(8000) })
+    .then(r => { if (r.status === 404 || r.status === 405 || r.status === 501) BEAT.off = true; }).catch(() => {}).finally(() => { BEAT.busy = false; });
+}
+function beatStop(quiet) {
+  clearInterval(BEAT.iv); BEAT.iv = null; const tok = BEAT.tok; BEAT.tok = ''; if (!tok || quiet || BEAT.off) return;
+  const body = JSON.stringify({ op: 'del', tok }); try { if (navigator.sendBeacon?.('/api/rooms', body)) return; } catch {} fetch('/api/rooms', { method: 'POST', body, keepalive: true }).catch(() => {});
+}
+function showOnline(code = '', err = '', autoWatch = false) {
   NET.stat = err ? { t: err, bad: true } : null;
   let nm = NET.name || ''; try { nm = nm || localStorage.getItem('dca-net-name') || ''; } catch {}
   ov(true, `<h2>🌐 เล่นออนไลน์ (หลายเครื่อง)</h2>
@@ -1788,6 +1815,7 @@ function showOnline(code = '', err = '') {
     <div class="mcfg"><div class="mrow"><label>ชื่อผู้เล่น <input id="nName" maxlength="16" value="${esc(nm)}" placeholder="เช่น ทีม A · Driver" style="font:inherit;padding:4px 8px;width:190px"></label></div></div>
     <div class="mcfg"><h4>สร้างห้องใหม่ (เป็น host)</h4><div class="mrow"><button id="nCreate">สร้างห้อง</button><span class="mut">ตั้งกติกา จำนวนผู้เล่น และคนจริง / Bot ได้ในหน้าถัดไป</span></div></div>
     <div class="mcfg"><h4>เข้าร่วมห้องของเพื่อน</h4><div class="mrow"><label>รหัสห้อง <input id="nCode" inputmode="numeric" maxlength="6" value="${esc(code)}" placeholder="6 หลัก" style="font:inherit;font-size:20px;font-weight:700;letter-spacing:4px;padding:4px 8px;width:140px;text-align:center"></label><button id="nJoin">เข้าร่วม</button></div></div>
+    <div class="mcfg" id="nLive"></div>
     ${LOCALNET ? '' : '<p class="mut" style="font-size:12px">🔎 <span id="nNetTxt"></span> <button class="sec" id="nNetRe" style="padding:1px 8px;font-size:11px">ตรวจอีกครั้ง</button></p>'}
     <p class="mut"><span id="nStat"></span> <button class="sec" id="nCancel" style="display:none">✕ ยกเลิกการสร้างห้อง</button></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับเมนู</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button></div>`);
   netBar();
@@ -1806,6 +1834,11 @@ function showOnline(code = '', err = '') {
   };
   const join = async () => { const c = $('nCode').value.replace(/\D/g, ''); if (c.length !== 6) return busy(false, 'รหัสห้องต้องเป็นตัวเลข 6 หลัก'); busy(true, 'กำลังเชื่อมต่อห้อง ' + c + ' …'); try { await netJoin(c, name()); } catch (e) { showOnline(c, e.message || String(e)); } };
   $('nJoin').onclick = join; $('nCode').onkeydown = e => { if (e.key === 'Enter') join(); };
+  // ดูการแข่งสด: รายการได้รหัสห้องมาหลังใส่รหัสห้อง / รหัสพิเศษถูก แล้วเข้าห้องแบบผู้ชม (ไม่นั่งตำแหน่ง)
+  const watch = async c => { busy(true, 'กำลังเข้าชมห้อง ' + c + ' …'); try { await netJoin(c, name(), true); } catch (e) { showOnline('', e.message || String(e)); } };
+  window.LiveRooms?.mount($('nLive'), { loc: LOCALNET, max: 290, onWatch: c => { if (!$('nCreate')?.disabled) watch(c); } });
+  if (!window.LiveRooms) $('nLive').remove();
+  if (autoWatch) watch(code);
 }
 function netPreset(n) {  // เลือกจำนวนผู้เล่น 2 / 3 / 4 = จัดคนจริง / Bot ให้ตามแบบ แล้วย้ายคนที่นั่งอยู่ไปตำแหน่งคนจริงที่ว่าง
   const old = NET.room.slots, seated = old.map((s, i) => s.who ? { who: s.who, name: s.name, i } : null).filter(Boolean).sort((a, b) => (b.who === 'H') - (a.who === 'H'));
@@ -1852,7 +1885,7 @@ function showLobby() {
       <div id="lbSpec" style="font-size:13px;margin:4px 0"></div>
       <p class="mut" style="font-size:12px">📶 ping = เวลาไป-กลับของสัญญาณถึงเครื่องแม่ (host) วัดทุก 1 วิ · <b style="color:var(--grn)">เขียว &lt; 80 ms ดี</b> · <b style="color:var(--yel)">เหลือง 80–180 ms เริ่มช้า</b> · <b style="color:#ff7b6b">แดง &gt; 180 ms ช้า</b> · relay = ต่อผ่านตัวส่งต่อ · เครื่องแม่ = เวลาไป-กลับถึงเว็บไซต์ (อินเทอร์เน็ตของเครื่องแม่)</p>
       <p class="mut lbNote" style="font-size:12px">ตำแหน่ง “คนจริง” ที่ยังว่างตอนกดเริ่ม จะให้ Bot ขับแทน · ทีมน้ำเงินเห็นสนามจากฝั่งตัวเอง</p></div>
-    ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 8px"><span style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]}${host ? ' (host)' : ''} · สถานะของคุณ:` : host ? 'คุณยังไม่ได้นั่งตำแหน่ง (เป็นผู้ชม)' : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</span>${mySlot >= 0 && R.slots[mySlot].type === 'human' ? `<span class="rdyCtl"><button data-rdy="1" class="${R.slots[mySlot].rdy === true ? 'on' : 'sec'}">✅ พร้อมเล่น</button><button data-rdy="0" class="${R.slots[mySlot].rdy === false ? 'on wait' : 'sec'}">⏸ รอก่อน</button></span>` : ''}</div>`}
+    ${NET.busy ? '<p class="bad" style="font-weight:700">ห้องนี้กำลังเล่นอยู่ รอ host เริ่มรอบถัดไป</p>' : `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 8px"><span style="font-weight:700;color:var(--yel)">${mySlot >= 0 ? `คุณขับ ${SLOT_TH[SLOT_ID[mySlot]]}${host ? ' (host)' : ''} · สถานะของคุณ:` : host ? 'คุณยังไม่ได้นั่งตำแหน่ง (เป็นผู้ชม)' : NET.watch ? '👁 คุณเข้ามาเป็นผู้ชม · รอ host เริ่มแมตช์ (อยากลงเล่นกด “นั่งตำแหน่งนี้”)' : 'ยังไม่ได้เลือกตำแหน่ง (จะเป็นผู้ชม) · กด “นั่งตำแหน่งนี้” ที่ตำแหน่งว่าง'}</span>${mySlot >= 0 && R.slots[mySlot].type === 'human' ? `<span class="rdyCtl"><button data-rdy="1" class="${R.slots[mySlot].rdy === true ? 'on' : 'sec'}">✅ พร้อมเล่น</button><button data-rdy="0" class="${R.slots[mySlot].rdy === false ? 'on wait' : 'sec'}">⏸ รอก่อน</button></span>` : ''}</div>`}
     <div style="display:flex;gap:8px;flex-wrap:wrap">${host ? '<button id="lbStart">▶ เริ่มแมตช์</button>' : ''}<button class="sec" id="lbLeave">${host ? 'ปิดห้อง' : 'ออกจากห้อง'}</button></div>
     <div class="mcfg" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap"><div class="mut" title="ส่งรหัสหรือลิงก์ให้เพื่อนเพื่อเข้าร่วม">รหัสห้อง</div><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:var(--yel);line-height:1.1" id="lbCode">${esc(R.code)}</div>
       <div class="mrow" style="justify-content:center;margin:0"><input id="lbLink" readonly value="${esc(link)}" style="font:inherit;font-size:12px;padding:4px 6px;width:240px;max-width:100%"><button class="sec" id="lbCopy">คัดลอกลิงก์</button></div></div>
@@ -2001,7 +2034,7 @@ for (const [btn, box, cls, key, onTxt, offTxt] of [['rMini', 'right', 'mini', 'd
   let on0 = false; try { on0 = localStorage.getItem(key) === '1'; } catch {} set(on0); b.onclick = () => set(!$(box).classList.contains(cls), true);
 }
 addEventListener('beforeunload', e => { if ((NET.role && NET.playing && !S.over) || NET.role === 'host') { e.preventDefault(); e.returnValue = ''; } });  // กันเผลอปิดแท็บ / รีเฟรชระหว่างแข่ง (host ปิด = ห้องปิดทุกเครื่อง)
-addEventListener('pagehide', () => { if (NET.role) NET.dead = true; if (NET.role && NET.playing) netHist('closed'); try { if (NET.role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else if (NET.role === 'client') NET.conn.close(); } catch {} });
+addEventListener('pagehide', () => { if (NET.role === 'host') beatStop(); if (NET.role) NET.dead = true; if (NET.role && NET.playing) netHist('closed'); try { if (NET.role === 'host') { netCast({ t: 'bye' }); NET.tp?.close(); } else if (NET.role === 'client') NET.conn.close(); } catch {} });
 
 // =================== Free Control ===================
 function saveCk() { saved = clone(S); say('จำจุดนี้แล้ว (L = โหลด)'); }
@@ -2198,7 +2231,7 @@ addEventListener('gamepaddisconnected', e => {  // ไม่ล้าง Joy 1 /
 $('driveHelp').innerHTML = driveSel('driveMode'); $('driveMode').onchange = e => setDriveMode(e.target.value);
 $('padMode').value = DRV.padMode || 'split'; $('padMode').onchange = e => setPadMode(e.target.value);
 window.BIOBUZZ = { get state() { return S; }, api, act: o => tick(DT, Object.assign(emptyInput(), o)), step: n => { for (let i = 0; i < n; i++) tick(DT, emptyInput()); }, startScenario, startMatch, projected, evalObj, endMatch, gateCheck: () => gateCheck(R1()), simFrame, net: { get NET() { return NET; }, get ME() { return ME; }, create: netCreate, join: netJoin, start: netStartMatch, preset: netPreset, leave: netLeave, back: netBack, hostMsg: netHostMsg, lobbyPush: netLobbyPush, showOnline, showLobby, showHistory, histLoad, rec: netRec } };
-renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else if (Q.get('mode') === 'online') showOnline(); else if (/^\d{6}$/.test(Q.get('room') || '')) showOnline(Q.get('room')); else showMenu();
+renderPanels(); if (SCN) showIntro(); else if (Q.get('mode') === 'free') startMatch('free'); else if (Q.get('mode') === 'online') showOnline(); else if (/^\d{6}$/.test(Q.get('room') || '')) showOnline(Q.get('room'), '', Q.get('watch') === '1'); else showMenu();
 if (SCN_ID && !SCN) $('ovBox').insertAdjacentHTML('afterbegin', `<p class="bad" style="font-weight:700">ไม่พบสถานการณ์ “${esc(SCN_ID)}” (ลิงก์เก่าหรือพิมพ์ผิด) · เลือกจากรายการด้านล่าง</p>`);
 document.getElementById('loadFail')?.remove();
 sync(); hud(emptyInput()); requestAnimationFrame(frame);

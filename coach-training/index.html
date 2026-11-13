@@ -89,6 +89,11 @@ dialog::backdrop { background:rgba(0,0,0,.45) }
 .pad i { width:9px; height:9px; border-radius:50%; background:var(--lock); flex:0 0 9px }
 .pad.on { border-color:var(--ok) } .pad.on i { background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent) }
 .pad.off { border-color:var(--bad) } .pad.off i { background:var(--bad) }
+/* ปุ่มห้องออนไลน์บน header: จุดแดงกะพริบ = มีห้องกำลังแข่งอยู่ */
+.liveChip { display:inline-flex; align-items:center; gap:6px; white-space:nowrap } .liveChip i { width:9px; height:9px; border-radius:50%; background:var(--lock); flex:0 0 9px }
+.liveChip.on { border-color:var(--red) } .liveChip.on i { background:var(--red); animation:liveBlink 1.2s ease-in-out infinite } .liveChip b { font-variant-numeric:tabular-nums }
+@keyframes liveBlink { 50% { opacity:.25 } } @media (prefers-reduced-motion: reduce) { .liveChip.on i { animation:none } }
+#liveDlg { max-width:820px }
 #banners { max-width:1280px; margin:0 auto; padding:0 16px }
 .banner { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:10px; padding:8px 12px; border-radius:10px; border:1px solid var(--bad); background:var(--surface); font-size:14px }
 .banner .btn { padding:3px 10px; font-size:13px }
@@ -110,13 +115,14 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v2.9</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.0</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
   <a class="pad" id="padChip1" href="../mockup/gamepad-test.html?pad=1" target="_blank" title="คลิกเพื่อทดสอบ Joy 1"><i></i><span id="padChipTxt1">Joy 1: ยังไม่เชื่อม</span></a>
   <a class="pad" id="padChip2" href="../mockup/gamepad-test.html?pad=2" target="_blank" title="คลิกเพื่อทดสอบ Joy 2"><i></i><span id="padChipTxt2">Joy 2: ยังไม่เชื่อม</span></a>
   <button class="hbtn tmode hidden" id="teacherChip" title="โหมดครูเปิดอยู่: เปิดทุกบทโดยไม่ต้องผ่านตามลำดับ ผลและใบผ่านในโหมดนี้ไม่ใช่ผลจริง · คลิกเพื่อเปิดตั้งค่า">โหมดครู</button>
+  <button class="hbtn liveChip hidden" id="liveChip" title="ห้องเล่นออนไลน์ที่เปิดอยู่ตอนนี้ · กดเพื่อดูรายการ คะแนน เวลา และเข้าชมการแข่งสด"><i></i>ห้องออนไลน์ <b id="liveN">–</b></button>
   <button class="hbtn" id="btnReport">ส่งผลให้โค้ช</button>
   <button class="hbtn" id="btnSettings">ตั้งค่า</button>
 </header>
@@ -143,6 +149,10 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
+<dialog id="liveDlg">
+  <div id="liveBox"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn sec" id="liveClose">ปิด</button></div>
+</dialog>
 <dialog id="rep">
   <h3 style="margin-top:0">ส่งผลให้โค้ช</h3>
   <p class="mut" style="margin:0 0 8px;font-size:13px">หน้านี้ไม่ส่งข้อมูลออกจากเครื่องเอง ผู้ฝึกเป็นคนคัดลอกข้อความ ดาวน์โหลดไฟล์ หรือแชร์ให้โค้ชเอง · ไฟล์ .json ใช้ให้โค้ชเปิดดูเทียบกันทั้งทีมในโหมดครู</p>
@@ -163,7 +173,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=2.9"></script>
+<script src="../mockup/scenarios.js?v=3.0"></script>
+<script src="../mockup/live-rooms.js?v=3.0"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1273,6 +1284,7 @@ function renderHome() {
   $('homeView').innerHTML = `<div class="crumb">FIRST Tech Challenge Thailand ครั้งที่ 8 · BIOBUZZ · 9–11 ธ.ค. 2569 · The Prince Royal's College เชียงใหม่</div>
     <h2>เลือกบทบาทที่อยากฝึก</h2>
     <p class="mut" style="margin:0">แต่ละบทบาทไล่จากง่ายไปยาก ต้องผ่านทีละข้อ ข้อที่มีสถานการณ์ 3D จะเปิด simulator ที่จัดฉากตรงกับข้อนั้น และส่งผลผ่าน/ไม่ผ่านกลับมาที่นี่เอง</p>
+    <div class="card" id="homeLive"></div>
     <div class="roles">${Object.entries(ROLES).map(([k, r]) => { const [a, b] = roleProg(k); return `<div class="role"><div class="ico">${r.ico}</div><h3>${esc(r.name)}</h3><p>${esc(r.desc)}</p>
       <div class="bar"><div style="width:${a / b * 100}%"></div></div><div class="mut" style="font-size:13px">ผ่าน ${a}/${b} ข้อ · ${r.levels.length} ระดับ</div>
       <button class="btn" data-role="${k}">${a ? (a === b ? 'ดูใบผ่าน' : 'ฝึกต่อ') : 'เริ่มฝึก'}</button></div>`; }).join('')}
@@ -1290,6 +1302,7 @@ function renderHome() {
   $('homeView').querySelectorAll('button[data-role]').forEach(b => b.onclick = () => go(b.dataset.role));
   $('goFree').onclick = () => openSim('?mode=free'); $('goMenu').onclick = () => openSim(''); $('goOnline').onclick = () => openSim('?mode=online');
   $('homeReport').onclick = openReport;
+  if (window.LiveRooms) LiveRooms.mount($('homeLive'), { onWatch: watchRoom }); else $('homeLive').remove();
   const imp = $('impFile'); if (imp) imp.onchange = () => importReports(imp.files);
   const ic = $('impClear'); if (ic) ic.onclick = () => { IMPORTED = []; IMP_BAD = []; renderHome(); };
 }
@@ -1486,6 +1499,14 @@ $('repTxtDl').onclick = () => { if (!repReady()) return; download(repFile('txt')
 $('repShare').onclick = async () => { if (!repReady()) return; try { await navigator.share({ title:'ผลฝึก Drive Team Academy', text:$('repTxt').value }); } catch (e) { if (!e || e.name !== 'AbortError') repSay('แชร์ไม่ได้บนเครื่องนี้ ใช้ปุ่มคัดลอกข้อความแทน', false); } };
 $('repClose').onclick = () => $('rep').close();
 $('btnReport').onclick = openReport;
+// ห้องออนไลน์ที่เปิดอยู่: รายการบนหน้าแรก + ปุ่มบน header (นับจำนวนห้อง) · ใส่รหัสห้องถูกแล้วเปิด simulator เข้าห้องนั้นแบบผู้ชม
+function watchRoom(code) { if ($('liveDlg').open) $('liveDlg').close(); openSim(`?room=${code}&watch=1`); }
+if (window.LiveRooms) {
+  $('liveChip').classList.remove('hidden');
+  LiveRooms.onCount((nP, n, ok) => { $('liveN').textContent = ok ? (nP ? `${n} · แข่งอยู่ ${nP}` : n) : '–'; $('liveChip').classList.toggle('on', nP > 0); });
+  $('liveChip').onclick = () => { $('liveDlg').showModal(); LiveRooms.mount($('liveBox'), { onWatch: watchRoom }); };
+  $('liveClose').onclick = () => $('liveDlg').close();
+}
 
 // ---------------- โหมดครู: อ่านไฟล์ผลของนักเรียน ----------------
 // ไฟล์ถูกอ่านในเครื่องนี้เท่านั้น เก็บในหน่วยความจำ ไม่บันทึก · ตรวจรูปทุก field และ escape ทุกค่าก่อนแสดง
