@@ -1,4 +1,4 @@
-# Netlify: หน้าเว็บเป็น static · package.json มีไว้ให้ Netlify Functions (/api/rooms ใช้ @netlify/blobs · /api/analyze ใช้ @anthropic-ai/sdk)
+# Netlify: หน้าเว็บเป็น static · package.json มีไว้ให้ Netlify Functions (/api/rooms ใช้ @netlify/blobs · /api/analyze เรียก AI ผ่าน OpenRouter)
 # build คัดเฉพาะหน้าเว็บที่ใช้จริงไปไว้ใน dist (เอกสารและโน้ตอื่นในรีโปไม่ถูกเผยแพร่)
 [build]
   command = "rm -rf dist && mkdir dist && cp -R coach-training mockup index.html dist/ && rm -f dist/mockup/index-v1.html"
@@ -6,7 +6,7 @@
 
 # Netlify Function: /api/ice ส่ง STUN / TURN ให้เล่นออนไลน์ (ตั้ง TURN ที่ Environment variables · ดูหัวไฟล์ ice.mjs)
 #                   /api/rooms รายชื่อห้องที่เปิดอยู่ + ตรวจรหัสเข้าชม (ดูหัวไฟล์ rooms.mjs)
-#                   /api/analyze ผู้ชมพิเศษให้ AI วิเคราะห์ผู้เล่น: ตั้ง ANTHROPIC_API_KEY และ/หรือ OPENROUTER_API_KEY (ดูหัวไฟล์ analyze.mjs)
+#                   /api/analyze ผู้ชมพิเศษให้ AI วิเคราะห์ผู้เล่น: ตั้ง OPENROUTER_API_KEY (ดูหัวไฟล์ analyze.mjs)
 [functions]
   directory = "netlify/functions"
 

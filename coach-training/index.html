@@ -115,7 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.2</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v3.3</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -146,9 +146,9 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   <details id="aiSet" style="margin-top:12px;border:1px solid var(--line,rgba(127,127,127,.3));border-radius:10px;padding:8px 12px">
     <summary style="cursor:pointer;font-weight:700">🤖 AI วิเคราะห์ผลการฝึก (ผู้ดูแล · ผู้ชมพิเศษ)</summary>
     <p class="mut" style="margin:6px 0;font-size:13px">ใช้ตอนเข้าชมห้องออนไลน์ด้วยรหัสพิเศษ: แผงวิเคราะห์ผู้เล่นและผลจาก AI เห็นเฉพาะเครื่องผู้ชมพิเศษ ไม่ทำให้เครื่องผู้เล่นช้า</p>
-    <p class="mut" style="margin:6px 0;font-size:13px">คีย์และรุ่น AI ตั้งที่ Netlify → Project configuration → Environment variables แล้ว Deploy ใหม่ 1 ครั้ง (หน้านี้ไม่เห็นคีย์):<br>
-      • <code>ANTHROPIC_API_KEY</code> ทางหลัก · รุ่นตั้งด้วย <code>AI_MODEL</code> (ไม่ตั้ง = claude-opus-5-5)<br>
-      • <code>OPENROUTER_API_KEY</code> ทางสำรอง ใช้อัตโนมัติเมื่อทางหลักใช้ไม่ได้ (เช่น credit หมด) · รุ่นตั้งด้วย <code>OPENROUTER_MODEL</code> (ไม่ตั้ง = anthropic/claude-opus-5.5)</p>
+    <p class="mut" style="margin:6px 0;font-size:13px">AI เรียกผ่าน OpenRouter อย่างเดียว (ตัด credit ที่เติมไว้ใน OpenRouter) · ตั้งที่ Netlify → Project configuration → Environment variables แล้ว Deploy ใหม่ 1 ครั้ง (หน้านี้ไม่เห็นคีย์):<br>
+      • <code>OPENROUTER_API_KEY</code> คีย์จาก openrouter.ai/settings/keys (จำเป็น)<br>
+      • <code>OPENROUTER_MODEL</code> รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-opus-5.5)</p>
     <div id="aiProv" style="margin:6px 0;font-size:14px"></div>
     <p style="margin:8px 0 2px">รหัสพิเศษ (ใช้ยืนยันตอนทดสอบ)</p>
     <input type="password" id="aiKey" maxlength="40" autocomplete="off">
@@ -184,8 +184,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=3.2"></script>
-<script src="../mockup/live-rooms.js?v=3.2"></script>
+<script src="../mockup/scenarios.js?v=3.3"></script>
+<script src="../mockup/live-rooms.js?v=3.3"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1581,7 +1581,7 @@ $('aiTest').onclick = async () => {
     if ($('aiKey').value.trim()) aiStore.setKey(k);
     const use = d.providers.find(p => p.ok && p.id === d.primary) || d.providers.find(p => p.ok);
     $('aiProv').innerHTML = d.providers.map(p => `<div style="margin:3px 0">${p.ok ? '✅' : p.set ? '❌' : '⚪'} <b>${esc(p.name)}</b> · <code>${esc(p.model)}</code> · <span class="${p.ok ? 'ok' : p.set ? 'bad' : 'mut'}">${esc(p.msg)}${p.set ? ` (${(p.ms / 1000).toFixed(1)} วิ)` : ''}</span>${use === p ? ' <b>← ใช้วิเคราะห์</b>' : p.ok ? ' <span class="mut">(สำรอง)</span>' : ''}</div>`).join('');
-    msg.className = d.ok ? 'ok' : 'bad'; msg.textContent = d.ok ? `ใช้งานได้ · วิเคราะห์ด้วย ${use.name}` : '❌ ยังไม่มีทางไหนใช้งานได้'; return;
+    msg.className = d.ok ? 'ok' : 'bad'; msg.textContent = d.ok ? `ใช้งานได้ · วิเคราะห์ด้วย ${use.name}` : '❌ ยังใช้งานไม่ได้ (ดูสาเหตุด้านบน)'; return;
   }
   msg.className = 'bad';
   msg.textContent = '❌ ' + (code === 403 ? 'รหัสพิเศษไม่ถูกต้อง' : code === 404 || code === 405 ? 'ยังไม่มี /api/analyze บนเว็บนี้ (ต้อง deploy บน Netlify)' : typeof d?.msg === 'string' && d.msg ? d.msg.slice(0, 200) : code ? 'ทดสอบไม่ผ่าน (' + code + ')' : 'ต่อเซิร์ฟเวอร์ไม่ได้ / หมดเวลา');

@@ -28,7 +28,7 @@
   let HC = null;  // อ่านจาก localStorage ครั้งเดียว แล้วใช้ค่าในหน่วยความจำ (แผงอัปเดตทุก 0.5 วิ)
   const hist = { load() { if (HC) return HC; try { const a = JSON.parse(localStorage.getItem(HK) || '[]'); HC = Array.isArray(a) ? a.filter(h => h && Array.isArray(h.players)) : []; } catch { HC = []; } return HC; },
     save(a) { HC = a.slice(-HMAX); try { localStorage.setItem(HK, JSON.stringify(HC)); } catch {} }, clear() { HC = []; try { localStorage.removeItem(HK); } catch {} } };
-  const summ = r => ({ ts: r.ts, kind: r.kind, end: r.end, score: r.score, players: r.players.filter(p => p.intent != null && p.m.T >= 40).map(p => ({ name: p.name, id: p.id, al: p.alliance, i: p.intent, s: p.skill, v: p.v,
+  const summ = r => ({ ts: r.ts, kind: r.kind, end: r.end, score: r.score, players: r.players.filter(p => !p.bot && p.intent != null && p.m.T >= 40).map(p => ({ name: p.name, id: p.id, al: p.alliance, i: p.intent, s: p.skill, v: p.v,
     acc: p.m.acc, shots: p.m.shots, hits: p.m.hits, cyc: p.m.cycAvg, mv: p.m.mv, idle: p.m.idleN, wall: p.m.wallPm, fouls: p.fouls.length, T: p.m.T })) });
   const prevOf = (name, before) => !nkey(name) ? [] : hist.load().filter(h => h.ts < before).flatMap(h => h.players.filter(q => nkey(q.name) === nkey(name)).map(q => ({ ...q, ts: h.ts }))).slice(-5);
   const newP = (r, el) => ({ id: r.id, al: r.al, name: r.name, T: 0, mv: 0, spin: 0, path: 0, win: null, stSum: 0, stN: 0, aimless: 0,
@@ -51,9 +51,11 @@
     for (const r of f.robots) {
       if (!SID.includes(r.id)) continue;
       let p = P[r.id];
-      if (!r.human) { if (p) p.gone = true; continue; }  // ตัวนี้เป็น Bot (หรือคนออกไปแล้ว Bot ขับแทน) = ไม่วิเคราะห์ต่อ
-      if (!p) p = P[r.id] = newP(r, f.el);
-      p.name = r.name || p.name; p.gone = false; p.ping = r.ping || 0; p.miss = r.miss || 0;
+      // Bot: คำนวณคะแนนไว้เทียบในแผง (ไม่ส่งให้ AI ไม่เก็บประวัติ) · คนออกกลางแมตช์ (Bot ขับแทน) = เก็บผลของคนไว้ หยุดนับต่อ
+      if (!r.human && p && !p.bot) { p.gone = true; continue; }
+      if (r.human && p?.bot) p = null;  // คนกลับมาขับตำแหน่งที่เคยเป็น Bot = เริ่มนับใหม่เป็นของคน
+      if (!p) p = P[r.id] = Object.assign(newP(r, f.el), { bot: !r.human });
+      p.name = p.bot ? 'Bot' : r.name || p.name; p.gone = false; p.ping = r.ping || 0; p.miss = r.miss || 0;
       p.fouls = (f.fouls || []).filter(x => x.by === r.id).map(x => ({ rule: x.rule, sev: x.sev, pts: x.pts, rem: Math.round(x.rem) }));
       if (play && p.s0 == null) { p.s0 = r.shots; p.h0 = r.hits; p.c0 = r.cyc.length; p.hit0 = r.hitN; p.wall0 = r.wallN; p.lastShots = r.shots; M.startEl ??= f.el; }
       const spd = Math.hypot(r.vx, r.vz), w = Math.abs(r.w);
@@ -97,7 +99,7 @@
       if (r.load > 0) p.hold += dt; else endHold(p);
       if (p.T >= 20 && p.T - p.serT >= 10) { p.serT = p.T; const c = calc(p); p.ser.push({ el: r1(f.el), i: c.intent, s: c.skill }); if (p.ser.length > 40) p.ser.shift(); }  // คะแนนทุก 10 วิ (กราฟตอนจบ)
     }
-    if (mode === 'live' && play && !LV.busy && !LV.off && Date.now() - LV.at > LIVE_GAP && Object.values(P).some(p => !p.gone && p.T >= 20)) liveAsk();
+    if (mode === 'live' && play && !LV.busy && !LV.off && Date.now() - LV.at > LIVE_GAP && Object.values(P).some(p => !p.gone && !p.bot && p.T >= 20)) liveAsk();
     if (performance.now() - uiT > 500) { uiT = performance.now(); paintPanel(); }
   }
   async function liveAsk() {
@@ -106,7 +108,7 @@
     const [code, res] = await callAI(k, 'brief', s);
     LV.busy = false; LV.at = Date.now();
     if (res?.ok && typeof res.text === 'string') { LV.list.push({ el, at: Date.now(), text: res.text.slice(0, 4000) }); if (LV.list.length > 12) LV.list.shift(); LV.msg = ''; }
-    else { LV.msg = aiErr(code, res); if ([403, 501, 413].includes(code) || (code === 429 && res?.why !== 'ai') || ['aikey', 'perm', 'model', 'bad', 'credit', 'fail', 'nokey'].includes(res?.why)) LV.off = LV.msg; }  // แก้เองไม่ได้ = หยุดเรียกซ้ำ (ไม่เปลืองโควตา)
+    else { LV.msg = aiErr(code, res); if ([403, 501, 413].includes(code) || (code === 429 && res?.why !== 'ai') || ['aikey', 'perm', 'model', 'bad', 'credit', 'fail', 'nokey', 'policy'].includes(res?.why)) LV.off = LV.msg; }  // แก้เองไม่ได้ = หยุดเรียกซ้ำ (ไม่เปลืองโควตา)
     paintPanel();
   }
 
@@ -163,7 +165,7 @@
 
   function snapshot(fin) {
     const players = SID.filter(id => P[id]).map(id => { const p = P[id], c = calc(p);
-      return { id, alliance: p.al, name: p.name, gone: p.gone, ...c, ser: p.ser.slice(), prev: prevOf(p.name, M?.ts || Date.now()), bk: p.bk.map(b => ({ t: Math.round(b.t), mv: b.t ? pc(b.mv / b.t) : 0, pick: b.pick, shots: b.shots, walls: b.walls, coll: b.coll })), fouls: p.fouls, shotsEv: p.shotsEv.slice(-40), park: fin?.park ? !!fin.park[id] : null, from: r1(p.from), to: r1(p.to) }; });
+      return { id, alliance: p.al, name: p.name, gone: p.gone, bot: !!p.bot, ...c, ser: p.ser.slice(), prev: p.bot ? [] : prevOf(p.name, M?.ts || Date.now()), bk: p.bk.map(b => ({ t: Math.round(b.t), mv: b.t ? pc(b.mv / b.t) : 0, pick: b.pick, shots: b.shots, walls: b.walls, coll: b.coll })), fouls: p.fouls, shotsEv: p.shotsEv.slice(-40), park: fin?.park ? !!fin.park[id] : null, from: r1(p.from), to: r1(p.to) }; });
     return { v: 1, ts: M?.ts || Date.now(), at: Date.now(), kind: M?.kind || '', score: fin?.score || M?.score || { red: 0, blue: 0 }, end: fin?.reason || 'live', startEl: M?.startEl, endEl: M?.lastEl, players, ai: null };
   }
 
@@ -186,6 +188,8 @@
 .anaD .tr { display:flex; gap:2px; align-items:flex-end; height:26px; margin:4px 0 } .anaD .tr i { flex:1; background:#3ec97a; min-height:2px; border-radius:2px 2px 0 0; display:block }
 .anaD .ai { border:1px solid rgba(106,162,255,.5); border-radius:10px; padding:9px 12px; margin:8px 0; font-size:14px; line-height:1.5; background:rgba(106,162,255,.06) } .anaD .ai h4 { margin:8px 0 2px; font-size:14px; color:#9cc0ff }
 .anaD .ft { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px } .anaD .sp { flex:1 } .anaD .err { color:#ff7b6b; font-weight:700 } .anaD select { font:inherit; font-size:12px }
+.anaT { border-top:1px solid rgba(255,255,255,.1); padding:4px 0 } .anaT > summary { cursor:pointer; font-size:13px; padding:2px 0 } .anaT > summary .mut { font-size:11px; font-variant-numeric:tabular-nums }
+.anaT .anaC:first-of-type { border-top:0 } .anaW > summary { margin:2px 0 }
 .anaBig { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:4px 0 3px } .anaBig > div { border:1px solid rgba(255,255,255,.12); border-left-width:4px; border-radius:8px; padding:3px 8px 5px; background:rgba(255,255,255,.04) }
 .anaBig .lb { display:block; font-size:11px; color:var(--mut,#9aa4b2) } .anaBig b { font-size:34px; line-height:1.05; font-weight:800; font-variant-numeric:tabular-nums; color:#e9edf3 } .anaBig em { font-style:normal; font-size:12px; font-weight:700; margin-left:4px }
 .anaBig i { display:block; height:4px; border-radius:2px; background:rgba(255,255,255,.12); margin-top:3px; overflow:hidden } .anaBig i s { display:block; height:100%; text-decoration:none }
@@ -233,7 +237,11 @@
     return `<div style="margin-top:8px;font-size:12px"><b>เทียบแมตช์ก่อนหน้า</b> <span class="mut">(${prev.length} แมตช์ · ชื่อเดียวกันในเครื่องนี้)</span><br>เทียบค่าเฉลี่ย: ตั้งใจ ${sg(di)} · ฝีมือ ${sg(ds)}${accD != null ? ` · ความแม่น ${sg(accD)}%` : ''}</div>${barsSvg(items)}`;
   }
 
-  function mount(el) { addCss(); panelEl = el; paintPanel(); }
+  function mount(el) {
+    addCss(); panelEl = el;
+    if (!el.dataset.tg) { el.dataset.tg = '1'; el.addEventListener('toggle', e => { const k = e.target?.dataset?.k; if (!k || !(k in OPEN) || OPEN[k] === e.target.open) return; OPEN[k] = e.target.open; try { localStorage.setItem('bb-ana-open', JSON.stringify(OPEN)); } catch {} if (k === 'why') el.querySelectorAll('details[data-k="why"]').forEach(d => { d.open = OPEN.why; }); }, true); }  // toggle ไม่ bubble = ดักแบบ capture
+    paintPanel();
+  }
   // คะแนนตัวใหญ่ (สด) · ลูกศร = เปลี่ยนจากเมื่อ ~10 วิก่อน · สีขอบ/แถบ = ระดับ (เขียว ≥ 65 · เหลือง 40–64 · แดง < 40) คู่กับข้อความระดับเสมอ
   function big(p) {
     const last = p.ser?.at(-1), tile = (lb, v, k) => { const d = v != null && last ? v - last[k] : 0;
@@ -241,21 +249,31 @@
     return `<div class="anaBig" aria-label="คะแนนความตั้งใจ ${p.intent ?? 'ยังไม่มี'} ฝีมือ ${p.skill ?? 'ยังไม่มี'}">${tile('ความตั้งใจ', p.intent, 'i')}${tile('ฝีมือ', p.skill, 's')}</div>`;
   }
   function setMode(v) { mode = v === 'live' ? 'live' : 'rec'; try { localStorage.setItem(MODE_KEY, mode); } catch {} if (mode === 'live') { LV.off = ''; LV.at = Date.now() - LIVE_GAP + 3000; } paintPanel(); }
-  function paintPanel(bots) {
+  // แผงด้านขวา: ครบ 4 หุ่น แยกทีมแดง / น้ำเงิน (หุบได้แยกทีม) · ข้อความเหตุผล และการตั้งค่า หุบได้ · จำสถานะไว้ในเครื่อง
+  const OPEN = { red: true, blue: true, why: true, ctl: false }; try { Object.assign(OPEN, JSON.parse(localStorage.getItem('bb-ana-open') || '{}')); } catch {}
+  const op = k => OPEN[k] ? 'open' : '';
+  function card(p) {
+    if (p.bot) return `<div class="anaC"><div class="nm">${who(p)} <span class="mut" style="font-weight:400;font-size:11px">🤖 Bot · อ้างอิง (ไม่ส่งให้ AI)</span></div>${big(p)}</div>`;
+    return `<div class="anaC"><div class="nm">${who(p)}${p.gone ? ' <span class="mut" style="font-weight:400">(ออกแล้ว → Bot)</span>' : ''}</div>${big(p)}<div class="vt">${p.vt} <span class="mut" style="font-weight:400">· ฝีมือ ${p.sl}</span></div>
+      <details class="anaW" data-k="why" ${op('why')}><summary class="mut" style="cursor:pointer;font-size:11px">ข้อความ (${p.why.length})</summary>
+      <div class="mut">ยิง ${p.m.hits}/${p.m.shots}${p.m.acc != null ? ` (${p.m.acc}%)` : ''} · ขยับ ${p.m.mv}% · เก็บ ${p.m.pickPm}/นาที${p.m.cyc ? ` · cycle ${p.m.cycAvg} วิ` : ''}</div>
+      <ul>${p.why.slice(0, 3).map(w => `<li>${esc(w)}</li>`).join('')}</ul></details></div>`;
+  }
+  function paintPanel() {
     if (!panelEl || !panelEl.isConnected) return;
-    const s = snapshot(), hum = s.players.filter(p => !p.gone);
-    const dyn = `${hum.length ? hum.map(p => `<div class="anaC"><div class="nm">${who(p)}</div>${big(p)}<div class="vt">${p.vt} <span class="mut" style="font-weight:400">· ฝีมือ ${p.sl}</span></div>
-        <div class="mut">ยิง ${p.m.hits}/${p.m.shots}${p.m.acc != null ? ` (${p.m.acc}%)` : ''} · ขยับ ${p.m.mv}% · เก็บ ${p.m.pickPm}/นาที${p.m.cyc ? ` · cycle ${p.m.cycAvg} วิ` : ''}</div>
-        <ul>${p.why.slice(0, 3).map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>`).join('') : '<div class="anaC mut">ยังไม่มีคนจริงในสนาม (Bot ไม่วิเคราะห์) หรือรอแมตช์เริ่ม</div>'}
+    const s = snapshot(), teams = ['red', 'blue'].map(c => {
+      const ps = s.players.filter(p => p.alliance === c), short = ps.map(p => `${p.id} ${p.bot ? '🤖' : p.intent ?? '…'}${p.bot ? '' : '·' + (p.skill ?? '…')}`).join(' · ');
+      return `<details class="anaT" data-k="${c}" ${op(c)}><summary><b class="${c === 'red' ? 'r' : 'b'}">${c === 'red' ? '🔴 ทีมแดง' : '🔵 ทีมน้ำเงิน'}</b> <span class="mut">${short || 'ไม่มีหุ่น'}</span></summary>${ps.map(card).join('') || '<div class="anaC mut">ยังไม่มีข้อมูล (รอแมตช์เริ่ม)</div>'}</details>`; }).join('');
+    const dyn = `${teams}
       ${mode === 'live' ? `<div class="anaC"><b style="color:#9cc0ff">🤖 AI สด</b> <span class="mut">${LV.busy ? 'กำลังวิเคราะห์…' : LV.off ? 'หยุดแล้ว: ' + esc(LV.off) : LV.list.length ? `ล่าสุดเวลา ${fmtEl(LV.list.at(-1).el)}` : 'รอข้อมูลครบ 20 วิ'}</span>${LV.msg && !LV.off ? `<div style="color:#ff7b6b">${esc(LV.msg)}</div>` : ''}
         ${LV.list.length ? `<div style="margin-top:3px;line-height:1.45">${mdLite(LV.list.at(-1).text)}</div>` : ''}</div>` : ''}`, ck = mode + '|' + autoEnd, box = panelEl.querySelector('.anaDyn');
     if (box && panelEl.dataset.ck === ck) { box.innerHTML = dyn; return; }  // อัปเดตเฉพาะคะแนน: เมนูโหมดไม่หุบเองระหว่างเลือก
     panelEl.dataset.ck = ck;
     panelEl.innerHTML = `<div class="anaP"><div class="anaHd"><h4>📊 วิเคราะห์ผู้เล่น (เห็นเฉพาะคุณ)</h4><span style="flex:1"></span><button data-ana="open">รายงาน + AI</button></div><div class="anaDyn">${dyn}</div>
-            <div class="anaC"><label style="display:flex;gap:6px;align-items:center;margin:0">โหมด <select data-ana="mode" style="font:inherit;font-size:12px;flex:1"><option value="rec" ${mode === 'rec' ? 'selected' : ''}>แนะนำ: ตัวเลขสด + AI เมื่อกด</option><option value="live" ${mode === 'live' ? 'selected' : ''}>AI สดตลอดแมตช์ (ทุก ~30 วิ)</option></select></label>
+      <details class="anaT" data-k="ctl" ${op('ctl')}><summary class="mut">⚙️ ตั้งค่าการวิเคราะห์ · ${mode === 'live' ? 'AI สดตลอดแมตช์' : 'แนะนำ'}</summary><div class="anaC" style="border:0"><label style="display:flex;gap:6px;align-items:center;margin:0">โหมด <select data-ana="mode" style="font:inherit;font-size:12px;flex:1"><option value="rec" ${mode === 'rec' ? 'selected' : ''}>แนะนำ: ตัวเลขสด + AI เมื่อกด</option><option value="live" ${mode === 'live' ? 'selected' : ''}>AI สดตลอดแมตช์ (ทุก ~30 วิ)</option></select></label>
         <div class="mut" style="font-size:11px;margin-top:2px">${mode === 'live' ? 'AI สรุปสั้นทุก ~30 วิ และสรุปละเอียดตอนจบ · ประมาณ 5–8 ครั้ง/แมตช์' : `ระหว่างแมตช์ไม่เรียก AI · ${autoEnd ? 'AI สรุปตอนจบให้เอง 1 ครั้ง' : 'กด “รายงาน + AI” เมื่อต้องการ'}`}</div>
-        ${mode === 'rec' ? `<label style="display:flex;gap:6px;align-items:center;margin:3px 0 0;font-size:12px"><input type="checkbox" data-ana="auto" ${autoEnd ? 'checked' : ''}> ให้ AI สรุปผลตอนจบแมตช์อัตโนมัติ</label>` : ''}</div>
-      <div class="anaC mut" style="font-size:11px">เกณฑ์เป็นค่าประมาณของ simulator ไว้ช่วยโค้ชดู ไม่ใช่กติกา · ผู้เล่นไม่เห็นแผงนี้ · คำนวณในเครื่องนี้ ไม่ทำให้เครื่องผู้เล่นช้า</div></div>`;
+        ${mode === 'rec' ? `<label style="display:flex;gap:6px;align-items:center;margin:3px 0 0;font-size:12px"><input type="checkbox" data-ana="auto" ${autoEnd ? 'checked' : ''}> ให้ AI สรุปผลตอนจบแมตช์อัตโนมัติ</label>` : ''}
+        <div class="mut" style="font-size:11px;margin-top:4px">เกณฑ์เป็นค่าประมาณของ simulator ไว้ช่วยโค้ชดู ไม่ใช่กติกา · ผู้เล่นไม่เห็นแผงนี้ · คำนวณในเครื่องนี้ ไม่ทำให้เครื่องผู้เล่นช้า · Bot แสดงไว้เทียบเท่านั้น</div></div></details></div>`;
     panelEl.querySelector('[data-ana="open"]').onclick = () => openDlg(null);
     panelEl.querySelector('[data-ana="mode"]').onchange = e => setMode(e.target.value);
     const au = panelEl.querySelector('[data-ana="auto"]'); if (au) au.onchange = e => { autoEnd = e.target.checked; try { localStorage.setItem('bb-ana-auto', autoEnd ? '1' : '0'); } catch {} paintPanel(); };
@@ -264,11 +282,11 @@
   function finish(fin = {}) {
     if (!M || M.done) return null; M.done = true; M.endEl = M.lastEl;
     for (const p of Object.values(P)) { endIdle(p); endHold(p); }
-    const s = snapshot(fin); if (!s.players.length) return null;
+    const s = snapshot(fin); if (!s.players.some(p => !p.bot)) return null;  // ไม่มีคนจริงเลย = ไม่ต้องมีรายงาน
     s.aiLive = LV.list.map(x => ({ el: x.el, text: x.text }));
     { const sm = summ(s); if (sm.players.length) hist.save([...hist.load(), sm]); }  // เก็บไว้เทียบแมตช์ถัดไป
     reports.push(s); if (reports.length > 20) reports.shift(); cur = reports.length - 1; openDlg(cur);
-    if ((autoEnd || mode === 'live') && !LV.off && s.players.some(p => p.intent != null)) askAI(s);  // จบแมตช์: AI สรุปผล + เทียบแมตช์ก่อนหน้าให้เลย
+    if ((autoEnd || mode === 'live') && !LV.off && s.players.some(p => !p.bot && p.intent != null)) askAI(s);  // จบแมตช์: AI สรุปผล + เทียบแมตช์ก่อนหน้าให้เลย
     return s;
   }
 
@@ -284,7 +302,9 @@
   function body(r, forFile) {
     const sc = r.score || {}, t = new Date(r.ts);
     const head = `<div class="meta">${esc(t.toLocaleString('th-TH'))} · ${esc(KIND_TH[r.kind] || r.kind || '')} · สกอร์ <b style="color:#e4453c">${sc.red ?? 0}</b> – <b style="color:#6aa2ff">${sc.blue ?? 0}</b> · ${r.end === 'end' ? 'จบแมตช์' : r.end === 'lost' ? 'ห้องปิด / หลุดก่อนจบ (ข้อมูลไม่ครบแมตช์)' : 'ระหว่างแมตช์ (ข้อมูลถึงตอนนี้)'}</div>`;
-    const cards = r.players.map(p => { const m = p.m, tr = p.bk.length ? `<div class="mut" style="font-size:11px;margin-top:4px">การขยับทุก 20 วิ (ช่วงหลังตกลง = ล้า / เลิกพยายาม)</div><div class="tr">${p.bk.map(b => `<i title="${b.mv}% · เก็บ ${b.pick} · ยิง ${b.shots}" style="height:${Math.max(4, b.mv)}%;background:${CI}"></i>`).join('')}</div>` : '';
+    const hum = r.players.filter(p => !p.bot), bots = r.players.filter(p => p.bot);
+    const botBox = bots.length ? `<details class="cd" style="margin:0 0 10px"><summary style="cursor:pointer"><b>🤖 Bot ${bots.length} ตัว</b> <span class="mut">(อ้างอิงไว้เทียบ ไม่ประเมิน ไม่ส่งให้ AI)</span></summary><div class="gr">${bots.map(p => `<div>${who(p)}${big(p)}</div>`).join('')}</div></details>` : '';
+    const cards = hum.map(p => { const m = p.m, tr = p.bk.length ? `<div class="mut" style="font-size:11px;margin-top:4px">การขยับทุก 20 วิ (ช่วงหลังตกลง = ล้า / เลิกพยายาม)</div><div class="tr">${p.bk.map(b => `<i title="${b.mv}% · เก็บ ${b.pick} · ยิง ${b.shots}" style="height:${Math.max(4, b.mv)}%;background:${CI}"></i>`).join('')}</div>` : '';
       const rows = [['เวลา TELEOP ที่เก็บข้อมูล', fmt(m.T)], ['เวลาที่ขยับ', m.mv + '%'], ['ความตรงของเส้นทาง', m.straight + '%'], ['หมุนวนอยู่กับที่', m.spin + '%'],
         ['ยิง / เข้า', `${m.hits}/${m.shots}${m.acc != null ? ` (${m.acc}%)` : ''}`], ['ยิงในวงของทีม', m.gate != null ? m.gate + '%' : '—'], ['หยุดนิ่งก่อนยิง', m.still != null ? m.still + '%' : '—'], ['หันตรง CELL ตอนยิง', m.aim != null ? m.aim + '%' : '—'],
         ['เก็บลูก', m.pickPm + ' /นาที'], ['cycle', m.cyc ? `${m.cyc} รอบ · เฉลี่ย ${m.cycAvg} วิ` : '—'], ['ชนผนัง / ชนหุ่น', `${m.walls} / ${m.coll} ครั้ง`], ['เปลี่ยนทิศกะทันหัน', m.revPm + ' /นาที'],
@@ -295,7 +315,7 @@
         <ul>${p.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>${lineSvg(p.ser)}${cmpBlock(p)}${tr}<table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></div>`; }).join('');
     const lv = r.aiLive?.length ? `<details class="ai"><summary style="cursor:pointer"><b>🤖 AI สดระหว่างแมตช์</b> <span class="mut" style="font-size:12px">${r.aiLive.length} ครั้ง</span></summary>${r.aiLive.map(x => `<h4>เวลาในแมตช์ ${fmtEl(x.el)}</h4>${mdLite(x.text)}`).join('')}</details>` : '';
     const ai = r.ai ? `<div class="ai"><b>🤖 ผลวิเคราะห์จาก AI</b> <span class="mut" style="font-size:12px">${esc(r.ai.model || '')} · ${esc(new Date(r.ai.at).toLocaleTimeString('th-TH'))}</span>${mdLite(r.ai.text)}</div>` : '';
-    return head + (r.players.length ? `<div class="gr">${cards}</div>` : '<p class="mut">ไม่มีคนจริงในแมตช์นี้ (Bot ไม่วิเคราะห์)</p>') + ai + lv +
+    return head + (hum.length ? `<div class="gr">${cards}</div>` : '<p class="mut">ไม่มีคนจริงในแมตช์นี้ (Bot ไม่วิเคราะห์)</p>') + botBox + ai + lv +
       `<p class="mut" style="font-size:12px">เกณฑ์เป็นค่าประมาณของ simulator ไว้ช่วยโค้ชดู ไม่ใช่กติกา FTC · “วงยิง” และ “หยุดนิ่งก่อนยิง” เป็นแนวฝึกของทีม${forFile ? '' : ' · ผู้เล่นไม่เห็นรายงานนี้'}</p>`;
   }
   function paintDlg() {
@@ -304,7 +324,7 @@
     const opts = reports.map((x, i) => `<option value="${i}" ${i === cur ? 'selected' : ''}>แมตช์ ${i + 1} · ${new Date(x.ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} · ${x.score.red}-${x.score.blue}</option>`).join('');
     dlg.innerHTML = `<div class="bx" role="dialog" aria-label="ผลประเมินผู้เล่น"><h2>📊 ผลประเมินผู้เล่น</h2><div class="meta">เห็นเฉพาะผู้ชมพิเศษเครื่องนี้ · ผู้เล่นและ host ไม่ได้รับข้อมูลนี้</div>
       ${body(r)}
-      <div class="ft"><button class="go" data-a="ai" ${aiBusy || !r.players.length ? 'disabled' : ''}>${aiBusy ? '🤖 AI กำลังวิเคราะห์… (ไม่เกิน 1 นาที)' : r.ai ? '🤖 ให้ AI วิเคราะห์ใหม่' : '🤖 ให้ AI วิเคราะห์ละเอียด'}</button>
+      <div class="ft"><button class="go" data-a="ai" ${aiBusy || !r.players.some(p => !p.bot) ? 'disabled' : ''}>${aiBusy ? '🤖 AI กำลังวิเคราะห์… (ไม่เกิน 1 นาที)' : r.ai ? '🤖 ให้ AI วิเคราะห์ใหม่' : '🤖 ให้ AI วิเคราะห์ละเอียด'}</button>
         <span class="${/ไม่|ผิด|เกิน|หลุด/.test(aiMsg) ? 'err' : 'mut'}" style="font-size:13px">${esc(aiMsg)}</span></div>
       <div class="ft"><button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูลดิบ (.json)</button>
         ${cur < 0 ? '<button data-a="refresh">🔄 อัปเดตตัวเลขล่าสุด</button>' : ''}${reports.length > 1 || (cur < 0 && reports.length) ? `<select data-a="pick"><option value="-1" ${cur < 0 ? 'selected' : ''}>ตอนนี้ (สด)</option>${opts}</select>` : ''}
@@ -325,7 +345,7 @@
     a.download = `biobuzz-analysis-${stamp}.${kind}`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
   // ส่งให้ AI เฉพาะตัวเลข: ไม่มีชื่อผู้เล่น ไม่มีรหัสห้อง (ชื่อจับคู่กลับในเครื่องนี้ด้วยตำแหน่ง R1 / B1 …)
-  const forAI = r => ({ kind: r.kind, end: r.end, score: r.score, window: { from: r.startEl, to: r.endEl }, players: r.players.map(p => ({ id: p.id, alliance: p.alliance, leftMidMatch: p.gone, verdict: p.v, intent: p.intent, skill: p.skill, metrics: p.m, notes: p.why, every20s: p.bk, fouls: p.fouls, park: p.park, shots: p.shotsEv,
+  const forAI = r => ({ kind: r.kind, end: r.end, score: r.score, window: { from: r.startEl, to: r.endEl }, players: r.players.filter(p => !p.bot).map(p => ({ id: p.id, alliance: p.alliance, leftMidMatch: p.gone, verdict: p.v, intent: p.intent, skill: p.skill, metrics: p.m, notes: p.why, every20s: p.bk, fouls: p.fouls, park: p.park, shots: p.shotsEv,
     scoreEvery10s: p.ser, previousMatches: (p.prev || []).map((q, i, a) => ({ matchesAgo: a.length - i, intent: q.i, skill: q.s, verdict: q.v, acc: q.acc, shots: q.shots, hits: q.hits, cycAvg: q.cyc, moving: q.mv, idleN: q.idle, wallPm: q.wall, fouls: q.fouls, teleopSec: q.T })) })) });
   async function askAI(r) {
     if (aiBusy) return; const k = key.get(); if (!k) { aiMsg = 'ไม่พบรหัสพิเศษในเครื่องนี้ (หมดอายุ 12 ชม.) ออกแล้วเข้าชมใหม่ด้วยรหัสพิเศษ'; return paintDlg(); }
@@ -336,12 +356,12 @@
     else aiMsg = aiErr(code, res);
     if (dlg) paintDlg();
   }
-  // รุ่น AI และคีย์ตั้งที่ Netlify (ANTHROPIC_API_KEY / OPENROUTER_API_KEY) · ทดสอบได้ที่หน้า home → ตั้งค่า
+  // รุ่น AI และคีย์ตั้งที่ Netlify (OPENROUTER_API_KEY · OPENROUTER_MODEL) · ทดสอบได้ที่หน้า home → ตั้งค่า
   async function callAI(k, kind, r) {
     try { const q = await fetch(AI_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k, mode: kind, report: forAI(r) }), signal: AbortSignal.timeout(70000) }); return [q.status, await q.json().catch(() => null)]; }
     catch { return [0, null]; }
   }
-  const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (ANTHROPIC_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]
+  const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]
     || (code === 504 || !code ? 'AI ตอบไม่ทันเวลา / เน็ตหลุด ลองกดใหม่' : 'เรียก AI ไม่ได้ (' + code + ') ลองใหม่ภายหลัง'));
 
   window.BBAna = { key, reset, feed, mount, finish, setMode, get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };

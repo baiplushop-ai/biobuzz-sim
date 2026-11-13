@@ -4,25 +4,17 @@
 // key = รหัสพิเศษ (ตรวจที่เซิร์ฟเวอร์ทุกครั้ง) คนอื่นจึงใช้ token ของเราไม่ได้ · ข้อมูลที่ส่งมาไม่มีชื่อผู้เล่นและไม่มีรหัสห้อง
 //
 // ตั้งค่าทั้งหมดที่ Netlify → Project configuration → Environment variables (ไม่เก็บในรีโป · ตั้งแล้วกด Deploy ใหม่ 1 ครั้ง)
-//   ANTHROPIC_API_KEY  = คีย์ Claude API ของ Anthropic (ทางหลัก)
-//   AI_MODEL           = รุ่นที่ใช้ผ่าน Anthropic (ไม่ตั้ง = claude-opus-5-5 · เช่น claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-2)
-//   OPENROUTER_API_KEY = คีย์ OpenRouter (ทางสำรอง: ใช้เมื่อทางหลักใช้ไม่ได้ เช่น credit หมด คีย์ผิด หรือ AI ไม่ว่าง)
-//   OPENROUTER_MODEL   = รุ่นที่ใช้ผ่าน OpenRouter (ไม่ตั้ง = anthropic/claude-opus-5.5)
-//   AI_PRIMARY         = openrouter ถ้าอยากใช้ OpenRouter เป็นทางหลักแทน (ไม่ตั้ง = anthropic)
+//   OPENROUTER_API_KEY = คีย์ OpenRouter (จำเป็น · ใช้ทางนี้ทางเดียว · ค่าใช้จ่ายตัดจาก credit ที่เติมไว้ใน OpenRouter)
+//   OPENROUTER_MODEL   = รุ่นที่ใช้ (ไม่ตั้ง = anthropic/claude-opus-5.5 · เช่น anthropic/claude-sonnet-5.5, anthropic/claude-haiku-5.5)
 //   AI_HOURLY_LIMIT    = จำนวนครั้งสูงสุดต่อชั่วโมงทั้งเว็บ (ไม่ตั้ง = 120) กันค่าใช้จ่ายบานปลาย
-// ตั้งแค่คีย์เดียวก็ใช้ได้ · ตั้งทั้งสองคีย์ = มีทางสำรองอัตโนมัติ
-import Anthropic from '@anthropic-ai/sdk';
 import { isMaster } from '../lib/master.mjs';
 
 const MAX_BODY = 40000, BUDGET = 54000;  // function ทำงานได้ไม่เกิน 60 วิ
 const env = k => (process.env[k] || '').trim();
-// รุ่นที่รองรับระบบสำรองของ Anthropic เอง (ถ้ารุ่นหลักปฏิเสธคำขอ API จะส่งต่อให้รุ่นอื่นในคำขอเดียวกัน)
-const FB_MODELS = new Set(['claude-fable-5-2', 'claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5']);
 const PROV = {
-  anthropic: { name: 'Anthropic', key: () => env('ANTHROPIC_API_KEY'), model: () => /^claude-[a-z0-9.-]{3,40}$/.test(env('AI_MODEL')) ? env('AI_MODEL') : 'claude-opus-5-5' },
   openrouter: { name: 'OpenRouter', key: () => env('OPENROUTER_API_KEY'), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-opus-5.5' },
 };
-const order = () => (env('AI_PRIMARY').toLowerCase() === 'openrouter' ? ['openrouter', 'anthropic'] : ['anthropic', 'openrouter']).filter(p => PROV[p].key());
+const order = () => ['openrouter'].filter(p => PROV[p].key());
 
 const store = async () => globalThis.__roomStore || (await import('@netlify/blobs')).getStore({ name: 'ai-usage', consistency: 'strong' });
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -69,28 +61,6 @@ async function quota(n = 1) {  // นับครั้งที่เรีย�
 }
 class AIErr extends Error { constructor(why, msg, status, retry = true) { super(msg); Object.assign(this, { why, status, retry }); } }  // retry = ลองทางสำรองได้
 
-async function viaAnthropic(model, content, maxTok, effort, ms) {
-  const client = new Anthropic({ apiKey: PROV.anthropic.key(), timeout: ms, maxRetries: 0 });
-  const params = { model, max_tokens: maxTok, system: SYS, output_config: { effort }, messages: [{ role: 'user', content }] };
-  if (FB_MODELS.has(model)) Object.assign(params, { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' });
-  let r;
-  try { r = await client.beta.messages.create(params); }
-  catch (e) {
-    const m = String(e?.message || '').replace(/\s+/g, ' ').slice(0, 160);
-    if (e instanceof Anthropic.AuthenticationError) throw new AIErr('aikey', 'คีย์ไม่ถูกต้องหรือถูกยกเลิก', 502);
-    if (e instanceof Anthropic.PermissionDeniedError) throw new AIErr('perm', 'บัญชีนี้ใช้รุ่น ' + model + ' ไม่ได้', 502);
-    if (e instanceof Anthropic.NotFoundError) throw new AIErr('model', 'ไม่พบรุ่น ' + model + ' (ตรวจ AI_MODEL)', 502);
-    if (e instanceof Anthropic.BadRequestError) throw new AIErr('bad', /credit|balance/i.test(m) ? 'credit หมด / ไม่พอ' : m, 502);  // credit หมดตอบเป็น 400
-    if (e instanceof Anthropic.RateLimitError) throw new AIErr('ai', 'ถูกจำกัดความถี่ (rate limit)', 429);
-    if (e instanceof Anthropic.APIConnectionTimeoutError) throw new AIErr('timeout', 'ตอบไม่ทันเวลา', 504, false);
-    if (e instanceof Anthropic.APIConnectionError) throw new AIErr('conn', 'ต่อไม่ได้', 502);
-    if (e instanceof Anthropic.APIError) throw new AIErr('api', `ขัดข้อง (${e.status ?? '?'})`, 503);
-    throw new AIErr('err', m, 500);
-  }
-  if (r.stop_reason === 'refusal') throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);
-  const text = (r.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
-  return { text, model: r.model, cut: r.stop_reason === 'max_tokens' };
-}
 async function viaOpenRouter(model, content, maxTok, effort, ms) {
   let q, d;
   try {
@@ -104,6 +74,7 @@ async function viaOpenRouter(model, content, maxTok, effort, ms) {
     const s = q.ok ? (+d?.error?.code || 502) : q.status;
     if (s === 401) throw new AIErr('aikey', 'คีย์ไม่ถูกต้องหรือถูกยกเลิก', 502);
     if (s === 402) throw new AIErr('credit', 'credit หมด / ไม่พอ (เติมที่ openrouter.ai)', 502);
+    if (s === 404 && /guardrail|data policy/i.test(em)) throw new AIErr('policy', 'บัญชี OpenRouter บล็อกรุ่น ' + model + ' ด้วยการตั้งค่า Privacy / Guardrails · แก้ที่ openrouter.ai/settings/privacy', 502);
     if (s === 404) throw new AIErr('model', 'ใช้รุ่น ' + model + ' ไม่ได้' + (em ? ' · ' + em : ' (ตรวจ OPENROUTER_MODEL)'), 502);  // เช่น ตั้งค่าความเป็นส่วนตัวใน OpenRouter บล็อกผู้ให้บริการ
     if (s === 429) throw new AIErr('ai', 'ถูกจำกัดความถี่ (rate limit)', 429);
     if (s === 403) throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);
@@ -113,7 +84,7 @@ async function viaOpenRouter(model, content, maxTok, effort, ms) {
   if (c?.finish_reason === 'content_filter') throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);
   return { text, model: String(d?.model || model), cut: c?.finish_reason === 'length' };
 }
-const run = (p, ...a) => (p === 'anthropic' ? viaAnthropic : viaOpenRouter)(PROV[p].model(), ...a);
+const run = (p, ...a) => viaOpenRouter(PROV[p].model(), ...a);
 
 export default async req => {
   if (req.method !== 'POST') return json({ ok: false, why: 'method' }, 405);
@@ -125,9 +96,9 @@ export default async req => {
   if (d.op === 'test') {  // ทดสอบทุกทางที่ตั้งคีย์ไว้พร้อมกัน (คำถามสั้นมาก ใช้ token น้อย)
     const set = ps.filter(Boolean);
     if (set.length && !(await quota(set.length))) return json({ ok: false, why: 'quota', msg: `เกินโควตา ${hourly()} ครั้ง/ชม.` }, 429);
-    const providers = await Promise.all(['anthropic', 'openrouter'].map(async id => {
+    const providers = await Promise.all(['openrouter'].map(async id => {
       const P = PROV[id], o = { id, name: P.name, set: !!P.key(), model: P.model(), ok: false, ms: 0, msg: '' };
-      if (!o.set) { o.msg = `ยังไม่ได้ตั้ง ${id === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENROUTER_API_KEY'}`; return o; }
+      if (!o.set) { o.msg = 'ยังไม่ได้ตั้ง OPENROUTER_API_KEY ใน Netlify'; return o; }
       const t0 = Date.now();
       try { const r = await run(id, 'ทดสอบการเชื่อมต่อ ตอบกลับคำเดียวว่า OK', 600, 'low', 25000); o.ok = !!r.text; o.model = r.model || o.model; o.msg = o.ok ? 'ใช้งานได้' : 'ไม่ได้ข้อความกลับมา'; }
       catch (e) { o.msg = e instanceof AIErr ? e.message : 'ทดสอบไม่ผ่าน'; }
@@ -136,7 +107,7 @@ export default async req => {
     return json({ ok: providers.some(p => p.ok), primary: ps[0] || null, providers });
   }
 
-  if (!ps.length) return json({ ok: false, why: 'nokey', msg: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (ANTHROPIC_API_KEY หรือ OPENROUTER_API_KEY)' }, 501);
+  if (!ps.length) return json({ ok: false, why: 'nokey', msg: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)' }, 501);
   if (!d.report || typeof d.report !== 'object' || !Array.isArray(d.report.players) || !d.report.players.length) return json({ ok: false, why: 'report' }, 400);
   if (!(await quota())) return json({ ok: false, why: 'quota', msg: `เกินโควตา ${hourly()} ครั้ง/ชม.` }, 429);
   const brief = d.mode === 'brief', content = `${brief ? BRIEF : FULL}\n\nข้อมูล (JSON):\n${JSON.stringify(d.report)}`;
