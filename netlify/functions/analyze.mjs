@@ -145,7 +145,7 @@ export default async req => {
     for (const [i, t] of tries.entries()) {
       const left = BUDGET - (Date.now() - t0), ms = Math.min(t.cap, left), last = i === tries.length - 1; if (ms < 6000) break;
       try {
-        const r = await viaOpenRouter([t.m], content, brief ? 2000 : 8000, brief ? 'low' : 'medium', ms);
+        const r = await viaOpenRouter([t.m], content, brief ? 2000 : 8000, 'low', ms);  // effort low: ระดับ medium ทำให้ Haiku คิดจนหมด token ไม่เหลือเขียนคำตอบ (finish = length)
         if (!r.text) { fails.push(`${t.name} ${t.m}: ไม่ได้ข้อความกลับมา${r.finish ? ' (' + r.finish + ')' : ''}`); continue; }
         return { ok: true, status: 200, via: 'OpenRouter' + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') };
       } catch (e) {
