@@ -83,7 +83,7 @@ async function quota(n = 1) {  // นับครั้งที่เรีย�
 }
 class AIErr extends Error { constructor(why, msg, status, retry = true) { super(msg); Object.assign(this, { why, status, retry }); } }  // retry = ลองทางสำรองได้
 
-async function viaOpenRouter(models, content, maxTok, effort, ms) {  // models = [รุ่นฟรี, รุ่นเสียเงิน] · OpenRouter ลองตามลำดับในคำขอเดียว คิดเงินตามรุ่นที่ตอบจริง
+async function viaOpenRouter(models, content, maxTok, effort, ms) {  // models = [รุ่นเดียว] (ใส่หลายรุ่นได้ OpenRouter จะลองตามลำดับเอง)
   const model = models[0], pick = models.length > 1 ? { models } : { model };
   let q, d;
   try {
@@ -105,10 +105,8 @@ async function viaOpenRouter(models, content, maxTok, effort, ms) {  // models =
   }
   const c = d?.choices?.[0], text = typeof c?.message?.content === 'string' ? c.message.content.trim() : '';
   if (c?.finish_reason === 'content_filter') throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);
-  return { text, model: String(d?.model || model), cut: c?.finish_reason === 'length' };
+  return { text, model: String(d?.model || model), cut: c?.finish_reason === 'length', finish: String(c?.finish_reason || '') };
 }
-const chain = () => [PROV.openrouter.free(), PROV.openrouter.model()].filter(Boolean);
-const run = (p, ...a) => viaOpenRouter(chain(), ...a);
 const isFree = m => /:free$/.test(String(m || ''));
 
 export default async req => {
@@ -140,18 +138,20 @@ export default async req => {
   const brief = d.mode === 'brief', content = `${brief ? BRIEF : FULL}\n\nข้อมูล (JSON):\n${JSON.stringify(d.report)}`;
   // AI อาจใช้เวลา 20-40 วิ แต่ Netlify ตัดการเชื่อมต่อที่เงียบเกิน ~26 วิ → ตอบแบบ stream: ส่งช่องว่าง 1 ตัวทุก 5 วิระหว่างรอ แล้วต่อด้วย JSON
   // (JSON.parse ข้ามช่องว่างนำหน้าได้) · ผลผิดพลาดหลังเริ่ม stream บอกรหัสใน status แทน HTTP status
+  // ลองรุ่นฟรีก่อนโดยจำกัดเวลา (ช้า / ตอบว่าง / เต็มโควตา = ใช้รุ่นเสียเงินต่อทันทีด้วยเวลาที่เหลือ) · คิดเงินเฉพาะรุ่นที่ตอบจริง
   const work = async () => {
-    const t0 = Date.now(), fails = [];
-    for (const p of ps) {
-      const left = BUDGET - (Date.now() - t0); if (left < 8000) break;
+    const t0 = Date.now(), fails = [], P = PROV.openrouter, free = P.free(), paid = P.model();
+    const tries = [free && { m: free, name: 'รุ่นฟรี', cap: brief ? 9000 : 22000 }, { m: paid, name: 'รุ่นเสียเงิน', cap: BUDGET }].filter(Boolean);
+    for (const [i, t] of tries.entries()) {
+      const left = BUDGET - (Date.now() - t0), ms = Math.min(t.cap, left), last = i === tries.length - 1; if (ms < 6000) break;
       try {
-        const r = await run(p, content, brief ? 2000 : 8000, brief ? 'low' : 'medium', left);
-        if (!r.text) { fails.push(`${PROV[p].name}: ไม่ได้ข้อความกลับมา`); continue; }
-        return { ok: true, status: 200, via: PROV[p].name + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') };
+        const r = await viaOpenRouter([t.m], content, brief ? 2000 : 8000, brief ? 'low' : 'medium', ms);
+        if (!r.text) { fails.push(`${t.name} ${t.m}: ไม่ได้ข้อความกลับมา${r.finish ? ' (' + r.finish + ')' : ''}`); continue; }
+        return { ok: true, status: 200, via: 'OpenRouter' + (isFree(r.model) ? ' · ฟรี' : ''), free: isFree(r.model), model: r.model, ms: Date.now() - t0, fallback: fails.length ? fails : undefined, text: r.text + (r.cut ? '\n\n(ข้อความยาวเกินกำหนด ถูกตัดท้าย)' : '') };
       } catch (e) {
         const er = e instanceof AIErr ? e : new AIErr('err', 'ขัดข้อง', 500);
-        fails.push(`${PROV[p].name}: ${er.message}`);
-        if (!er.retry) return { ok: false, status: er.status, why: er.why, msg: fails.join(' · ') };
+        fails.push(`${t.name} ${t.m}: ${er.message}`);
+        if (last) return { ok: false, status: er.status, why: er.why, msg: fails.join(' · ') };  // รุ่นฟรีผิดพลาดแบบใดก็ตาม = ลองรุ่นเสียเงินต่อ
       }
     }
     return { ok: false, status: 502, why: 'fail', msg: fails.join(' · ') || 'AI ไม่ตอบ' };
