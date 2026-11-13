@@ -11,8 +11,12 @@ import { isMaster } from '../lib/master.mjs';
 
 const MAX_BODY = 40000, BUDGET = 54000;  // function ทำงานได้ไม่เกิน 60 วิ
 const env = k => (process.env[k] || '').trim();
+// คีย์ที่วางมาเกิน (เครื่องหมายคำพูด, "Bearer ", ช่องว่าง/ขึ้นบรรทัดใหม่) = ตัดออกให้เอง
+const cleanKey = k => k.replace(/^["'\s]+|["'\s]+$/g, '').replace(/^Bearer\s+/i, '').replace(/\s+/g, '');
+// รูปร่างของคีย์ไว้ช่วยหาสาเหตุ (ไม่ส่งตัวคีย์): ขึ้นต้นถูกไหม ยาวเท่าไร 4 ตัวท้าย · ตัวคีย์ไม่ออกจากเซิร์ฟเวอร์
+const keyShape = raw => { const k = cleanKey(raw); return { prefixOk: /^sk-or-/.test(k), prefix: /^sk-or-/.test(k) ? k.slice(0, 9) : '', len: k.length, last4: k.length > 12 ? k.slice(-4) : '', fixed: k !== raw.trim() }; };
 const PROV = {
-  openrouter: { name: 'OpenRouter', key: () => env('OPENROUTER_API_KEY'), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-haiku-5.5' },
+  openrouter: { name: 'OpenRouter', key: () => cleanKey(env('OPENROUTER_API_KEY')), model: () => /^[a-z0-9._-]{2,40}\/[a-z0-9.:_-]{2,60}$/i.test(env('OPENROUTER_MODEL')) ? env('OPENROUTER_MODEL') : 'anthropic/claude-haiku-5.5' },
 };
 const order = () => ['openrouter'].filter(p => PROV[p].key());
 
@@ -72,7 +76,7 @@ async function viaOpenRouter(model, content, maxTok, effort, ms) {
   const em = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 160), emFull = String(d?.error?.message || '').replace(/\s+/g, ' ').slice(0, 600);
   if (!q.ok || d?.error) {
     const s = q.ok ? (+d?.error?.code || 502) : q.status;
-    if (s === 401) throw new AIErr('aikey', 'คีย์ไม่ถูกต้องหรือถูกยกเลิก', 502);
+    if (s === 401) throw new AIErr('aikey', 'คีย์ไม่ถูกต้องหรือถูกยกเลิก' + (em ? ' · OpenRouter แจ้ง: ' + em : ''), 502);
     if (s === 402) throw new AIErr('credit', 'credit หมด / ไม่พอ (เติมที่ openrouter.ai)', 502);
     if (s === 404 && /guardrail|data policy/i.test(em)) throw new AIErr('policy', 'บัญชี OpenRouter บล็อกรุ่น ' + model + ' ด้วยการตั้งค่า Privacy / Guardrails · แก้ที่ openrouter.ai/settings/privacy · OpenRouter แจ้ง: ' + emFull, 502);
     if (s === 404) throw new AIErr('model', 'ใช้รุ่น ' + model + ' ไม่ได้' + (em ? ' · ' + em : ' (ตรวจ OPENROUTER_MODEL)'), 502);  // เช่น ตั้งค่าความเป็นส่วนตัวใน OpenRouter บล็อกผู้ให้บริการ
@@ -99,6 +103,7 @@ export default async req => {
     const providers = await Promise.all(['openrouter'].map(async id => {
       const P = PROV[id], o = { id, name: P.name, set: !!P.key(), model: P.model(), ok: false, ms: 0, msg: '' };
       if (!o.set) { o.msg = 'ยังไม่ได้ตั้ง OPENROUTER_API_KEY ใน Netlify'; return o; }
+      o.key = keyShape(env('OPENROUTER_API_KEY'));
       const t0 = Date.now();
       try { const r = await run(id, 'ทดสอบการเชื่อมต่อ ตอบกลับคำเดียวว่า OK', 600, 'low', 25000); o.ok = !!r.text; o.model = r.model || o.model; o.msg = o.ok ? 'ใช้งานได้' : 'ไม่ได้ข้อความกลับมา'; }
       catch (e) { o.msg = e instanceof AIErr ? e.message : 'ทดสอบไม่ผ่าน'; }
