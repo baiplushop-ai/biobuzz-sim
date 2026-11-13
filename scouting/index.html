@@ -73,7 +73,7 @@ dialog::backdrop { background:rgba(0,0,0,.5) }
 </head>
 <body>
 <header>
-  <div><h1>📋 Scouting <span>BIOBUZZ</span></h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับเครื่องอื่นให้กดรีเฟรช">v4.5</div></div>
+  <div><h1>📋 Scouting <span>BIOBUZZ</span></h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับเครื่องอื่นให้กดรีเฟรช">v4.6</div></div>
   <span class="sp"></span>
   <button class="chip" id="syncChip" title="สถานะการส่งข้อมูลขึ้นเซิร์ฟเวอร์ (กดเพื่อซิงก์ตอนนี้)">⚪ ยังไม่ซิงก์</button>
   <a class="chip" href="../coach-training/#home" style="text-decoration:none">← หน้า Home</a>
@@ -359,7 +359,7 @@ async function call(body) { try { const q = await fetch(API, { method: 'POST', h
 let SY = { busy: false, err: '', t: null, last: 0 };
 const pending = () => Object.values(D.mine.recs).filter(r => r.at > (D.pushedAt || 0)).length + Object.values(D.mine.pit).filter(p => p.at > (D.pushedAt || 0)).length;
 const syncText = () => !KEY ? '⚪ ยังไม่ได้ใส่รหัสทีม (จดได้ แต่เก็บเฉพาะเครื่องนี้)' : SY.err ? '🔴 ' + SY.err : !navigator.onLine ? `🟠 ไม่มีเน็ต · รอส่ง ${pending()} รายการ` : D.dirty || D.pickDirty ? `🟠 รอส่ง ${pending()} รายการ` : D.cache.at ? `🟢 ซิงก์แล้ว ${new Date(D.cache.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} · ${(D.cache.devices || []).length} เครื่องในทีม` : '⚪ ยังไม่ซิงก์';
-function syncChip() { const c = $('syncChip'), t = syncText(); c.textContent = SY.busy ? '⏳ กำลังซิงก์…' : t.split(' · ')[0] + (t.includes('รอส่ง') ? ' · ' + t.match(/รอส่ง \d+/)?.[0] : ''); c.className = 'chip ' + (t.startsWith('🟢') ? 'ok' : t.startsWith('🟠') ? 'warn' : t.startsWith('🔴') ? 'bad' : ''); c.title = t; if ($('sSync')) $('sSync').textContent = t; }
+function syncChip() { const c = $('syncChip'), t = syncText(); c.textContent = SY.busy ? '⏳ กำลังซิงก์…' : !KEY ? '⚪ เก็บในเครื่อง (ยังไม่ใส่รหัสทีม)' : t.split(' · ')[0] + (t.includes('รอส่ง') ? ' · ' + t.match(/รอส่ง \d+/)?.[0] : ''); c.className = 'chip ' + (t.startsWith('🟢') ? 'ok' : t.startsWith('🟠') ? 'warn' : t.startsWith('🔴') ? 'bad' : ''); c.title = t; if ($('sSync')) $('sSync').textContent = t; }
 function syncSoon() { clearTimeout(SY.t); SY.t = setTimeout(() => sync(), 1200); syncChip(); }
 async function sync(force) {
   if (!KEY || SY.busy || (!navigator.onLine && !force)) { syncChip(); return; }
