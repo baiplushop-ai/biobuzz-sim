@@ -132,7 +132,7 @@
     const intent = Math.round(cl(100 * (0.25 * act + 0.25 * cl(purp) + 0.25 * work + 0.25 * aimI) - pen, 0, 100));
     // ฝีมือ: แม่น + ยิงในวงของทีม + cycle เร็ว + ทำแต้มต่อนาที + เล่นสะอาด
     const acc = tShots >= 3 ? tHits / tShots : tShots ? 0.4 : 0, gate = n ? share(s => s.gate) : 0, cyF = cyc.length ? cl((35 - cycAvg) / 20) : 0;
-    const clean = 1 - cl(major * 0.5 + minor * 0.2 + m.collPm * 0.1 + m.wallPm * 0.1);
+    const clean = (1 - cl(major * 0.5 + minor * 0.2 + m.collPm * 0.1 + m.wallPm * 0.1)) * cl((p.pick + tShots) / 4);  // ไม่ได้เล่นเลย = ไม่ได้คะแนน "เล่นสะอาด"
     const skill = Math.round(100 * (0.3 * acc + 0.2 * gate + 0.2 * cyF + 0.15 * cl(m.hitPm / 4) + 0.15 * clean));
     let v, vt;
     if (p.T < 20) { v = 'wait'; vt = '⏳ กำลังเก็บข้อมูล'; }
