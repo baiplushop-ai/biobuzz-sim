@@ -104,7 +104,7 @@ async function viaOpenRouter(model, content, maxTok, effort, ms) {
     const s = q.ok ? (+d?.error?.code || 502) : q.status;
     if (s === 401) throw new AIErr('aikey', 'คีย์ไม่ถูกต้องหรือถูกยกเลิก', 502);
     if (s === 402) throw new AIErr('credit', 'credit หมด / ไม่พอ (เติมที่ openrouter.ai)', 502);
-    if (s === 404) throw new AIErr('model', 'ไม่พบรุ่น ' + model + ' (ตรวจ OPENROUTER_MODEL)', 502);
+    if (s === 404) throw new AIErr('model', 'ใช้รุ่น ' + model + ' ไม่ได้' + (em ? ' · ' + em : ' (ตรวจ OPENROUTER_MODEL)'), 502);  // เช่น ตั้งค่าความเป็นส่วนตัวใน OpenRouter บล็อกผู้ให้บริการ
     if (s === 429) throw new AIErr('ai', 'ถูกจำกัดความถี่ (rate limit)', 429);
     if (s === 403) throw new AIErr('refusal', 'AI ไม่ตอบคำขอนี้', 422, false);
     throw new AIErr('api', `ขัดข้อง (${s})${em ? ' · ' + em : ''}`, 503);
