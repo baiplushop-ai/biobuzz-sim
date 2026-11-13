@@ -34,18 +34,21 @@
   const newP = (r, el) => ({ id: r.id, al: r.al, name: r.name, T: 0, mv: 0, spin: 0, path: 0, win: null, stSum: 0, stN: 0, aimless: 0,
     idle: 0, idleN: 0, idleMax: 0, hold: 0, holdN: 0, holdMax: 0, rev: 0, revCd: 0, vh: [], pick: 0, load: null, drops: [], shotsEv: [],
     s0: null, h0: null, c0: null, hit0: null, wall0: null, shots: 0, hits: 0, cyc: [], hitN: 0, wallN: 0, lastShots: null,
-    bk: [], fouls: [], ping: 0, miss: 0, from: el, to: el, human: true, gone: false, ser: [], serT: 0 });
+    bk: [], fouls: [], ping: 0, miss: 0, from: el, to: el, human: true, gone: false, ser: [], serT: 0,
+    zt: { own: 0, opp: 0, ring: 0, lz: 0, wall: 0 }, ev: [], eg: { t: 0, mv: 0, lz: 0 }, lzPrev: null, nf: 0, gmin: 0.9, gmax: 1.6 });
+  const evPush = (p, e) => { p.ev.push(e); if (p.ev.length > 70) { const i = p.ev.findIndex(x => x.k === 'pick'); p.ev.splice(i >= 0 ? i : 0, 1); } };  // เต็มแล้ว: ทิ้ง “เก็บลูก” เก่าก่อน (ยิง / FOUL / จอดนิ่ง สำคัญกว่า)
 
   function reset(meta = {}) { M = { kind: meta.kind || '', code: meta.code || '', ts: Date.now(), lastEl: null, endEl: null, done: false, startEl: null, score: { red: 0, blue: 0 } }; P = {}; Object.assign(LV, { busy: false, at: 0, list: [], msg: '', off: '' }); }
 
   function bucketOf(p) { const i = Math.floor(p.T / BUCKET); while (p.bk.length <= i) p.bk.push({ t: 0, mv: 0, pick: 0, shots: 0, walls: 0, coll: 0 }); return p.bk[i]; }
-  function endIdle(p) { if (p.idle >= 6) { p.idleN++; p.idleMax = Math.max(p.idleMax, p.idle); } p.idle = 0; }
+  function endIdle(p) { if (p.idle >= 6) { p.idleN++; p.idleMax = Math.max(p.idleMax, p.idle); if (M?.lastEl != null) evPush(p, { t: fmtEl(M.lastEl - p.idle), k: 'idle', sec: Math.round(p.idle) }); } p.idle = 0; }
   function endHold(p) { if (p.hold >= 25) { p.holdN++; } p.holdMax = Math.max(p.holdMax, p.hold); p.hold = 0; }
 
   // f: ภาพรวมสนามในเฟรมนี้ (index.html สร้างให้จากข้อมูลที่เครื่องผู้ชมมีอยู่แล้ว)
   function feed(f) {
     if (!M || M.done || !f || !Array.isArray(f.robots)) return;
     M.score = f.score || M.score; M.kind = f.kind || M.kind;
+    if (f.run && f.ph === 'teleop' && f.score && (!M.sc?.length || f.el - M.sc.at(-1).el >= 10)) (M.sc ||= []).push({ el: r1(f.el), t: fmtEl(f.el), red: f.score.red, blue: f.score.blue });
     const play = f.run && (f.ph === 'teleop'), dtRaw = M.lastEl == null ? 0 : f.el - M.lastEl, dt = play && dtRaw > 0 && dtRaw < 0.5 ? dtRaw : 0;
     M.lastEl = f.el;
     for (const r of f.robots) {
@@ -56,12 +59,14 @@
       if (r.human && p?.bot) p = null;  // คนกลับมาขับตำแหน่งที่เคยเป็น Bot = เริ่มนับใหม่เป็นของคน
       if (!p) p = P[r.id] = Object.assign(newP(r, f.el), { bot: !r.human });
       p.name = p.bot ? 'Bot' : r.name || p.name; p.gone = false; p.ping = r.ping || 0; p.miss = r.miss || 0;
-      p.fouls = (f.fouls || []).filter(x => x.by === r.id).map(x => ({ rule: x.rule, sev: x.sev, pts: x.pts, rem: Math.round(x.rem) }));
+      p.fouls = (f.fouls || []).filter(x => x.by === r.id).map(x => ({ rule: x.rule, sev: x.sev, pts: x.pts, rem: Math.round(x.rem), why: String(x.why || '').slice(0, 70) }));
+      for (; p.nf < p.fouls.length; p.nf++) { const x = p.fouls[p.nf]; evPush(p, { t: fmt(x.rem), k: 'foul', rule: x.rule, sev: x.sev, why: x.why }); }
+      p.gmin = r.gmin; p.gmax = r.gmax;
       if (play && p.s0 == null) { p.s0 = r.shots; p.h0 = r.hits; p.c0 = r.cyc.length; p.hit0 = r.hitN; p.wall0 = r.wallN; p.lastShots = r.shots; M.startEl ??= f.el; }
       const spd = Math.hypot(r.vx, r.vz), w = Math.abs(r.w);
       // ลูกในหุ่นลดลง = ยิง / วาง / คาย · จำตำแหน่งตอนนั้นไว้ แล้วจับคู่กับจำนวนนัดยิงที่ host นับ
       if (p.load != null && r.load < p.load) for (let k = p.load - r.load; k > 0; k--) p.drops.push({ el: f.el, d: r.d, brg: r.brg, v: spd, w, gmin: r.gmin, gmax: r.gmax, used: false });
-      if (p.load != null && r.load > p.load && play) { p.pick += r.load - p.load; bucketOf(p).pick += r.load - p.load; }
+      if (p.load != null && r.load > p.load && play) { p.pick += r.load - p.load; bucketOf(p).pick += r.load - p.load; evPush(p, { t: fmtEl(f.el), k: 'pick', n: r.load }); }
       p.load = r.load;
       if (p.drops.length > 40) p.drops.splice(0, p.drops.length - 40);
       if (p.lastShots != null && r.shots > p.lastShots) {
@@ -69,12 +74,15 @@
           const dr = [...p.drops].reverse().find(x => !x.used && f.el - x.el < 2) || { el: f.el, d: r.d, brg: r.brg, v: spd, w, gmin: r.gmin, gmax: r.gmax };
           dr.used = true;
           if (p.s0 != null && dr.el >= (M.startEl ?? 0)) {
-            p.shotsEv.push({ el: r1(dr.el), d: +dr.d.toFixed(2), gate: dr.d >= dr.gmin && dr.d <= dr.gmax, still: dr.v <= 0.1 && dr.w <= 0.17, aim: dr.brg <= 37, v: +dr.v.toFixed(2) });
+            const sh = { el: r1(dr.el), t: fmtEl(dr.el), d: +dr.d.toFixed(2), gate: dr.d >= dr.gmin && dr.d <= dr.gmax, still: dr.v <= 0.1 && dr.w <= 0.17, aim: dr.brg <= 37, v: +dr.v.toFixed(2), hit: null };
+            p.shotsEv.push(sh); evPush(p, Object.assign({ k: 'shot' }, sh));
             if (play) bucketOf(p).shots++;
           }
           endIdle(p); endHold(p);
         }
       }
+      if (r.hits > p.hits && p.shotsEv.length) for (let k = r.hits - p.hits, i = p.shotsEv.length - 1; k > 0 && i >= 0; i--) { const s = p.shotsEv[i]; if (s.hit == null && f.el - s.el < 5) { s.hit = true; k--; } }  // ลูกเข้า CELL ภายใน ~5 วิหลังยิง = นัดนั้นเข้า
+      for (const s of p.shotsEv) if (s.hit == null && f.el - s.el >= 5) s.hit = false;
       p.lastShots = r.shots; p.shots = r.shots; p.hits = r.hits; p.cyc = r.cyc;
       if (play) {
         const b = bucketOf(p); p.to = f.el;
@@ -97,6 +105,10 @@
       // จอดนิ่งนาน (ไม่นับช่วง 12 วิสุดท้ายที่มักจอด PARK)
       if (!moving && f.rem > 12) p.idle += dt; else endIdle(p);
       if (r.load > 0) p.hold += dt; else endHold(p);
+      // อยู่ตรงไหนของสนาม (วินาที) · ช่วงท้าย 30 วิ · เข้า/ออก LOADING ZONE ช่วงท้าย (เกี่ยวกับ PARK)
+      if (r.own) p.zt.own += dt; else p.zt.opp += dt; if (r.d >= r.gmin && r.d <= r.gmax) p.zt.ring += dt; if (r.lz) p.zt.lz += dt; if (r.wall) p.zt.wall += dt;
+      if (f.rem <= 30) { p.eg.t += dt; if (moving) p.eg.mv += dt; if (r.lz) p.eg.lz += dt; }
+      if (p.lzPrev != null && r.lz !== p.lzPrev && f.rem <= 40) evPush(p, { t: fmtEl(f.el), k: r.lz ? 'lzIn' : 'lzOut' }); p.lzPrev = r.lz;
       if (p.T >= 20 && p.T - p.serT >= 10) { p.serT = p.T; const c = calc(p); p.ser.push({ el: r1(f.el), i: c.intent, s: c.skill }); if (p.ser.length > 40) p.ser.shift(); }  // คะแนนทุก 10 วิ (กราฟตอนจบ)
     }
     if (mode === 'live' && play && !LV.busy && !LV.off && Date.now() - LV.at > LIVE_GAP && Object.values(P).some(p => !p.gone && !p.bot && p.T >= 20)) liveAsk();
@@ -165,8 +177,10 @@
 
   function snapshot(fin) {
     const players = SID.filter(id => P[id]).map(id => { const p = P[id], c = calc(p);
-      return { id, alliance: p.al, name: p.name, gone: p.gone, bot: !!p.bot, ...c, ser: p.ser.slice(), prev: p.bot ? [] : prevOf(p.name, M?.ts || Date.now()), bk: p.bk.map(b => ({ t: Math.round(b.t), mv: b.t ? pc(b.mv / b.t) : 0, pick: b.pick, shots: b.shots, walls: b.walls, coll: b.coll })), fouls: p.fouls, shotsEv: p.shotsEv.slice(-40), park: fin?.park ? !!fin.park[id] : null, from: r1(p.from), to: r1(p.to) }; });
-    return { v: 1, ts: M?.ts || Date.now(), at: Date.now(), kind: M?.kind || '', score: fin?.score || M?.score || { red: 0, blue: 0 }, end: fin?.reason || 'live', startEl: M?.startEl, endEl: M?.lastEl, players, ai: null };
+      return { id, alliance: p.al, name: p.name, gone: p.gone, bot: !!p.bot, ...c, ser: p.ser.slice(), prev: p.bot ? [] : prevOf(p.name, M?.ts || Date.now()), bk: p.bk.map(b => ({ t: Math.round(b.t), mv: b.t ? pc(b.mv / b.t) : 0, pick: b.pick, shots: b.shots, walls: b.walls, coll: b.coll })), fouls: p.fouls, shotsEv: p.shotsEv.slice(-40), park: fin?.park ? !!fin.park[id] : null, from: r1(p.from), to: r1(p.to),
+        ev: p.ev.slice(), zones: p.T ? Object.fromEntries(Object.entries(p.zt).map(([k, v]) => [k, pc(v / p.T)])) : null, ring: [p.gmin, p.gmax],
+        endgame: p.eg.t ? { sec: Math.round(p.eg.t), moving: pc(p.eg.mv / p.eg.t), inLoadingZone: pc(p.eg.lz / p.eg.t), shots: p.shotsEv.filter(s => s.el >= 128).length, hits: p.shotsEv.filter(s => s.el >= 128 && s.hit).length } : null }; });
+    return { v: 1, ts: M?.ts || Date.now(), at: Date.now(), kind: M?.kind || '', score: fin?.score || M?.score || { red: 0, blue: 0 }, end: fin?.reason || 'live', startEl: M?.startEl, endEl: M?.lastEl, scoreTimeline: (M?.sc || []).slice(), players, ai: null };
   }
 
   // ---- แผงด้านขวา (real time) ----
@@ -314,7 +328,8 @@
   }
   addEventListener('resize', () => { if (dlg) fitDlg(); });
   function mdLite(t) {  // ข้อความจาก AI: escape ก่อน แล้วแปลงหัวข้อ / รายการ / ตัวหนาแบบง่าย
-    return esc(t).split('\n').map(l => { l = l.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    const S = window.SCENARIOS || {}, base = location.origin + location.pathname;  // รหัสบทฝึก (เช่น D1.5) = ลิงก์เปิดบทนั้นในแท็บใหม่
+    return esc(t).split('\n').map(l => { l = l.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\b([DOH]\d\.\d)\b/g, m => S[m] ? `<a href="${base}?s=${m}" target="_blank" rel="noopener" style="color:#9cc0ff">${m}</a>` : m);
       if (/^#{1,4}\s/.test(l)) return `<h4>${l.replace(/^#{1,4}\s/, '')}</h4>`; if (/^\s*[-•*]\s/.test(l)) return `<div style="padding-left:14px;text-indent:-10px">• ${l.replace(/^\s*[-•*]\s/, '')}</div>`; return l.trim() ? `<div>${l}</div>` : ''; }).join('');
   }
   function body(r, forFile) {
@@ -366,8 +381,22 @@
     a.download = `biobuzz-analysis-${stamp}.${kind}`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
   // ส่งให้ AI เฉพาะตัวเลข: ไม่มีชื่อผู้เล่น ไม่มีรหัสห้อง (ชื่อจับคู่กลับในเครื่องนี้ด้วยตำแหน่ง R1 / B1 …)
-  const forAI = r => ({ kind: r.kind, end: r.end, score: r.score, window: { from: r.startEl, to: r.endEl }, players: r.players.filter(p => !p.bot).map(p => ({ id: p.id, alliance: p.alliance, leftMidMatch: p.gone, verdict: p.v, intent: p.intent, skill: p.skill, metrics: p.m, notes: p.why, every20s: p.bk, fouls: p.fouls, park: p.park, shots: p.shotsEv,
-    scoreEvery10s: p.ser, previousMatches: (p.prev || []).map((q, i, a) => ({ matchesAgo: a.length - i, intent: q.i, skill: q.s, verdict: q.v, acc: q.acc, shots: q.shots, hits: q.hits, cycAvg: q.cyc, moving: q.mv, idleN: q.idle, wallPm: q.wall, fouls: q.fouls, teleopSec: q.T })) })) });
+  // ข้อมูลที่ส่งให้ AI (ไม่มีชื่อ ไม่มีรหัสห้อง): ตัวเลขสรุป + ไทม์ไลน์เหตุการณ์ + โซนในสนาม + ช่วงท้าย + ค่าอ้างอิงจาก Bot ในแมตช์เดียวกัน + รายการบทฝึกในเว็บ
+  const DRILLS = () => Object.entries(window.SCENARIOS || {}).filter(([, v]) => v && (v.role === 'driver' || v.role === 'operator')).map(([id, v]) => ({ id, title: String(v.title || '').slice(0, 60) }));
+  function benchmark(r) {
+    const b = r.players.filter(p => p.bot && p.intent != null); if (!b.length) return null;
+    const av = k => r1(b.reduce((a, p) => a + (+p.m[k] || 0), 0) / b.length);
+    return { bots: b.length, note: 'ค่าเฉลี่ยของ Bot ระดับที่ host ตั้งในแมตช์นี้ ใช้เป็นมาตรฐานเทียบ ไม่ใช่เป้าบังคับ', moving: av('mv'), straight: av('straight'), pickPm: av('pickPm'), shotPm: av('shotPm'), acc: av('acc'), cycAvg: av('cycAvg'), wallPm: av('wallPm'), collPm: av('collPm') };
+  }
+  const prevAI = p => (p.prev || []).map((q, i, a) => ({ matchesAgo: a.length - i, intent: q.i, skill: q.s, verdict: q.v, acc: q.acc, shots: q.shots, hits: q.hits, cycAvg: q.cyc, moving: q.mv, idleN: q.idle, wallPm: q.wall, fouls: q.fouls, teleopSec: q.T }));
+  const forAI = (r, brief) => {
+    const hum = r.players.filter(p => !p.bot);
+    if (brief) return { kind: r.kind, now: fmtEl(r.endEl), score: r.score, benchmark: benchmark(r), players: hum.map(p => ({ id: p.id, alliance: p.alliance, verdict: p.v, intent: p.intent, skill: p.skill, notes: p.why.slice(0, 4),
+      last20s: p.bk.slice(-2), recentEvents: p.ev.slice(-10), zones: p.zones, shots: p.m.shots, hits: p.m.hits, ping: p.m.ping })) };
+    return { kind: r.kind, end: r.end, score: r.score, window: { from: fmtEl(r.startEl), to: fmtEl(r.endEl) }, scoreTimeline: r.scoreTimeline, benchmark: benchmark(r), drills: DRILLS(),
+      players: hum.map(p => ({ id: p.id, alliance: p.alliance, leftMidMatch: p.gone, verdict: p.v, intent: p.intent, skill: p.skill, teamRing: p.ring, metrics: p.m, notes: p.why, every20s: p.bk, zones: p.zones, endgame: p.endgame,
+        events: p.ev, fouls: p.fouls, park: p.park, scoreEvery10s: p.ser, previousMatches: prevAI(p) })) };
+  };
   async function askAI(r) {
     if (aiBusy) return; const k = key.get(); if (!k) { aiMsg = 'ไม่พบรหัสพิเศษในเครื่องนี้ (หมดอายุ 12 ชม.) ออกแล้วเข้าชมใหม่ด้วยรหัสพิเศษ'; return paintDlg(); }
     aiBusy = true; aiMsg = ''; if (dlg) paintDlg();
@@ -379,11 +408,11 @@
   }
   // รุ่น AI และคีย์ตั้งที่ Netlify (OPENROUTER_API_KEY · OPENROUTER_MODEL) · ทดสอบได้ที่หน้า home → ตั้งค่า
   async function callAI(k, kind, r) {
-    try { const q = await fetch(AI_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k, mode: kind, report: forAI(r) }), signal: AbortSignal.timeout(70000) }); return [q.status, await q.json().catch(() => null)]; }
+    try { const q = await fetch(AI_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k, mode: kind, report: forAI(r, kind === 'brief') }), signal: AbortSignal.timeout(70000) }); return [q.status, await q.json().catch(() => null)]; }
     catch { return [0, null]; }
   }
   const aiErr = (code, res) => (code !== 403 && typeof res?.msg === 'string' && res.msg ? res.msg.slice(0, 200) : null) || ({ 403: 'รหัสพิเศษไม่ถูกต้อง', 501: 'ยังไม่ได้ตั้งคีย์ AI ใน Netlify (OPENROUTER_API_KEY)', 429: res?.why === 'ai' ? 'AI ไม่ว่าง ลองใหม่อีกครั้งในอีกสักครู่' : 'เรียก AI ถี่เกินโควตา (ต่อชั่วโมง) ลองใหม่ภายหลัง', 413: 'ข้อมูลใหญ่เกินไป', 422: 'AI ไม่ตอบคำขอนี้' }[code]
     || (code === 504 || !code ? 'AI ตอบไม่ทันเวลา / เน็ตหลุด ลองกดใหม่' : 'เรียก AI ไม่ได้ (' + code + ') ลองใหม่ภายหลัง'));
 
-  window.BBAna = { key, reset, feed, mount, finish, setMode, get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
+  window.BBAna = { key, reset, feed, mount, finish, setMode, payload: (r, brief) => forAI(r || snapshot(), !!brief), get mode() { return mode; }, open: () => openDlg(null), close: closeDlg, get reports() { return reports; }, get live() { return M ? snapshot() : null; }, calcOf: id => P[id] ? calc(P[id]) : null };
 })();

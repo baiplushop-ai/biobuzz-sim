@@ -182,9 +182,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=3.8"></script>
-<script src="live-rooms.js?v=3.8"></script>
-<script src="analyst.js?v=3.8"></script>
+<script src="scenarios.js?v=3.9"></script>
+<script src="live-rooms.js?v=3.9"></script>
+<script src="analyst.js?v=3.9"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1356,7 +1356,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.8</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v3.9</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button></div>
     <div id="mcfg" class="mcfg"></div>
@@ -1658,7 +1658,7 @@ function anaTick() {
       robots: S.robots.map(r => { const c = upCellCenter(r.alliance), dx = c.x - r.x, dz = c.z - r.z, d = Math.hypot(dx, dz), f = fwdOf(r), lim = gateLim(r);
         return { id: r.id, al: r.alliance, human: !!r.human && !r.off, name: r.pname || '', x: r.x, z: r.z, vx: r.vx, vz: r.vz, w: r.w, hitN: r.hitN || 0, wallN: r.wallN || 0,
           load: Array.isArray(r.load) ? r.load.length : 0, dead: !!r.dead, shots: r.shots || 0, hits: r.hits || 0, cyc: r.cycles || [], d,
-          brg: Math.acos(clamp((f[0] * dx + f[1] * dz) / Math.max(d, 1e-3), -1, 1)) * 180 / Math.PI, gmin: lim.min, gmax: lim.max, ping: r.pingS?.n ? r.pingS.sum / r.pingS.n : 0, miss: r.pingS?.miss || 0 }; }) });
+          brg: Math.acos(clamp((f[0] * dx + f[1] * dz) / Math.max(d, 1e-3), -1, 1)) * 180 / Math.PI, gmin: lim.min, gmax: lim.max, own: r.alliance === 'red' ? r.x < 0 : r.x > 0, lz: overlapLZ(r, r.alliance), wall: touchingWall(r), ping: r.pingS?.n ? r.pingS.sum / r.pingS.n : 0, miss: r.pingS?.miss || 0 }; }) });
   } catch (e) { if (!NET.anaErr) { NET.anaErr = 1; console.warn('analyst', e); } }
 }
 function anaEnd(reason) { if (!anaOn()) return; try { BBAna.finish({ score: S.end?.score || { red: total('red'), blue: total('blue') }, park: S.end?.park, reason }); } catch (e) { console.warn('analyst', e); } }
@@ -1840,12 +1840,12 @@ function showOnline(code = '', err = '', autoWatch = false) {
     <div class="mcfg"><h4>เข้าร่วมห้องของเพื่อน</h4><div class="mrow"><label>รหัสห้อง <input id="nCode" inputmode="numeric" maxlength="6" value="${esc(code)}" placeholder="6 หลัก" style="font:inherit;font-size:20px;font-weight:700;letter-spacing:4px;padding:4px 8px;width:140px;text-align:center"></label><button id="nJoin">เข้าร่วม</button></div></div>
     <div class="mcfg" id="nLive"></div>
     ${LOCALNET ? '' : '<p class="mut" style="font-size:12px">🔎 <span id="nNetTxt"></span> <button class="sec" id="nNetRe" style="padding:1px 8px;font-size:11px">ตรวจอีกครั้ง</button></p>'}
-    <p class="mut"><span id="nStat"></span> <button class="sec" id="nCancel" style="display:none">✕ ยกเลิกการสร้างห้อง</button></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับเมนู</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button></div>`);
+    <p class="mut"><span id="nStat"></span> <button class="sec" id="nCancel" style="display:none">✕ ยกเลิกการสร้างห้อง</button></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="nBack">← กลับหน้า Home</button><button class="sec" id="nHist">📜 ประวัติการเล่นออนไลน์ (${histLoad().length})</button></div>`);
   netBar();
   const name = () => { const n = $('nName').value.trim().slice(0, 16) || 'ผู้เล่น'; try { localStorage.setItem('dca-net-name', n); } catch {} return n; };
   const busy = (b, m) => { $('nCreate').disabled = $('nJoin').disabled = $('nBack').disabled = $('nHist').disabled = b; $('nStat').textContent = m || ''; NET.stat = b ? { t: m } : null; netBar(); };
   if ($('nNetRe')) { netCheckShow(); $('nNetRe').onclick = () => netCheckShow(true); }
-  $('nBack').onclick = () => { NET.stat = null; netBar(); showMenu(); }; $('nHist').onclick = () => showHistory(() => showOnline($('nCode')?.value || code));
+  $('nBack').onclick = () => { NET.stat = null; netBar(); location.href = '../coach-training/#home'; };  // กลับหน้า Home ของ Drive Team Academy $('nHist').onclick = () => showHistory(() => showOnline($('nCode')?.value || code));
   $('nCreate').onclick = async () => {
     const c = $('nCode').value, ctl = { off: false }, t0 = Date.now(); let why = '', tries = 1;
     const txt = () => `กำลังสร้างห้อง… ${Math.round((Date.now() - t0) / 1000)} วิ` + (why ? ` · ${why} · กำลังลองใหม่ครั้งที่ ${tries} · รอต่อได้เรื่อย ๆ (ไม่มีหมดเวลา) หรือกด “ยกเลิก”` : '');
