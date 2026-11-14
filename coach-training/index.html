@@ -81,7 +81,7 @@ ul.act { margin:0; padding-left:20px } ul.act li { margin:3px 0 }
 .ok { color:var(--ok) } .bad { color:var(--bad) } .mut { color:var(--mut) }
 table.t { width:100%; border-collapse:collapse; font-size:14px } table.t td, table.t th { border-bottom:1px solid var(--line); padding:5px 6px; text-align:left } table.t th { color:var(--mut); font-weight:600 }
 .cert { text-align:center; padding:28px 16px } .cert h2 { font-size:28px; color:var(--acc) }
-input[type=text], input[type=url] { font:inherit; font-size:14px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface2); color:var(--fg); width:100%; max-width:420px }
+input[type=text], input[type=url], input[type=password] { font:inherit; font-size:14px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface2); color:var(--fg); width:100%; max-width:420px }
 dialog { border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--fg); max-width:520px; width:92% }
 dialog::backdrop { background:rgba(0,0,0,.45) }
 #navToggle { display:none }
@@ -115,7 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v4.9</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.0</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -144,6 +144,9 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   <input type="text" id="trainee" maxlength="60">
   <p style="margin:10px 0 2px">ทีม / เลขทีม (แสดงในผลที่ส่งให้โค้ช)</p>
   <input type="text" id="team" maxlength="60">
+  <p style="margin:10px 0 2px">☁️ รหัสทีม (ซิงก์ผลฝึกขึ้นเซิร์ฟเวอร์)</p>
+  <input type="password" id="syncKey" maxlength="128" autocomplete="off" placeholder="เว้นว่าง = เก็บในเครื่องนี้อย่างเดียว">
+  <p class="mut" style="margin:2px 0 0;font-size:12px">ใส่รหัสทีมที่โค้ชให้ (ตัวเดียวกับรหัสทีม Scouting) + ชื่อผู้ฝึก แล้วผลฝึกจะถูกส่งขึ้นเซิร์ฟเวอร์เองทุกครั้งที่มีความคืบหน้า โค้ชเห็นผลของทุกคนได้ และเปลี่ยนเครื่องแล้วใส่ชื่อ + รหัสเดิม ผลจะกลับมา · <span id="syncSt"></span></p>
   <label class="chk" style="margin-top:10px"><input type="checkbox" id="teacher"> โหมดครู: เปิดทุกบทโดยไม่ต้องผ่านตามลำดับ และเปิดส่วนอ่านไฟล์ผลของนักเรียนที่หน้าแรก (ผลและใบผ่านในโหมดนี้ไม่ใช่ผลจริง)</label>
   <details id="aiSet" style="margin-top:12px;border:1px solid var(--line,rgba(127,127,127,.3));border-radius:10px;padding:8px 12px">
     <summary style="cursor:pointer;font-weight:700">🤖 AI วิเคราะห์ผลการฝึก (ผู้ดูแล · ผู้ชมพิเศษ)</summary>
@@ -169,7 +172,20 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
     <p class="mut" style="margin:6px 0;font-size:13px">รายงานผลประเมินผู้เล่น + Replay ทุกแมตช์ที่ผู้ชมพิเศษดู ถูกบันทึกไว้ให้อัตโนมัติ · กด “เปิด” เพื่ออ่านรายงานและดู Replay อีกครั้ง · ต้องใช้รหัสพิเศษ</p>
     <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><input type="password" id="hKey" maxlength="128" autocomplete="off" style="max-width:240px"><button class="btn sec" id="hLoad" type="button">แสดงรายการ</button><span id="hMsg" style="font-size:14px"></span></div>
     <div id="hList" style="margin-top:8px;max-height:50vh;overflow:auto"></div>
+    <details id="bkSet" style="margin-top:10px;border:1px solid var(--line,rgba(127,127,127,.3));border-radius:10px;padding:8px 12px">
+      <summary style="cursor:pointer;font-weight:700">💾 สำรองข้อมูลทั้งหมด / คืนข้อมูลจากไฟล์</summary>
+      <p class="mut" style="margin:6px 0;font-size:13px">ดาวน์โหลด <b>History การฝึก</b> (รายงาน + Replay), <b>Scouting</b> ทุกงานแข่ง และ <b>ผลฝึก Academy</b> ของทุกคน เป็นไฟล์เดียว เก็บไว้ในเครื่องหรือ Google Drive · ควรกดก่อนวันแข่งและหลังจบแต่ละวัน · คืนข้อมูล = ส่งกลับเฉพาะรายการที่หายไปจากเซิร์ฟเวอร์ หรือที่บนเซิร์ฟเวอร์เก่ากว่าในไฟล์ (ไม่ลบอะไร)</p>
+      <label class="chk"><input type="checkbox" id="bkRp" checked> รวม Replay (ไฟล์ใหญ่ขึ้นประมาณ 1 MB ต่อแมตช์)</label>
+      <div class="row" style="margin-top:8px;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn" id="bkDl" type="button">ดาวน์โหลดไฟล์สำรอง</button><button class="btn sec" id="bkUp" type="button">คืนข้อมูลจากไฟล์…</button><input type="file" id="bkFile" accept=".json,application/json" hidden><span id="bkMsg" style="font-size:14px"></span></div>
+    </details>
   <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn sec" id="histClose" type="button">ปิด</button></div>
+</dialog>
+<dialog id="teamDlg" style="width:min(1000px,96vw);max-width:96vw">
+  <h3 style="margin-top:0">👥 ผลฝึกของทีม (โค้ช)</h3>
+  <p class="mut" style="margin:6px 0;font-size:13px">ผลฝึกของนักเรียนทุกคนที่ตั้งรหัสทีมไว้ในหน้า ตั้งค่า ของเครื่องตัวเอง (ส่งขึ้นเองทุกครั้งที่มีความคืบหน้า) · ใช้รหัสทีมหรือรหัสพิเศษ</p>
+  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap"><input type="password" id="tKey" maxlength="128" autocomplete="off" style="max-width:240px"><button class="btn sec" id="tLoad" type="button">แสดงผลทั้งทีม</button><span id="tMsg" style="font-size:14px"></span></div>
+  <div id="tList" style="margin-top:8px;max-height:60vh;overflow:auto"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn sec" id="teamClose" type="button">ปิด</button></div>
 </dialog>
 <dialog id="liveDlg">
   <div id="liveBox"></div>
@@ -177,7 +193,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 </dialog>
 <dialog id="rep">
   <h3 style="margin-top:0">ส่งผลให้โค้ช</h3>
-  <p class="mut" style="margin:0 0 8px;font-size:13px">หน้านี้ไม่ส่งข้อมูลออกจากเครื่องเอง ผู้ฝึกเป็นคนคัดลอกข้อความ ดาวน์โหลดไฟล์ หรือแชร์ให้โค้ชเอง · ไฟล์ .json ใช้ให้โค้ชเปิดดูเทียบกันทั้งทีมในโหมดครู</p>
+  <p class="mut" style="margin:0 0 8px;font-size:13px">ถ้าไม่ได้ตั้งรหัสทีมไว้ หน้านี้ไม่ส่งข้อมูลออกจากเครื่องเอง ผู้ฝึกเป็นคนคัดลอกข้อความ ดาวน์โหลดไฟล์ หรือแชร์ให้โค้ชเอง · ไฟล์ .json ใช้ให้โค้ชเปิดดูเทียบกันทั้งทีมในโหมดครู</p>
   <div class="row">
     <label style="flex:1;min-width:200px">ชื่อผู้ฝึก<br><input type="text" id="repName" maxlength="60"></label>
     <label style="flex:1;min-width:200px">ทีม / เลขทีม<br><input type="text" id="repTeam" maxlength="60"></label>
@@ -195,8 +211,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=4.9"></script>
-<script src="../mockup/live-rooms.js?v=4.9"></script>
+<script src="../mockup/scenarios.js?v=5.0"></script>
+<script src="../mockup/live-rooms.js?v=5.0"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1234,7 +1250,56 @@ function save() {
   const cur = store.raw(KEY);
   if (cur != null && cur !== lastRaw) { const o = parse(cur); if (isObj(o)) mergeState(normState(o), false); }
   const s = JSON.stringify(ST); if (store.put(KEY, s)) lastRaw = s;
+  syncSoon();
 }
+
+// ---------------- ซิงก์ผลฝึกขึ้นเซิร์ฟเวอร์ (/api/academy) ----------------
+// เปิดเมื่อมีทั้ง รหัสทีม และ ชื่อผู้ฝึก · ส่งหลังมีความคืบหน้า 8 วิ และห่างกันอย่างน้อย 30 วิ (ไม่ยิงซ้อน)
+// ทุกครั้งที่ส่ง: ดึงของบนเซิร์ฟเวอร์มารวมก่อน (เปลี่ยนเครื่องแล้วผลกลับมา · ฝึกสองเครื่องพร้อมกันก็ไม่ทับกัน)
+const SYNC = { k: '', busy: false, t: 0, pulled: '', dirty: false, at: 0, last: 0, st: '', why: '' };
+try { const o = JSON.parse(localStorage.getItem('dca-sync') || 'null'); if (o && typeof o.k === 'string') SYNC.k = o.k.slice(0, 128); } catch {}
+const syncName = () => ST.name.trim().toLowerCase().replace(/\s+/g, ' ');
+async function acApi(body, keep) {
+  try { const b = JSON.stringify(body), r = await fetch('/api/academy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: b, keepalive: !!keep && b.length < 60000, signal: AbortSignal.timeout(20000) }); return [r.status, await r.json().catch(() => null)]; } catch { return [0, null]; }
+}
+function syncText() {
+  if (!SYNC.k) return '☁️ ยังไม่ซิงก์ (ผลอยู่ในเครื่องนี้อย่างเดียว · ตั้งรหัสทีมได้ที่ ตั้งค่า)';
+  if (!ST.name) return '☁️ ใส่ชื่อผู้ฝึกที่ ตั้งค่า ก่อน จึงจะซิงก์ได้';
+  if (SYNC.st === 'bad') return '☁️ ซิงก์ไม่ได้: ' + SYNC.why;
+  if (SYNC.st === 'ok') return '☁️ ซิงก์แล้ว ' + new Date(SYNC.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + (SYNC.dirty ? ' · มีความคืบหน้าใหม่รอส่ง' : '');
+  return '☁️ กำลังซิงก์…';
+}
+function syncPaint() { const t = syncText(); for (const id of ['syncLine', 'syncSt']) { const el = $(id); if (el) { el.textContent = t; el.className = SYNC.st === 'bad' ? 'bad' : SYNC.st === 'ok' ? 'ok' : 'mut'; } } }
+function syncSoon(ms = 8000) { if (!SYNC.k || !ST.name) return; SYNC.dirty = true; clearTimeout(SYNC.t); SYNC.t = setTimeout(syncNow, Math.max(ms, 30000 - (Date.now() - SYNC.last))); }
+async function syncNow(keep) {
+  if (!SYNC.k || !ST.name) { syncPaint(); return; }
+  if (!keep && $('rep').open) { clearTimeout(SYNC.t); SYNC.t = setTimeout(syncNow, 8000); return; }  /* กำลังพิมพ์ชื่อในหน้า ส่งผลให้โค้ช: รอปิดก่อน ไม่สร้างชื่อครึ่ง ๆ บนเซิร์ฟเวอร์ */
+  if (SYNC.busy) { SYNC.dirty = true; return; }
+  SYNC.busy = true; SYNC.last = Date.now(); clearTimeout(SYNC.t); syncPaint();
+  const fail = (why, retry) => { SYNC.st = 'bad'; SYNC.why = why; if (retry) { clearTimeout(SYNC.t); SYNC.t = setTimeout(syncNow, retry); } };
+  try {
+    const nm = syncName();
+    {
+      const [c, d] = await acApi({ op: 'mine', key: SYNC.k, name: ST.name }, keep);
+      if (c !== 200 || !d?.ok) return fail(c === 403 ? 'รหัสทีมไม่ถูกต้อง (แก้ที่ ตั้งค่า)' : c === 404 || c === 405 ? 'ยังไม่มี /api/academy บนเว็บนี้' : 'เน็ตหรือเซิร์ฟเวอร์มีปัญหา จะลองใหม่เอง', c === 403 || c === 404 || c === 405 ? 0 : 60000);
+      if (syncName() !== nm) return;
+      if (isObj(d.state)) {
+        const before = JSON.stringify(ST);
+        mergeState(normState({ ...d.state, name: ST.name, team: ST.team, mockUrl: ST.mockUrl, teacher: ST.teacher }), false);
+        ROLE_IDS.forEach(refreshPassed);
+        if (JSON.stringify(ST) !== before) { const s = JSON.stringify(ST); if (store.put(KEY, s)) lastRaw = s; render(); }
+      }
+      SYNC.pulled = nm;
+    }
+    SYNC.dirty = false;
+    const { mockUrl, teacher, ...state } = ST;
+    const [c, d] = await acApi({ op: 'push', key: SYNC.k, name: ST.name, team: ST.team, state, report: buildReport() }, keep);
+    if (c === 200 && d?.ok) { SYNC.st = 'ok'; SYNC.at = Date.now(); SYNC.why = ''; }
+    else { SYNC.dirty = true; fail(c === 403 ? 'รหัสทีมไม่ถูกต้อง (แก้ที่ ตั้งค่า)' : c === 507 ? 'ที่เก็บของทีมเต็ม (200 คน) ให้โค้ชลบชื่อที่ไม่ใช้' : c === 413 ? 'ข้อมูลใหญ่เกินไป' : 'เน็ตหรือเซิร์ฟเวอร์มีปัญหา จะลองใหม่เอง', c === 403 || c === 507 || c === 413 ? 0 : 60000); }
+  } finally { SYNC.busy = false; syncPaint(); if (SYNC.dirty && SYNC.st !== 'bad') syncSoon(); }
+}
+// ปิดแท็บ / สลับแอป: ส่งของที่ค้างอยู่ทันที (keepalive ส่งต่อได้แม้หน้าปิด)
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && SYNC.dirty && !SYNC.busy) syncNow(true); });
 const R = () => ST.roles[ST.role];
 const SCN_OK = isObj(window.SCENARIOS) && Object.keys(window.SCENARIOS).length > 0;   // false = โหลด scenarios.js ไม่สำเร็จ
 const SC = () => SCN_OK ? window.SCENARIOS : {};
@@ -1317,13 +1382,14 @@ function renderHome() {
       <div class="role free"><div class="ico">✅</div><h3>ทดสอบจอย Joy 1 / Joy 2</h3><p>เช็กจอยทีละตัวว่าเชื่อมต่อเรียบร้อย ปุ่มครบ แกนไปสุดทุกทิศ ไม่มี drift และทดสอบว่า 2 จอยทำงานแยกกันอิสระ รองรับ DualShock 4 และ Logitech F310 / F710 พร้อมวิธีต่อจอยและแก้ปัญหา ควรทำก่อนซ้อมทุกครั้ง · วันแข่งต้องต่อจอยด้วยสาย USB เท่านั้น เพราะ R904 ห้ามจอยไร้สายและ Bluetooth ระหว่างแมตช์ จึงควรซ้อมด้วยสาย USB ด้วย ส่วน Bluetooth และจอยไร้สายใช้ได้เฉพาะตอนซ้อมกับ simulator</p>
       <div class="mut" style="font-size:13px">${pr ? '✓ ทดสอบปุ่มผ่านแล้ว' + (sk.length ? ` (ข้ามปุ่ม: ${esc(sk.join(', '))})` : '') : 'ยังไม่ได้ทดสอบปุ่มบนเครื่องนี้'} · ${(store.get('dca-pad-indep') || {}).ok === true ? '✓ 2 จอยแยกอิสระผ่านแล้ว' : 'ยังไม่ได้ทดสอบ 2 จอยแยกอิสระ'}</div>
       <a class="btn" href="${esc(padUrl())}" target="_blank">เปิดหน้าทดสอบจอย</a></div>
-      <div class="role free"><div class="ico">📋</div><h3>ส่งผลให้โค้ช</h3><p>สรุปผลฝึกของเครื่องนี้ทุกบทบาท: ข้อที่ผ่านและยังไม่ผ่าน ข้อที่ตอบผิดบ่อย ผลสถานการณ์ 3D และผลทดสอบจอย คัดลอกเป็นข้อความส่งทาง LINE หรือดาวน์โหลดเป็นไฟล์ได้ ข้อมูลไม่ถูกส่งออกไปเอง ผู้ฝึกเป็นคนส่งเอง</p>
-      <button class="btn" id="homeReport">ส่งผลให้โค้ช</button></div></div>
+      <div class="role free"><div class="ico">📋</div><h3>ส่งผลให้โค้ช</h3><p>สรุปผลฝึกของเครื่องนี้ทุกบทบาท: ข้อที่ผ่านและยังไม่ผ่าน ข้อที่ตอบผิดบ่อย ผลสถานการณ์ 3D และผลทดสอบจอย คัดลอกเป็นข้อความส่งทาง LINE หรือดาวน์โหลดเป็นไฟล์ได้ · ถ้าตั้ง <b>รหัสทีม</b> ไว้ในหน้า ตั้งค่า ผลจะซิงก์ขึ้นเซิร์ฟเวอร์ให้โค้ชเห็นเอง</p>
+      <div class="mut" style="font-size:13px" id="syncLine">${esc(syncText())}</div>
+      <button class="btn" id="homeReport">ส่งผลให้โค้ช</button><button class="btn sec" id="homeTeam">👥 ดูผลทั้งทีม (โค้ช)</button></div></div>
     ${teacherCard()}
     <div class="card"><h4>ฝึกเป็นทีม</h4><ul class="act"><li>Drive Coach กับ Driver ใช้สถานการณ์ร่วมกันได้ เช่น 5.3 คู่แข่งเล่นเกมรับ ผ่านรอบเดียวนับให้ทั้งสองบทบาท</li><li>สถานการณ์ของ Human Player ให้หุ่นทุกตัวขับโดย AI คนฝึกกดปุ่ม H เพื่อปล่อย NECTAR</li><li>ความคืบหน้าเก็บไว้ในเบราว์เซอร์ของเครื่องนี้ ถ้าเปลี่ยนเครื่องต้องเริ่มนับใหม่ ใช้ปุ่ม "ส่งผลให้โค้ช" เพื่อส่งสรุปผลของเครื่องนี้ให้โค้ช</li></ul></div>`;
   $('homeView').querySelectorAll('button[data-role]').forEach(b => b.onclick = () => go(b.dataset.role));
   $('goFree').onclick = () => openSim('?mode=free'); $('goMenu').onclick = () => openSim(''); $('goOnline').onclick = () => openSim('?mode=online');
-  $('homeReport').onclick = openReport;
+  $('homeReport').onclick = openReport; $('homeTeam').onclick = teamOpen;
   if (window.LiveRooms) LiveRooms.mount($('homeLive'), { onWatch: watchRoom }); else $('homeLive').remove();
   const imp = $('impFile'); if (imp) imp.onchange = () => importReports(imp.files);
   const ic = $('impClear'); if (ic) ic.onclick = () => { IMPORTED = []; IMP_BAD = []; renderHome(); };
@@ -1519,7 +1585,7 @@ $('repCopy').onclick = async () => {
 $('repJson').onclick = () => { if (!repReady()) return; download(repFile('json'), JSON.stringify(REP, null, 1), 'application/json'); repSay('ดาวน์โหลดไฟล์ .json แล้ว ส่งไฟล์นี้ให้โค้ช'); };
 $('repTxtDl').onclick = () => { if (!repReady()) return; download(repFile('txt'), $('repTxt').value, 'text/plain;charset=utf-8'); repSay('ดาวน์โหลดไฟล์ .txt แล้ว'); };
 $('repShare').onclick = async () => { if (!repReady()) return; try { await navigator.share({ title:'ผลฝึก Drive Team Academy', text:$('repTxt').value }); } catch (e) { if (!e || e.name !== 'AbortError') repSay('แชร์ไม่ได้บนเครื่องนี้ ใช้ปุ่มคัดลอกข้อความแทน', false); } };
-$('repClose').onclick = () => $('rep').close();
+$('repClose').onclick = () => $('rep').close(); $('rep').addEventListener('close', () => { if (SYNC.dirty) syncSoon(500); });
 $('btnReport').onclick = openReport;
 // ห้องออนไลน์ที่เปิดอยู่: รายการบนหน้าแรก + ปุ่มบน header (นับจำนวนห้อง) · ใส่รหัสห้องถูกแล้วเปิด simulator เข้าห้องนั้นแบบผู้ชม
 function watchRoom(code) { if ($('liveDlg').open) $('liveDlg').close(); openSim(`?room=${code}&watch=1`); }
@@ -1568,14 +1634,18 @@ async function importReports(files) {
   IMPORTED.sort((a, b) => (a.team + a.name).localeCompare(b.team + b.name, 'th'));
   if (!ST.role) renderHome();
 }
+function stuTable(list, del) {
+  const rows = list.map(r => `<tr><td><b>${esc(r.name || '(ไม่มีชื่อ)')}</b>${r.team ? `<br><span class="mut">${esc(r.team)}</span>` : ''}${r.teacher ? '<br><span class="bad">ไฟล์จากโหมดครู</span>' : ''}</td><td>${esc(fmtTs(r.ts))}<br><span class="mut">${esc(r.site)}</span></td>${ROLE_IDS.map(k => { const x = r.roles[k]; return `<td>${x ? `${x.passed}/${x.total}` : '-'}</td>`; }).join('')}<td>${r.pad.ok ? 'ผ่าน' : 'ยังไม่ทดสอบ'}${r.pad.indep ? ' · 2 จอยผ่าน' : ''}${r.pad.skipped.length ? `<br><span class="mut">ข้ามปุ่ม: ${esc(r.pad.skipped.join(', '))}</span>` : ''}</td><td>${weak(r).map(esc).join('<br>') || '-'}</td>${del ? `<td><button class="btn sec" type="button" data-tdel="${esc(r.name)}" style="padding:3px 10px">ลบ</button></td>` : ''}</tr>`).join('');
+  return rows ? `<div style="overflow:auto"><table class="t" style="margin-top:10px"><tr><th>ชื่อ / ทีม</th><th>วันที่ของผล</th>${ROLE_IDS.map(k => `<th>${esc(ROLES[k].name)}</th>`).join('')}<th>จอย</th><th>ข้อที่ควรซ้อมเพิ่ม</th>${del ? '<th></th>' : ''}</tr>${rows}</table></div>` : '';
+}
 function teacherCard() {
   if (!ST.teacher) return '';
-  const rows = IMPORTED.map(r => `<tr><td><b>${esc(r.name || '(ไม่มีชื่อ)')}</b>${r.team ? `<br><span class="mut">${esc(r.team)}</span>` : ''}${r.teacher ? '<br><span class="bad">ไฟล์จากโหมดครู</span>' : ''}</td><td>${esc(fmtTs(r.ts))}<br><span class="mut">${esc(r.site)}</span></td>${ROLE_IDS.map(k => { const x = r.roles[k]; return `<td>${x ? `${x.passed}/${x.total}` : '-'}</td>`; }).join('')}<td>${r.pad.ok ? 'ผ่าน' : 'ยังไม่ทดสอบ'}${r.pad.indep ? ' · 2 จอยผ่าน' : ''}${r.pad.skipped.length ? `<br><span class="mut">ข้ามปุ่ม: ${esc(r.pad.skipped.join(', '))}</span>` : ''}</td><td>${weak(r).map(esc).join('<br>') || '-'}</td></tr>`).join('');
+  const rows = stuTable(IMPORTED);
   return `<div class="card"><h4>อ่านไฟล์ผลของนักเรียน <span class="tag">โหมดครู</span></h4>
     <p class="mut" style="margin:0 0 8px;font-size:14px">เลือกไฟล์ .json ที่นักเรียนส่งมาจากปุ่ม "ส่งผลให้โค้ช" เลือกได้หลายไฟล์พร้อมกัน · ไฟล์ถูกอ่านในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่ใด และตารางจะหายเมื่อปิดหรือโหลดหน้าใหม่</p>
     <div class="row"><input type="file" id="impFile" accept=".json,application/json" multiple>${IMPORTED.length ? '<button class="btn sec" id="impClear">ล้างตาราง</button>' : ''}</div>
     ${IMP_BAD.length ? `<p class="bad" style="margin:8px 0 0;font-size:13px">อ่านไม่ได้ ${IMP_BAD.length} ไฟล์ (ไม่ใช่ไฟล์ผลจากหน้านี้ หรือไฟล์เสีย): ${esc(IMP_BAD.join(', '))}</p>` : ''}
-    ${rows ? `<div style="overflow:auto"><table class="t" style="margin-top:10px"><tr><th>ชื่อ / ทีม</th><th>วันที่ของผล</th>${ROLE_IDS.map(k => `<th>${esc(ROLES[k].name)}</th>`).join('')}<th>จอย</th><th>ข้อที่ควรซ้อมเพิ่ม</th></tr>${rows}</table></div>` : ''}</div>`;
+    ${rows}</div>`;
 }
 
 // ---------------- ตั้งค่า ----------------
@@ -1616,10 +1686,76 @@ async function histLoad() {
   $('hList').querySelectorAll('[data-hopen]').forEach(b => b.onclick = () => openSim('?hist=' + encodeURIComponent(b.dataset.hopen)));
   $('hList').querySelectorAll('[data-hdel]').forEach(b => b.onclick = async () => { if (!confirm('ลบรายงานนี้ (และ Replay) ออกจาก History ถาวร?')) return; b.disabled = true; const [c2] = await histApi({ op: 'del', key: k, id: b.dataset.hdel }); if (c2 === 200) histLoad(); else { b.disabled = false; msg.className = 'bad'; msg.textContent = 'ลบไม่สำเร็จ'; } });
 }
+// ผลฝึกของทีม: ดึงผลของนักเรียนทุกคนที่ซิงก์ไว้ (รหัสทีม หรือรหัสพิเศษ) · ตรวจรูปด้วย normReport เหมือนไฟล์ที่นำเข้า
+function teamOpen() { $('tKey').value = ''; $('tKey').placeholder = SYNC.k || aiStore.key() ? 'ใช้รหัสที่จำไว้ในเครื่องนี้ (เว้นว่างได้)' : 'รหัสทีม หรือรหัสพิเศษ'; $('tMsg').textContent = ''; $('tList').innerHTML = ''; $('teamDlg').showModal(); if (SYNC.k || aiStore.key()) teamLoad(); }
+async function teamLoad() {
+  const k = $('tKey').value.trim() || SYNC.k || aiStore.key(), msg = $('tMsg'); if (!k) { msg.className = 'bad'; msg.textContent = 'ใส่รหัสทีมก่อน'; return; }
+  msg.className = 'mut'; msg.textContent = 'กำลังโหลด…'; $('tLoad').disabled = true; const [c, d] = await acApi({ op: 'list', key: k }); $('tLoad').disabled = false;
+  if (c !== 200 || !d?.ok) { msg.className = 'bad'; msg.textContent = c === 403 ? '❌ รหัสไม่ถูกต้อง' : c === 404 || c === 405 ? '❌ ยังไม่มี /api/academy บนเว็บนี้' : '❌ โหลดไม่ได้ (เน็ต / เซิร์ฟเวอร์)'; return; }
+  const list = (Array.isArray(d.items) ? d.items : []).map(it => { const r = normReport(it && it.report); if (r) { r.name = str(it.name, 60) || r.name; r.team = str(it.team, 60) || r.team; r.ts = num(it.at) || r.ts; } return r; }).filter(Boolean);
+  msg.className = 'ok'; msg.textContent = `${list.length} คน`;
+  $('tList').innerHTML = stuTable(list, true) || '<p class="mut">ยังไม่มีนักเรียนคนไหนซิงก์ผลขึ้นมา · ให้นักเรียนใส่ชื่อ + รหัสทีมที่หน้า ตั้งค่า ในเครื่องของตัวเอง</p>';
+  $('tList').querySelectorAll('[data-tdel]').forEach(b => b.onclick = async () => {
+    if (!confirm(`ลบผลฝึกของ “${b.dataset.tdel}” ออกจากเซิร์ฟเวอร์?\n(ผลในเครื่องของนักเรียนยังอยู่ และจะถูกส่งขึ้นใหม่เมื่อเขาฝึกต่อ)`)) return;
+    b.disabled = true; const [c2] = await acApi({ op: 'del', key: k, name: b.dataset.tdel }); if (c2 === 200) teamLoad(); else { b.disabled = false; msg.className = 'bad'; msg.textContent = '❌ ลบไม่ได้'; }
+  });
+}
+$('tLoad').onclick = teamLoad; $('tKey').onkeydown = e => { if (e.key === 'Enter') teamLoad(); }; $('teamClose').onclick = () => $('teamDlg').close();
+// สำรองข้อมูลทั้งหมด (รหัสพิเศษ): History ทีละรายการ + Scouting ทุกงานแข่ง + ผลฝึก Academy → ไฟล์ .json เดียว (ต่อเป็นชิ้น ไม่สร้างข้อความก้อนใหญ่ในหน่วยความจำ)
+const bkSay = (t, cls = 'mut') => { $('bkMsg').className = cls; $('bkMsg').textContent = t; };
+async function postApi(path, body) { try { const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) }); return [r.status, await r.json().catch(() => null)]; } catch { return [0, null]; } }
+$('bkDl').onclick = async () => {
+  const k = $('hKey').value.trim() || aiStore.key(); if (!k) return bkSay('ใส่รหัสพิเศษด้านบนก่อน', 'bad');
+  const btn = $('bkDl'), withRp = $('bkRp').checked; btn.disabled = true;
+  try {
+    bkSay('กำลังโหลดรายการ History…'); const [c, d] = await histApi({ op: 'list', key: k });
+    if (c !== 200 || !d?.ok) return bkSay(c === 403 ? '❌ รหัสพิเศษไม่ถูกต้อง' : '❌ โหลดรายการไม่ได้', 'bad');
+    const items = Array.isArray(d.items) ? d.items : [], parts = [`{"type":"biobuzz-backup","v":1,"site":${JSON.stringify(VER)},"at":${Date.now()},"history":[`]; let n = 0, miss = 0;
+    for (let i = 0; i < items.length; i += 4) {
+      bkSay(`กำลังโหลด History ${Math.min(i + 4, items.length)}/${items.length}…`);
+      const got = await Promise.all(items.slice(i, i + 4).map(it => postApi('/api/history', { op: 'get', key: k, id: it.id })));
+      got.forEach(([c2, d2], j) => { if (c2 !== 200 || !d2?.ok || !isObj(d2.report)) { miss++; return; } const r = d2.report; if (!withRp) delete r.replay; parts.push((n++ ? ',' : '') + JSON.stringify({ id: items[i + j].id, report: r })); });
+    }
+    bkSay('กำลังโหลด Scouting…'); const [c3, d3] = await postApi('/api/scout', { op: 'dump', key: k });
+    bkSay('กำลังโหลดผลฝึก Academy…'); const [c4, d4] = await postApi('/api/academy', { op: 'dump', key: k });
+    const sc = c3 === 200 && Array.isArray(d3?.items) ? d3.items : null, ac = c4 === 200 && Array.isArray(d4?.items) ? d4.items : null;
+    parts.push(`],"scout":${JSON.stringify(sc || [])},"academy":${JSON.stringify(ac || [])}}`);
+    const blob = new Blob(parts, { type: 'application/json' }), u = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = u; a.download = `biobuzz-backup-${stamp(Date.now())}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 5000);
+    const bad = [miss ? `History โหลดไม่ได้ ${miss} รายการ` : '', sc ? '' : 'Scouting โหลดไม่ได้', ac ? '' : 'Academy โหลดไม่ได้'].filter(Boolean);
+    bkSay(`ดาวน์โหลดแล้ว (${blob.size < 1e6 ? Math.max(1, Math.round(blob.size / 1e3)) + ' KB' : (blob.size / 1e6).toFixed(1) + ' MB'}): History ${n} · Scouting ${sc ? sc.length : 0} กล่อง · Academy ${ac ? ac.length : 0} คน${bad.length ? ' · ⚠️ ' + bad.join(' · ') : ''}`, bad.length ? 'bad' : 'ok');
+  } finally { btn.disabled = false; }
+};
+$('bkUp').onclick = () => $('bkFile').click();
+$('bkFile').onchange = async () => {
+  const f = $('bkFile').files[0]; $('bkFile').value = ''; if (!f) return;
+  const k = $('hKey').value.trim() || aiStore.key(); if (!k) return bkSay('ใส่รหัสพิเศษด้านบนก่อน', 'bad');
+  let o; try { bkSay('กำลังอ่านไฟล์…'); o = JSON.parse(await f.text()); } catch { return bkSay('❌ อ่านไฟล์ไม่ได้ (ไม่ใช่ไฟล์ .json)', 'bad'); }
+  if (!isObj(o) || o.type !== 'biobuzz-backup') return bkSay('❌ ไม่ใช่ไฟล์สำรองจากหน้านี้', 'bad');
+  const H = Array.isArray(o.history) ? o.history.filter(x => isObj(x) && typeof x.id === 'string' && isObj(x.report)) : [], S = Array.isArray(o.scout) ? o.scout.filter(x => isObj(x) && typeof x.k === 'string' && isObj(x.v)) : [], A = Array.isArray(o.academy) ? o.academy.filter(x => isObj(x) && typeof x.name === 'string') : [];
+  if (!confirm(`คืนข้อมูลจากไฟล์สำรอง วันที่ ${fmtTs(o.at)}?\n• History ${H.length} รายการ\n• Scouting ${S.length} กล่อง\n• ผลฝึก Academy ${A.length} คน\n\nส่งกลับเฉพาะรายการที่หายไปจากเซิร์ฟเวอร์ หรือที่บนเซิร์ฟเวอร์เก่ากว่าในไฟล์ · ไม่ลบรายการใดบนเซิร์ฟเวอร์`)) return bkSay('');
+  $('bkUp').disabled = true; const cnt3 = { h: 0, s: 0, a: 0, bad: 0 };
+  try {
+    bkSay('กำลังเทียบกับข้อมูลบนเซิร์ฟเวอร์…');
+    const [c1, d1] = await histApi({ op: 'list', key: k }); if (c1 !== 200 || !d1?.ok) return bkSay(c1 === 403 ? '❌ รหัสพิเศษไม่ถูกต้อง' : '❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'bad');
+    const hasH = new Set((d1.items || []).map(x => x.id));
+    const [, d2] = await postApi('/api/scout', { op: 'dump', key: k }), sNow = new Map((d2?.items || []).map(x => [x.k, x.v]));
+    const [, d3] = await postApi('/api/academy', { op: 'list', key: k }), aNow = new Map((d3?.items || []).map(x => [String(x.name).trim().toLowerCase().replace(/\s+/g, ' '), +x.at || 0]));
+    if (!d2?.ok || !d3?.ok) return bkSay('❌ อ่านข้อมูลปัจจุบันบนเซิร์ฟเวอร์ไม่ได้ จึงยังไม่คืนข้อมูล (กันทับของใหม่)', 'bad');
+    for (const [i, x] of H.entries()) { if (hasH.has(x.id)) continue; bkSay(`คืน History ${i + 1}/${H.length}…`); const [c] = await postApi('/api/history', { op: 'save', key: k, id: x.id, report: x.report }); c === 200 ? cnt3.h++ : cnt3.bad++; }
+    for (const x of S) { const cur = sNow.get(x.k), newer = !cur || (x.k.endsWith('/pick') ? num(x.v.ver) > num(cur.ver) : num(x.v.at) > num(cur.at)); if (!newer) continue; bkSay('คืน Scouting…'); const [c] = await postApi('/api/scout', { op: 'load', key: k, k: x.k, v: x.v }); c === 200 ? cnt3.s++ : cnt3.bad++; }
+    for (const x of A) { const nm = x.name.trim().toLowerCase().replace(/\s+/g, ' '); if (!nm || !isObj(x.state) || !isObj(x.report) || (aNow.get(nm) || 0) >= num(x.at)) continue; bkSay('คืนผลฝึก Academy…'); const [c] = await acApi({ op: 'push', key: k, name: x.name, team: x.team, state: x.state, report: x.report }); c === 200 ? cnt3.a++ : cnt3.bad++; }
+    bkSay(`คืนข้อมูลแล้ว: History ${cnt3.h} · Scouting ${cnt3.s} · Academy ${cnt3.a}${cnt3.bad ? ` · ⚠️ ไม่สำเร็จ ${cnt3.bad}` : ''} (ที่เหลือมีบนเซิร์ฟเวอร์อยู่แล้ว)`, cnt3.bad ? 'bad' : 'ok');
+    if (cnt3.h) histLoad();
+  } finally { $('bkUp').disabled = false; }
+};
 $('hLoad').onclick = histLoad; $('hKey').onkeydown = e => { if (e.key === 'Enter') histLoad(); };
 $('histBtn').onclick = () => { histOpen(); $('histDlg').showModal(); if (aiStore.key()) histLoad(); }; $('histClose').onclick = () => $('histDlg').close();
-$('btnSettings').onclick = $('teacherChip').onclick = () => { aiSetOpen(); $('mockUrl').value = ST.mockUrl; $('trainee').value = ST.name; $('team').value = ST.team; $('teacher').checked = ST.teacher; $('btnReset').disabled = !ST.role; $('dlg').showModal(); };
-$('btnClose').onclick = () => { const u = $('mockUrl').value.trim(); if (u && safeUrl(u)) ST.mockUrl = u; ST.name = $('trainee').value.trim().slice(0, 60); ST.team = $('team').value.trim().slice(0, 60); ST.teacher = $('teacher').checked; save(); $('dlg').close(); render(); };
+$('btnSettings').onclick = $('teacherChip').onclick = () => { aiSetOpen(); $('mockUrl').value = ST.mockUrl; $('trainee').value = ST.name; $('team').value = ST.team; $('syncKey').value = SYNC.k; syncPaint(); $('teacher').checked = ST.teacher; $('btnReset').disabled = !ST.role; $('dlg').showModal(); };
+$('btnClose').onclick = () => { const u = $('mockUrl').value.trim(); if (u && safeUrl(u)) ST.mockUrl = u; const nm = $('trainee').value.trim().slice(0, 60), sk = $('syncKey').value.trim().slice(0, 128);
+  if (sk && SYNC.pulled && nm && nm.toLowerCase().replace(/\s+/g, ' ') !== SYNC.pulled && !confirm(`เปลี่ยนชื่อผู้ฝึกเป็น “${nm}”?\n\nความคืบหน้าในเครื่องนี้จะถูกรวมกับผลของ “${nm}” บนเซิร์ฟเวอร์ · ถ้าเครื่องนี้ใช้ร่วมกันหลายคน ให้แต่ละคนใช้เบราว์เซอร์ / โปรไฟล์ของตัวเอง`)) return;
+  if (sk !== SYNC.k) { SYNC.k = sk; SYNC.pulled = ''; SYNC.st = ''; try { sk ? localStorage.setItem('dca-sync', JSON.stringify({ k: sk })) : localStorage.removeItem('dca-sync'); } catch {} }
+  ST.name = nm; ST.team = $('team').value.trim().slice(0, 60); ST.teacher = $('teacher').checked; save(); $('dlg').close(); render(); };
 // ล้างบทบาท: ล้างผลสถานการณ์ 3D ของบทบาทนี้ด้วย (ทั้งในหน้านี้และ dca-sim-results) ยกเว้นสถานการณ์ที่ใช้ร่วมกับบทบาทอื่นที่ยังมีความคืบหน้า
 $('btnReset').onclick = () => {
   const role = ST.role; if (!role) return;

@@ -4,8 +4,11 @@
 //   POST { op:'push',  key, ev, dev, name, recs, pit }    → { ok, at }     ส่งข้อมูลทั้งหมดของเครื่องนี้ (ทับกล่องเดิมของเครื่องนี้)
 //   POST { op:'pull',  key, ev }                          → { ok, devices:[{ dev, name, at, recs, pit }], pick }
 //   POST { op:'pick',  key, ev, pick:{ ver, list, taken } } → { ok, pick } · ver ไม่ตรงของล่าสุด = 409 พร้อม pick ล่าสุด
+//   POST { op:'dump',  key }                              → { ok, items:[{ k, v }] }  ทุกงานแข่ง (รหัสพิเศษเท่านั้น · สำรองข้อมูล)
+//   POST { op:'load',  key, k, v }                        → { ok }  คืนข้อมูล 1 กล่องจากไฟล์สำรอง (รหัสพิเศษเท่านั้น · ตรวจรูปเหมือนตอน push)
 // key = รหัสทีม Scouting (ตั้งที่ Netlify → Environment variables: SCOUT_KEY) หรือรหัสพิเศษของผู้ดูแล
 import { isMaster } from '../lib/master.mjs';
+import { okTeamKey as okKey } from '../lib/teamkey.mjs';
 
 const store = async () => globalThis.__roomStore || (await import('@netlify/blobs')).getStore({ name: 'scout', consistency: 'strong' });
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -13,7 +16,6 @@ const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim
 const N = (v, lo = 0, hi = 999) => Math.max(lo, Math.min(hi, Math.round(+v) || 0));
 const B = v => v === true || v === 1;
 const pick1 = (v, list, d) => list.includes(v) ? v : d;
-const okKey = async k => { if (typeof k !== 'string' || !k || k.length > 128) return false; const sk = (process.env.SCOUT_KEY || '').trim(); return (sk && k.trim() === sk) || isMaster(k); };
 const EV = /^[a-z0-9-]{3,40}$/, DEV = /^[A-Za-z0-9_-]{8,40}$/, TEAM = /^\d{1,6}$/;
 
 // บันทึก 1 แมตช์ของ 1 หุ่น (บังคับชนิดและช่วงค่าทุกช่อง)
@@ -44,6 +46,16 @@ export default async req => {
   let d; try { const t = await req.text(); if (t.length > 400000) return json({ ok: false, why: 'big' }, 413); d = JSON.parse(t); } catch { return json({ ok: false, why: 'body' }, 400); }
   if (!(await okKey(d?.key))) { await new Promise(ok => setTimeout(ok, 400)); return json({ ok: false, why: 'key' }, 403); }
   if (d.op === 'check') return json({ ok: true });
+  if (d.op === 'dump' || d.op === 'load') {
+    if (!(await isMaster(d.key))) return json({ ok: false, why: 'key' }, 403);
+    let st0; try { st0 = await store(); } catch { return json({ ok: false, why: 'store' }, 503); }
+    if (d.op === 'dump') { const { blobs } = await st0.list({ prefix: 's/' }); const items = await Promise.all(blobs.slice(0, 2000).map(async b => ({ k: b.key, v: await st0.get(b.key, { type: 'json' }).catch(() => null) }))); return json({ ok: true, items: items.filter(x => x.v) }); }
+    const m = /^s\/([a-z0-9-]{3,40})\/(?:d\/([A-Za-z0-9_-]{8,40})|pick)$/.exec(String(d.k || '')), v = d.v;
+    if (!m || !v || typeof v !== 'object') return json({ ok: false, why: 'k' }, 400);
+    if (m[2]) await st0.setJSON(d.k, { at: N(v.at, 0, 9e15), name: T(v.name, 24), recs: (Array.isArray(v.recs) ? v.recs : []).slice(0, 600).map(cleanRec).filter(r => r.id && (r.del || r.team)), pit: (Array.isArray(v.pit) ? v.pit : []).slice(0, 120).map(cleanPit).filter(p => p.team) });
+    else { const p = cleanPick(v); p.ver = N(v.ver, 0, 1e9); p.at = N(v.at, 0, 9e15) || p.at; await st0.setJSON(d.k, p); }
+    return json({ ok: true });
+  }
   if (!EV.test(d.ev || '')) return json({ ok: false, why: 'ev' }, 400);
   let st; try { st = await store(); } catch { return json({ ok: false, why: 'store' }, 503); }
   const base = `s/${d.ev}/`;

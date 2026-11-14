@@ -8,6 +8,8 @@
 #                   /api/rooms รายชื่อห้องที่เปิดอยู่ + ตรวจรหัสเข้าชม (ดูหัวไฟล์ rooms.mjs)
 #                   /api/analyze ผู้ชมพิเศษให้ AI วิเคราะห์ผู้เล่น: ตั้ง OPENROUTER_API_KEY (ดูหัวไฟล์ analyze.mjs)
 #                   /api/scout ข้อมูล Scouting ที่หลายเครื่องช่วยกันจด: ตั้ง SCOUT_KEY = รหัสทีม (ดูหัวไฟล์ scout.mjs)
+#                   /api/academy ผลฝึก Drive Team Academy ของนักเรียนแต่ละคน (รหัสทีมตัวเดียวกับ SCOUT_KEY · ดูหัวไฟล์ academy.mjs)
+#                   /api/history History การฝึก + สำรองข้อมูล (รหัสพิเศษ · ดูหัวไฟล์ history.mjs)
 [functions]
   directory = "netlify/functions"
 

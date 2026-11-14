@@ -30,8 +30,15 @@
     save(a) { HC = a.slice(-HMAX); try { localStorage.setItem(HK, JSON.stringify(HC)); } catch {} }, clear() { HC = []; try { localStorage.removeItem(HK); } catch {} } };
   const summ = r => ({ ts: r.ts, kind: r.kind, end: r.end, score: r.score, players: r.players.filter(p => !p.bot && p.intent != null && p.m.T >= 40).map(p => ({ name: p.name, id: p.id, al: p.alliance, i: p.intent, s: p.skill, v: p.v,
     acc: p.m.acc, shots: p.m.shots, hits: p.m.hits, cyc: p.m.cycAvg, mv: p.m.mv, idle: p.m.idleN, wall: p.m.wallPm, fouls: p.fouls.length, T: p.m.T })) });
+  // + ตัวเลขสรุปจาก History การฝึกบนเซิร์ฟเวอร์ (ทุกแมตช์ที่บันทึกไว้) จึงเทียบได้จากทุกเครื่อง · โหลดรายการย่อครั้งเดียวตอนเริ่มแมตช์ (ไม่บ่อยกว่าทุก 60 วิ) บนเครื่องผู้ชมพิเศษเท่านั้น
+  const SRV = { list: [], at: 0, busy: false }; let ALLH = null, ALLK = null;
+  const allHist = () => { const loc = hist.load(); if (ALLH && ALLK === loc && ALLH.srv === SRV.list) return ALLH; const seen = new Set(loc.map(h => h.ts)); ALLH = [...loc, ...SRV.list.filter(h => !seen.has(h.ts))].sort((a, b) => a.ts - b.ts); ALLH.srv = SRV.list; ALLK = loc; return ALLH; };
+  async function syncPrev() {
+    const k = key.get(); if (!k || SRV.busy || Date.now() - SRV.at < 60000) return; SRV.busy = true;
+    try { const [c, d] = await histCall({ op: 'list', key: k }); if (c === 200 && Array.isArray(d?.items)) { SRV.list = d.items.filter(it => it && Array.isArray(it.c) && it.c.length && +it.ts > 0).map(it => ({ ts: +it.ts, players: it.c.filter(q => q && typeof q.name === 'string') })); SRV.at = Date.now(); } } finally { SRV.busy = false; }
+  }
   const GENERIC = new Set(['', 'ผู้เล่น', 'player', 'bot']);  // ชื่อกลาง ๆ ไม่ใช้เทียบประวัติ (หลายคนใช้ชื่อเดียวกัน)
-  const prevOf = (name, before) => GENERIC.has(nkey(name)) ? [] : hist.load().filter(h => h.ts < before).flatMap(h => h.players.filter(q => nkey(q.name) === nkey(name)).map(q => ({ ...q, ts: h.ts }))).slice(-5);
+  const prevOf = (name, before) => GENERIC.has(nkey(name)) ? [] : allHist().filter(h => h.ts < before).flatMap(h => h.players.filter(q => nkey(q.name) === nkey(name)).map(q => ({ ...q, ts: h.ts }))).slice(-5);
   const newP = (r, el) => ({ id: r.id, al: r.al, name: r.name, T: 0, mv: 0, spin: 0, path: 0, win: null, stSum: 0, stN: 0, aimless: 0,
     idle: 0, idleN: 0, idleMax: 0, hold: 0, holdN: 0, holdMax: 0, rev: 0, revCd: 0, vh: [], pick: 0, load: null, drops: [], shotsEv: [],
     s0: null, h0: null, c0: null, hit0: null, wall0: null, shots: 0, hits: 0, cyc: [], hitN: 0, wallN: 0, lastShots: null,
@@ -39,7 +46,7 @@
     zt: { own: 0, opp: 0, ring: 0, lz: 0, wall: 0 }, ev: [], eg: { t: 0, mv: 0, lz: 0 }, lzPrev: null, nf: 0, gmin: 0.9, gmax: 1.6 });
   const evPush = (p, e) => { p.ev.push(e); if (p.ev.length > 70) { const i = p.ev.findIndex(x => x.k === 'pick'); p.ev.splice(i >= 0 ? i : 0, 1); } };  // เต็มแล้ว: ทิ้ง “เก็บลูก” เก่าก่อน (ยิง / FOUL / จอดนิ่ง สำคัญกว่า)
 
-  function reset(meta = {}) { M = { kind: meta.kind || '', code: meta.code || '', ts: Date.now(), lastEl: null, endEl: null, done: false, startEl: null, score: { red: 0, blue: 0 } }; P = {}; Object.assign(LV, { busy: false, at: 0, list: [], msg: '', off: '' }); }
+  function reset(meta = {}) { M = { kind: meta.kind || '', code: meta.code || '', ts: Date.now(), lastEl: null, endEl: null, done: false, startEl: null, score: { red: 0, blue: 0 } }; P = {}; Object.assign(LV, { busy: false, at: 0, list: [], msg: '', off: '' }); syncPrev(); }
 
   function bucketOf(p) { const i = Math.floor(p.T / BUCKET); while (p.bk.length <= i) p.bk.push({ t: 0, mv: 0, pick: 0, shots: 0, walls: 0, coll: 0 }); return p.bk[i]; }
   function endIdle(p) { if (p.idle >= 6) { p.idleN++; p.idleMax = Math.max(p.idleMax, p.idle); if (M?.lastEl != null) evPush(p, { t: fmtEl(M.lastEl - p.idle), el: r1(M.lastEl - p.idle), k: 'idle', sec: Math.round(p.idle) }); } p.idle = 0; }
@@ -250,12 +257,12 @@
   function cmpBlock(p) {
     if (p.intent == null) return '';
     const prev = p.prev || [];
-    if (!prev.length) return `<div class="mut" style="font-size:11px;margin-top:4px">ยังไม่มีแมตช์ก่อนหน้าของ “${esc(p.name || '')}” ในเครื่องนี้ไว้เทียบ</div>`;
+    if (!prev.length) return `<div class="mut" style="font-size:11px;margin-top:4px">ยังไม่มีแมตช์ก่อนหน้าของ “${esc(p.name || '')}” ไว้เทียบ (ใน History การฝึก และเครื่องนี้)</div>`;
     const avg = k => Math.round(prev.reduce((a, q) => a + (q[k] ?? 0), 0) / prev.length), di = p.intent - avg('i'), ds = p.skill - avg('s');
     const sg = d => `<b style="color:${d >= 5 ? '#3ec97a' : d <= -5 ? '#ff7b6b' : INK}">${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)}</b>`;
     const items = [...prev.map((q, i) => ({ lab: `−${prev.length - i}`, i: q.i, s: q.s, t: q.ts })), { lab: 'แมตช์นี้', i: p.intent, s: p.skill, cur: true }];
     const accP = prev.filter(q => q.acc != null), accD = p.m.acc != null && accP.length ? p.m.acc - Math.round(accP.reduce((a, q) => a + q.acc, 0) / accP.length) : null;
-    return `<div style="margin-top:8px;font-size:12px"><b>เทียบแมตช์ก่อนหน้า</b> <span class="mut">(${prev.length} แมตช์ · ชื่อเดียวกันในเครื่องนี้)</span><br>เทียบค่าเฉลี่ย: ตั้งใจ ${sg(di)} · ฝีมือ ${sg(ds)}${accD != null ? ` · ความแม่น ${sg(accD)}%` : ''}</div>${barsSvg(items)}`;
+    return `<div style="margin-top:8px;font-size:12px"><b>เทียบแมตช์ก่อนหน้า</b> <span class="mut">(${prev.length} แมตช์ · ชื่อเดียวกัน · จาก History การฝึก + เครื่องนี้)</span><br>เทียบค่าเฉลี่ย: ตั้งใจ ${sg(di)} · ฝีมือ ${sg(ds)}${accD != null ? ` · ความแม่น ${sg(accD)}%` : ''}</div>${barsSvg(items)}`;
   }
 
   function unmount() { panelEl = null; }
@@ -420,7 +427,7 @@
       ${r.replay && window.BBReplay ? '<button class="go" data-a="replay">▶ ดู Replay</button>' : ''}<button data-a="html">💾 บันทึกไฟล์ (.html)</button><button data-a="json">💾 ข้อมูล${r.replay ? ' + Replay' : 'ดิบ'} (.json)</button>
         ${cur < 0 ? '<button data-a="refresh">🔄 อัปเดตตัวเลขล่าสุด</button>' : ''}${reports.length > 1 || (cur < 0 && reports.length) ? `<select data-a="pick"><option value="-1" ${cur < 0 ? 'selected' : ''}>ตอนนี้ (สด)</option>${opts}</select>` : ''}
         ${r.hid ? '' : key.get() ? '<button data-a="hsave" title="บันทึกรายงานนี้ (และ Replay) ลง History การฝึก บนเซิร์ฟเวอร์">☁️ บันทึกลง History</button>' : ''}${r.hid && !r.histOk && r.histMsg && !/กำลัง/.test(r.histMsg) ? '<button data-a="hsave">☁️ ลองบันทึกอีกครั้ง</button>' : ''}<span class="mut" style="font-size:12px">${esc(r.histMsg || '')}</span>
-        <span class="sp"></span><button data-a="hclear" title="ลบประวัติที่ใช้เทียบแมตช์ก่อนหน้า (เก็บในเครื่องนี้)">🗑 ล้างประวัติเทียบ (${hist.load().length})</button><button data-a="logout" title="ลบรหัสพิเศษออกจากเครื่องนี้">🚪 ออกจากโหมดผู้ชมพิเศษ</button><button class="go" data-a="close">✕ ปิด</button></div></div>`;
+        <span class="sp"></span><button data-a="hclear" title="ลบประวัติที่ใช้เทียบแมตช์ก่อนหน้าที่เก็บในเครื่องนี้ (รายการใน History การฝึกบนเซิร์ฟเวอร์ยังใช้เทียบอยู่ ลบได้ที่หน้า Home → 📜 History การฝึก)">🗑 ล้างประวัติเทียบ (${hist.load().length})</button><button data-a="logout" title="ลบรหัสพิเศษออกจากเครื่องนี้">🚪 ออกจากโหมดผู้ชมพิเศษ</button><button class="go" data-a="close">✕ ปิด</button></div></div>`;
     const on = (a, fn) => { const b = dlg.querySelector(`[data-a="${a}"]`); if (b) b[a === 'pick' ? 'onchange' : 'onclick'] = fn; };
     fitDlg(); requestAnimationFrame(fitDlg);
     on('replay', () => openReplay(r, r.startEl));
