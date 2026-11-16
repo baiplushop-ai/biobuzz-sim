@@ -78,10 +78,10 @@
   @media (prefers-reduced-motion: reduce) { .waitBan::after, .radar b, .radar i, .wdots span, .pip.wait, #netBar .dot.live { animation:none !important } .radar b:first-of-type { opacity:.5; transform:scale(1.2) } }
   .rdyCtl { display:inline-flex; gap:6px } .rdyCtl button { padding:6px 12px } .rdyCtl button.on { background:var(--grn); color:#06130a; border-color:var(--grn); box-shadow:0 0 12px color-mix(in srgb, var(--grn) 55%, transparent) } .rdyCtl button.on.wait { background:var(--yel); border-color:var(--yel); box-shadow:0 0 12px color-mix(in srgb, var(--yel) 55%, transparent) }
   .rdyB { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700; border:1px solid var(--line); color:var(--mut); vertical-align:middle } .rdyB.ok { color:var(--grn); border-color:var(--grn); background:color-mix(in srgb, var(--grn) 15%, transparent) } .rdyB.wait { color:var(--yel); border-color:var(--yel) }
-  .chatBox { margin-top:0 } .chatList { gap:3px !important; min-height:64px; max-height:calc(10 * 1.45em + 40px); font-size:13px; line-height:1.45; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.35) transparent; display:flex; flex-direction:column; gap:5px; padding:6px 8px; border:1px solid var(--line); border-radius:10px; background:rgba(0,0,0,.25); scroll-behavior:smooth }
-  .cEv, .cMsg { display:flex; align-items:baseline; gap:8px; align-self:stretch } .cEv > span:first-child, .cMsg .cx { flex:1; min-width:0 } .cEv { font-size:11px; color:var(--mut); padding:0 10px } .chatList::-webkit-scrollbar { width:8px } .chatList::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:4px }
-  .cMsg { max-width:100%; padding:2px 10px; border-radius:8px; background:rgba(255,255,255,.08); font-size:13px; line-height:1.35; word-break:break-word } .cMsg.me { background:color-mix(in srgb, var(--yel) 20%, transparent) }
-  .cMsg .cn { font-size:11px; font-weight:800 } .ct { flex:none; margin-left:auto; font-size:10px; color:var(--mut); font-variant-numeric:tabular-nums } .chatIn { display:flex; gap:6px; margin-top:6px } .chatIn input { flex:1; font:inherit; padding:6px 10px; border-radius:8px }
+  .chatBox { margin-top:0 } .chatList { gap:3px !important; min-height:64px; max-height:calc(10 * 1.45em + 40px); font-size:26px; line-height:1.45; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.35) transparent; display:flex; flex-direction:column; gap:5px; padding:6px 8px; border:1px solid var(--line); border-radius:10px; background:rgba(0,0,0,.25); scroll-behavior:smooth }
+  .cEv, .cMsg { display:flex; align-items:baseline; gap:8px; align-self:stretch } .cEv > span:first-child, .cMsg .cx { flex:1; min-width:0 } .cEv { font-size:22px; color:var(--mut); padding:0 10px } .chatList::-webkit-scrollbar { width:8px } .chatList::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:4px }
+  .cMsg { max-width:100%; padding:2px 10px; border-radius:8px; background:rgba(255,255,255,.08); font-size:26px; line-height:1.35; word-break:break-word } .cMsg.me { background:color-mix(in srgb, var(--yel) 20%, transparent) }
+  .cMsg .cn { font-size:22px; font-weight:800 } .ct { flex:none; margin-left:auto; font-size:20px; color:var(--mut); font-variant-numeric:tabular-nums } .chatIn { display:flex; gap:6px; margin-top:6px } .chatIn input { flex:1; font:inherit; font-size:20px; padding:8px 12px; border-radius:8px } .chatIn button { font-size:18px }
   #cdOv { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; pointer-events:none; background:radial-gradient(circle, rgba(0,0,0,.3), rgba(0,0,0,.7)) }
   #cdOv.on { display:flex } #cdOv.out { animation:cdOut .8s ease forwards }
   #cdOv b { position:relative; font-size:min(36vh, 32vw); font-weight:900; line-height:1; color:var(--yel); text-shadow:0 0 50px color-mix(in srgb, var(--yel) 70%, transparent), 0 8px 0 rgba(0,0,0,.45); animation:cdPop .9s cubic-bezier(.2, 1.5, .4, 1) both }
@@ -188,9 +188,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=5.0"></script>
-<script src="live-rooms.js?v=5.0"></script>
-<script src="analyst.js?v=5.0"></script>
+<script src="scenarios.js?v=5.1"></script>
+<script src="live-rooms.js?v=5.1"></script>
+<script src="analyst.js?v=5.1"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -1366,7 +1366,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.0</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.1</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button>${window.BBAna?.reports?.length ? '<button id="mLastRep" class="sec">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>
     <div id="mcfg" class="mcfg"></div>
