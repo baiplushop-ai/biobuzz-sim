@@ -115,7 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 <body>
 <header>
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.3</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.4</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -211,8 +211,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=5.3"></script>
-<script src="../mockup/live-rooms.js?v=5.3"></script>
+<script src="../mockup/scenarios.js?v=5.4"></script>
+<script src="../mockup/live-rooms.js?v=5.4"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1372,9 +1372,7 @@ function renderHome() {
     <h2>เลือกบทบาทที่อยากฝึก</h2>
     <p class="mut" style="margin:0">แต่ละบทบาทไล่จากง่ายไปยาก ต้องผ่านทีละข้อ ข้อที่มีสถานการณ์ 3D จะเปิด simulator ที่จัดฉากตรงกับข้อนั้น และส่งผลผ่าน/ไม่ผ่านกลับมาที่นี่เอง</p>
     <div class="card" id="homeLive"></div>
-    <div class="roles">${Object.entries(ROLES).map(([k, r]) => { const [a, b] = roleProg(k); return `<div class="role"><div class="ico">${r.ico}</div><h3>${esc(r.name)}</h3><p>${esc(r.desc)}</p>
-      <div class="bar"><div style="width:${a / b * 100}%"></div></div><div class="mut" style="font-size:13px">ผ่าน ${a}/${b} ข้อ · ${r.levels.length} ระดับ</div>
-      <button class="btn" data-role="${k}">${a ? (a === b ? 'ดูใบผ่าน' : 'ฝึกต่อ') : 'เริ่มฝึก'}</button></div>`; }).join('')}
+    <div class="roles">
       <div class="role free"><div class="ico">🕹️</div><h3>Free Control</h3><p>คนขับบังคับหุ่นได้ทุกฟังก์ชันเหมือนหุ่นจริงบนสนามเต็ม: เดิน สไลด์ หมุน เก็บลูก ยิง วาง FLOWER ดึงลูก คายลูก ไม่จับเวลา ตั้งค่าหุ่นให้ตรงกับหุ่นจริงของทีมได้ (ความเร็ว อัตราเร่ง การหมุน การสไลด์ mecanum เส้นโค้งจอย deadzone) และค่านี้ใช้กับทุกสถานการณ์</p>
       <button class="btn" id="goFree">เปิด Free Control</button><button class="btn sec" id="goMenu">เมนู simulator ทั้งหมด</button></div>
       <div class="role free"><div class="ico">🌐</div><h3>เล่นออนไลน์ 2–4 เครื่อง</h3><p>สร้างห้องแล้วส่งรหัส 6 หลักให้เพื่อนเข้าร่วมจาก PC / laptop เครื่องอื่น เลือกทีมแดง / น้ำเงิน เลือกจำนวนผู้เล่น 2–4 คน ตำแหน่งที่ไม่มีคนให้ Bot ขับแทนได้ เปิดได้หลายห้องพร้อมกัน และมีประวัติการเล่นออนไลน์ย้อนหลัง</p>
@@ -1384,7 +1382,10 @@ function renderHome() {
       <a class="btn" href="${esc(padUrl())}" target="_blank">เปิดหน้าทดสอบจอย</a></div>
       <div class="role free"><div class="ico">📋</div><h3>ส่งผลให้โค้ช</h3><p>สรุปผลฝึกของเครื่องนี้ทุกบทบาท: ข้อที่ผ่านและยังไม่ผ่าน ข้อที่ตอบผิดบ่อย ผลสถานการณ์ 3D และผลทดสอบจอย คัดลอกเป็นข้อความส่งทาง LINE หรือดาวน์โหลดเป็นไฟล์ได้ · ถ้าตั้ง <b>รหัสทีม</b> ไว้ในหน้า ตั้งค่า ผลจะซิงก์ขึ้นเซิร์ฟเวอร์ให้โค้ชเห็นเอง</p>
       <div class="mut" style="font-size:13px" id="syncLine">${esc(syncText())}</div>
-      <button class="btn" id="homeReport">ส่งผลให้โค้ช</button><button class="btn sec" id="homeTeam">👥 ดูผลทั้งทีม (โค้ช)</button></div></div>
+      <button class="btn" id="homeReport">ส่งผลให้โค้ช</button><button class="btn sec" id="homeTeam">👥 ดูผลทั้งทีม (โค้ช)</button></div>
+      ${Object.entries(ROLES).map(([k, r]) => { const [a, b] = roleProg(k); return `<div class="role"><div class="ico">${r.ico}</div><h3>${esc(r.name)}</h3><p>${esc(r.desc)}</p>
+      <div class="bar"><div style="width:${a / b * 100}%"></div></div><div class="mut" style="font-size:13px">ผ่าน ${a}/${b} ข้อ · ${r.levels.length} ระดับ</div>
+      <button class="btn" data-role="${k}">${a ? (a === b ? 'ดูใบผ่าน' : 'ฝึกต่อ') : 'เริ่มฝึก'}</button></div>`; }).join('')}</div>
     ${teacherCard()}
     <div class="card"><h4>ฝึกเป็นทีม</h4><ul class="act"><li>Drive Coach กับ Driver ใช้สถานการณ์ร่วมกันได้ เช่น 5.3 คู่แข่งเล่นเกมรับ ผ่านรอบเดียวนับให้ทั้งสองบทบาท</li><li>สถานการณ์ของ Human Player ให้หุ่นทุกตัวขับโดย AI คนฝึกกดปุ่ม H เพื่อปล่อย NECTAR</li><li>ความคืบหน้าเก็บไว้ในเบราว์เซอร์ของเครื่องนี้ ถ้าเปลี่ยนเครื่องต้องเริ่มนับใหม่ ใช้ปุ่ม "ส่งผลให้โค้ช" เพื่อส่งสรุปผลของเครื่องนี้ให้โค้ช</li></ul></div>`;
   $('homeView').querySelectorAll('button[data-role]').forEach(b => b.onclick = () => go(b.dataset.role));
