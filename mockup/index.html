@@ -188,9 +188,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=5.2"></script>
-<script src="live-rooms.js?v=5.2"></script>
-<script src="analyst.js?v=5.2"></script>
+<script src="scenarios.js?v=5.3"></script>
+<script src="live-rooms.js?v=5.3"></script>
+<script src="analyst.js?v=5.3"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -953,8 +953,16 @@ const M = {
 const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
 for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) { const t = box(F.tile - 0.004, 0.015, F.tile - 0.004, (i + j) % 2 ? M.tileA : M.tileB, -F.half + F.tile * (i + 0.5), -0.0075, -F.half + F.tile * (j + 0.5)); t.castShadow = false; }
 const wt = 0.03;
-[[0, -F.half - wt / 2], [0, F.half + wt / 2]].forEach(([x, z]) => box(2 * F.half + 2 * wt, F.wallH, wt, M.wall, x, F.wallH / 2, z));
-[[-F.half - wt / 2, 0], [F.half + wt / 2, 0]].forEach(([x, z]) => box(wt, F.wallH, 2 * F.half, M.wall, x, F.wallH / 2, z));
+/* กำแพงสนามแบบสนามจริง: แผ่นใสมองทะลุได้ เห็นแค่โครงอะลูมิเนียมขอบบน ขอบล่าง และเสาที่รอยต่อแผ่น */
+{
+  const glass = new THREE.MeshStandardMaterial({ color: 0xcfe3f5, transparent: true, opacity: 0.1, roughness: 0.15, depthWrite: false, side: THREE.DoubleSide });
+  const rail = new THREE.MeshStandardMaterial({ color: 0xb9c0c8, metalness: 0.6, roughness: 0.35 });
+  const L = 2 * F.half + 2 * wt, o = F.half + wt / 2, rh = 0.025, post = 0.035;
+  const pane = (w, d, x, z) => { const m = box(w, F.wallH, d, glass, x, F.wallH / 2, z); m.castShadow = m.receiveShadow = false; m.renderOrder = 2; };
+  [[0, -o], [0, o]].forEach(([x, z]) => { pane(L, wt, x, z); box(L, rh, wt + 0.01, rail, x, F.wallH - rh / 2, z); box(L, rh * 0.8, wt + 0.006, rail, x, rh * 0.4, z); });
+  [[-o, 0], [o, 0]].forEach(([x, z]) => { pane(wt, 2 * F.half, x, z); box(wt + 0.01, rh, 2 * F.half, rail, x, F.wallH - rh / 2, z); box(wt + 0.006, rh * 0.8, 2 * F.half, rail, x, rh * 0.4, z); });
+  for (let k = 0; k <= 3; k++) { const t = -o + k * (2 * o / 3); [[t, -o], [t, o], [-o, t], [o, t]].forEach(([x, z]) => box(post, F.wallH, post, rail, x, F.wallH / 2, z)); }
+}
 const tape = (b, mat, y = 0.002) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(b[1] - b[0], b[3] - b[2]), mat); m.rotation.x = -Math.PI / 2; m.position.set((b[0] + b[1]) / 2, y, (b[2] + b[3]) / 2); scene.add(m); return m; };
 const outline = (b, mat) => { const w = 0.025; tape([b[0], b[1], b[2], b[2] + w], mat); tape([b[0], b[1], b[3] - w, b[3]], mat); tape([b[0], b[0] + w, b[2], b[3]], mat); tape([b[1] - w, b[1], b[2], b[3]], mat); };
 outline(F.loading.red, M.tapeRed); outline(F.loading.blue, M.tapeBlue); tape(F.garden.red, M.tapeRed); tape(F.garden.blue, M.tapeBlue);
@@ -1366,7 +1374,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.2</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.3</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button>${window.BBAna?.reports?.length ? '<button id="mLastRep" class="sec">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>
     <div id="mcfg" class="mcfg"></div>
