@@ -1,0 +1,38 @@
+/* BIOBUZZ brand · สี ลาย และตัวอักษรจากภาพปก (เหลือง/ดำ ลายเตือน บนโลหะเทาเข้ม) · ใช้ร่วมกันทุกหน้า
+   แต่ละหน้ายังมีตัวแปรสีของตัวเอง ไฟล์นี้เพิ่มเฉพาะส่วนที่เป็นแบรนด์: แถบหัวเข้ม ลายเตือน ตัวอักษรหัวข้อ และปุ่มสีเหลือง */
+:root {
+  --bz-y:#ffc20e; --bz-yd:#e0a800; --bz-k:#1b1c1e; --bz-k2:#26282c; --bz-k3:#33363b; --bz-steel:#8e949b; --bz-fg:#f2f2ee;
+  --bz-font:'Prompt', Sarabun, system-ui, sans-serif;
+  --bz-hz:repeating-linear-gradient(-45deg, var(--bz-y) 0 11px, var(--bz-k) 11px 22px);
+}
+h1, h2, h3, h4, .bz-font { font-family:var(--bz-font); letter-spacing:.005em }
+h1, h2 { font-weight:800 } h3, h4 { font-weight:700 }
+
+/* แถบหัวหน้า: แผ่นโลหะเข้ม + ลายเตือนเหลืองดำที่ขอบล่าง (อยู่ในความสูงของ header เอง เพื่อไม่ให้ตำแหน่ง sticky ของเมนูข้างเพี้ยน) */
+header.bz, .bz-bar {
+  background:var(--bz-hz) left bottom / 100% 7px no-repeat, linear-gradient(180deg, #2c2e33 0%, var(--bz-k) 100%) !important;
+  color:var(--bz-fg) !important; border-bottom:0 !important; padding-bottom:15px !important;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+}
+header.bz h1, .bz-bar h1 { color:var(--bz-fg); font-weight:800; text-transform:uppercase; letter-spacing:.02em }
+header.bz h1 span, .bz-bar h1 span { color:var(--bz-y) }
+header.bz .ver, header.bz small, .bz-bar .ver, .bz-bar small { color:#a9adb3 !important }
+header.bz .hbtn, header.bz .pad, header.bz .chip, .bz-bar .hbtn, .bz-bar .btn.sec {
+  background:var(--bz-k3); color:var(--bz-fg); border:1px solid #484c53;
+}
+header.bz .hbtn:hover, .bz-bar .btn.sec:hover { border-color:var(--bz-y) }
+header.bz .prog { background:var(--bz-k3) } header.bz .prog > div { background:var(--bz-y) }
+header.bz #progTxt { color:#c2c6cc }
+
+/* ลายเตือนแบบแถบเดี่ยว ใช้คั่นหรือแปะบนการ์ด */
+.bz-hz { height:7px; background:var(--bz-hz); border-radius:2px }
+
+/* ภาพปก */
+.bz-hero { position:relative; border-radius:14px; overflow:hidden; background:var(--bz-k); box-shadow:0 12px 34px rgba(0,0,0,.32); margin:0 0 18px }
+.bz-hero img { display:block; width:100%; height:auto; aspect-ratio:1200 / 630 }
+.bz-bar { padding:14px 16px 21px !important }
+.bz-bar .mut { color:#b4b8be !important }
+:root[data-theme="dark"] { color-scheme:dark }
+header.bz h1 { font-size:16px }
+header.bz { gap:8px !important } header.bz .hbtn, header.bz .pad { padding:5px 8px }
+@media (max-width:1520px) { header.bz .hbtn, header.bz .pad { font-size:12px; padding:4px 7px } header.bz h1 { font-size:15px } }

@@ -1,22 +1,32 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drive Team Academy</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<title>Drive Team Academy · BIOBUZZ</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="BIOBUZZ Simulator · Drive Team Academy">
+<meta property="og:description" content="BIOBUZZ Simulator by KMUTNB Gears · ซ้อมขับหุ่น FTC BIOBUZZ 2026-27 ด้วย keyboard หรือจอย ซ้อมกับ AI หรือซ้อมออนไลน์กับทีมอื่น">
+<meta property="og:url" content="https://biobuzz-sim.netlify.app/coach-training/">
+<meta property="og:image" content="https://biobuzz-sim.netlify.app/assets/biobuzz-banner.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1b1c1e">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="../assets/brand.css?v=5.5" rel="stylesheet">
 <style>
 :root {
   --bg:#f6f4ee; --surface:#ffffff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0;
   --acc:#d9a400; --accfg:#1d1f24; --ok:#1f9d55; --bad:#c9382f; --red:#d6453c; --blue:#2f6fd0; --lock:#a8a59c;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
-  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --lock:#59606b;
+  --bg:#151618; --surface:#202226; --surface2:#2a2d32; --fg:#efefeb; --mut:#a3a7ad; --line:#373a40;
+  --acc:#ffc20e; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --lock:#59606b;
 } }
 :root[data-theme="dark"] {
-  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
-  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --lock:#59606b;
+  --bg:#151618; --surface:#202226; --surface2:#2a2d32; --fg:#efefeb; --mut:#a3a7ad; --line:#373a40;
+  --acc:#ffc20e; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --lock:#59606b;
 }
 * { box-sizing:border-box }
 html,body { margin:0; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; line-height:1.55 }
@@ -52,7 +62,10 @@ main { padding:20px 24px 80px; min-width:0 }
 .role h3 { margin:0; font-size:19px }
 .role p { margin:0; color:var(--mut); font-size:14px; flex:1 }
 .role .bar { height:8px; background:var(--surface2); border-radius:5px; overflow:hidden } .role .bar > div { height:100%; background:var(--acc) }
-.role.free { border-style:dashed }
+.role { border-top:4px solid var(--bz-y); border-radius:10px } .role h3 { font-size:20px }
+.role.free { border-top:0; padding-top:20px; background:var(--bz-hz) left top / 100% 6px no-repeat, var(--surface) }
+.btn { font-family:var(--bz-font); font-weight:600; background:var(--bz-y); color:#111 } .btn.sec { font-family:Sarabun, system-ui, sans-serif }
+.home h2 { font-size:28px }
 .crumb { font-size:13px; color:var(--mut) }
 .diff { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:var(--surface2); border:1px solid var(--line); margin-left:6px }
 h2 { margin:4px 0 12px; font-size:24px }
@@ -102,6 +115,7 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 #rep { max-width:720px }
 .hidden { display:none !important }
 @media (max-width:860px) {
+  header { position:relative }
   .layout { grid-template-columns:1fr }
   nav { position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); display:none }
   nav.show { display:block }
@@ -113,9 +127,9 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
 </style>
 </head>
 <body>
-<header>
+<header class="bz">
   <button class="hbtn" id="navToggle">☰ บทเรียน</button>
-  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.4</div></div>
+  <div class="brand"><h1 id="homeLink">Drive Team <span>Academy</span> · BIOBUZZ</h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.5</div></div>
   <div class="row" id="roleTabs"></div>
   <div class="prog"><div id="progBar" style="width:0%"></div></div>
   <span id="progTxt"></span>
@@ -211,8 +225,8 @@ textarea { font:inherit; font-size:13px; line-height:1.5; padding:8px; border-ra
   </div>
 </dialog>
 
-<script src="../mockup/scenarios.js?v=5.4"></script>
-<script src="../mockup/live-rooms.js?v=5.4"></script>
+<script src="../mockup/scenarios.js?v=5.5"></script>
+<script src="../mockup/live-rooms.js?v=5.5"></script>
 <script>
 // ======================================================================
 // หลักสูตร 4 บทบาท ไล่จากง่ายไปยาก แต่ละข้อมี: สถานการณ์ · สิ่งที่ต้องทำ ·
@@ -1368,7 +1382,8 @@ function renderHome() {
   $('homeView').classList.remove('hidden'); $('roleView').classList.add('hidden'); $('navToggle').classList.add('hidden');
   $('progBar').parentElement.classList.add('hidden'); $('progTxt').textContent = '';
   const pr = padRec(), sk = padSkip(pr);
-  $('homeView').innerHTML = `<div class="crumb">FIRST Tech Challenge Thailand ครั้งที่ 8 · BIOBUZZ · 9–11 ธ.ค. 2569 · The Prince Royal's College เชียงใหม่</div>
+  $('homeView').innerHTML = `<div class="bz-hero"><img src="../assets/biobuzz-banner.jpg?v=${'5.5'}" width="1200" height="630" alt="BIOBUZZ Simulator by KMUTNB Gears · เล่นได้ทั้ง keyboard / controller · ซ้อมกับ AI / ซ้อมออนไลน์กับทีมอื่น"></div>
+    <div class="crumb">FIRST Tech Challenge Thailand ครั้งที่ 8 · BIOBUZZ · 9–11 ธ.ค. 2569 · The Prince Royal's College เชียงใหม่</div>
     <h2>เลือกบทบาทที่อยากฝึก</h2>
     <p class="mut" style="margin:0">แต่ละบทบาทไล่จากง่ายไปยาก ต้องผ่านทีละข้อ ข้อที่มีสถานการณ์ 3D จะเปิด simulator ที่จัดฉากตรงกับข้อนั้น และส่งผลผ่าน/ไม่ผ่านกลับมาที่นี่เอง</p>
     <div class="card" id="homeLive"></div>

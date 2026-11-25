@@ -4,9 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BIOBUZZ Trainer</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BIOBUZZ Simulator">
+<meta property="og:description" content="BIOBUZZ Simulator by KMUTNB Gears · ซ้อมขับหุ่น FTC BIOBUZZ 2026-27 ด้วย keyboard หรือจอย ซ้อมกับ AI หรือซ้อมออนไลน์กับทีมอื่น">
+<meta property="og:url" content="https://biobuzz-sim.netlify.app/mockup/">
+<meta property="og:image" content="https://biobuzz-sim.netlify.app/assets/biobuzz-banner.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1b1c1e">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="../assets/brand.css?v=5.5" rel="stylesheet">
 <style>
-  :root { --bg:#0e1116; --panel:rgba(16,20,28,.88); --fg:#e9edf3; --mut:#9aa4b2; --yel:#f5c518; --red:#e4453c; --blu:#3a7bd5; --grn:#3ec97a; --line:rgba(255,255,255,.12); }
+  :root { --bg:#141518; --panel:rgba(24,25,28,.9); --fg:#efefeb; --mut:#a3a7ad; --yel:#ffc20e; --red:#e4453c; --blu:#3a7bd5; --grn:#3ec97a; --line:rgba(255,255,255,.12); }
   * { box-sizing:border-box }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; overflow:hidden }
   canvas { display:block }
@@ -40,7 +50,7 @@
   .mcfg .mrow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:4px 0; font-size:14px } .mcfg select { font:inherit }
   .foul { font-size:12px; color:#ffb4a8 }
   #overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); overflow:auto; padding:16px }
-  #overlay .box { background:#151a22; border:1px solid var(--line); border-radius:14px; padding:20px 24px; max-width:640px; width:100%; max-height:100%; overflow:auto }
+  #overlay .box { background:var(--bz-hz) left top / 100% 7px no-repeat, linear-gradient(180deg, #24262a, #1a1b1e 140px); border:1px solid #3b3e44; border-radius:12px; padding:24px 24px 20px; max-width:640px; width:100%; max-height:100%; overflow:auto }
   #overlay .box.lobby { max-width:min(1240px, 98vw); padding:14px 18px; scrollbar-width:none } #overlay .box.lobby::-webkit-scrollbar { display:none }
   .lbGrid { display:grid; grid-template-columns:minmax(300px, .85fr) 1.3fr; gap:14px; align-items:start } .lbGrid .mcfg { margin:0 0 10px } .lbGrid .waitBan { margin:0 0 10px; flex-wrap:wrap } .lbGrid .chatList { height:max(220px, calc(100vh - 370px)); max-height:none }
   @media (max-height:800px) { .lbGrid .lbNote { display:none } #overlay .box.lobby h2 { font-size:20px; margin:0 0 4px } .lbGrid .waitBan { padding:6px 12px } }  /* จอเตี้ย (laptop 720p): ซ่อนคำอธิบายยาว ให้ทั้งห้องอยู่ใน 1 หน้าจอ */
@@ -188,9 +198,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=5.4"></script>
-<script src="live-rooms.js?v=5.4"></script>
-<script src="analyst.js?v=5.4"></script>
+<script src="scenarios.js?v=5.5"></script>
+<script src="live-rooms.js?v=5.5"></script>
+<script src="analyst.js?v=5.5"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -937,7 +947,7 @@ const api = {
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight); renderer.shadowMap.enabled = true;
 document.body.prepend(renderer.domElement);
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0e1116); scene.fog = new THREE.Fog(0x0e1116, 9, 16);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x141518); scene.fog = new THREE.Fog(0x141518, 9, 16);
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 50);
 scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x202020, 0.9));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(3, 6, 2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
@@ -962,6 +972,30 @@ const wt = 0.03;
   [[0, -o], [0, o]].forEach(([x, z]) => { pane(L, wt, x, z); box(L, rh, wt + 0.01, rail, x, F.wallH - rh / 2, z); box(L, rh * 0.8, wt + 0.006, rail, x, rh * 0.4, z); });
   [[-o, 0], [o, 0]].forEach(([x, z]) => { pane(wt, 2 * F.half, x, z); box(wt + 0.01, rh, 2 * F.half, rail, x, F.wallH - rh / 2, z); box(wt + 0.006, rh * 0.8, 2 * F.half, rail, x, rh * 0.4, z); });
   for (let k = 0; k <= 3; k++) { const t = -o + k * (2 * o / 3); [[t, -o], [t, o], [-o, t], [o, t]].forEach(([x, z]) => box(post, F.wallH, post, rail, x, F.wallH / 2, z)); }
+}
+/* ป้ายข้างสนาม (ตกแต่งเท่านั้น ไม่มีผลกับฟิสิกส์): ป้าย BIOBUZZ กลางฝั่งยาว และป้ายโลโก้ทีม KMUTNB Gears ขนาดเล็กสองข้าง
+   ตั้งนอกกำแพงทั้งสองฝั่งยาว หันหน้าเข้าสนาม คนขับทั้งฝั่งแดงและน้ำเงินเห็นเหมือนกัน */
+{
+  const hz = (x, y, w, h) => { x.save(); x.beginPath(); x.rect(0, y, w, h); x.clip(); x.fillStyle = '#ffc20e'; x.fillRect(0, y, w, h); x.fillStyle = '#1b1c1e'; for (let i = -h; i < w + h; i += 44) { x.beginPath(); x.moveTo(i, y + h); x.lineTo(i + 22, y + h); x.lineTo(i + 22 + h, y); x.lineTo(i + h, y); x.fill(); } x.restore(); };
+  const signTex = () => {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 360; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    const draw = () => { const x = c.getContext('2d'); x.fillStyle = '#1b1c1e'; x.fillRect(0, 0, 1024, 360); hz(x, 0, 1024, 34); hz(x, 326, 1024, 34);
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffc20e'; x.font = '800 150px Prompt, Sarabun, sans-serif'; x.fillText('BIOBUZZ', 512, 160);
+      x.fillStyle = '#f2f2ee'; x.font = '600 44px Prompt, Sarabun, sans-serif'; x.fillText('FTC THAILAND #8 · CHIANG MAI', 512, 266); t.needsUpdate = true; };
+    draw(); document.fonts?.load('800 150px Prompt').then(draw, () => {}); return t;
+  };
+  const logo = new THREE.TextureLoader().load('../assets/kmut-nb-gears.jpg'); logo.colorSpace = THREE.SRGBColorSpace; logo.anisotropy = 4;
+  const sign = signTex(), metal = new THREE.MeshStandardMaterial({ color: 0x3a3d42, metalness: 0.5, roughness: 0.45 });
+  const faceS = new THREE.MeshBasicMaterial({ map: sign }), faceL = new THREE.MeshBasicMaterial({ map: logo });
+  const board = (w, h, face, x, z, ry) => {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); const y0 = 0.05, b = 0.02;
+    const back = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * b, h + 2 * b, 0.025), metal); back.position.set(0, y0 + h / 2, -0.014); g.add(back);
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(w, h), face); f.position.set(0, y0 + h / 2, 0.0); g.add(f);
+    for (const s of [-1, 1]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, y0 + 0.06, 0.03), metal); leg.position.set(s * (w / 2 - 0.04), (y0 + 0.06) / 2, -0.03); g.add(leg); }
+  };
+  const zs = F.half + 0.34, lw = 0.4, lh = lw * 304 / 361;
+  for (const sz of [-1, 1]) { const ry = sz > 0 ? Math.PI : 0, z = sz * zs;
+    board(1.0, 1.0 * 360 / 1024, faceS, 0, z, ry); board(lw, lh, faceL, -0.82, z, ry); board(lw, lh, faceL, 0.82, z, ry); }
 }
 const tape = (b, mat, y = 0.002) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(b[1] - b[0], b[3] - b[2]), mat); m.rotation.x = -Math.PI / 2; m.position.set((b[0] + b[1]) / 2, y, (b[2] + b[3]) / 2); scene.add(m); return m; };
 const outline = (b, mat) => { const w = 0.025; tape([b[0], b[1], b[2], b[2] + w], mat); tape([b[0], b[1], b[3] - w, b[3]], mat); tape([b[0], b[0] + w, b[2], b[3]], mat); tape([b[1] - w, b[1], b[2], b[3]], mat); };
@@ -1374,7 +1408,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2>BIOBUZZ Trainer · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.4</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2 style="text-transform:uppercase;letter-spacing:.02em">BIOBUZZ <span style="color:var(--fg)">Simulator</span> · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.5</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button>${window.BBAna?.reports?.length ? '<button id="mLastRep" class="sec">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>
     <div id="mcfg" class="mcfg"></div>

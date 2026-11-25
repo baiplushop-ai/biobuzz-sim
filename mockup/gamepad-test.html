@@ -1,12 +1,22 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ทดสอบจอย Joy 1 / Joy 2</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BIOBUZZ · ทดสอบจอย Joy 1 / Joy 2">
+<meta property="og:description" content="เช็กจอยก่อนซ้อม · BIOBUZZ Simulator by KMUTNB Gears">
+<meta property="og:url" content="https://biobuzz-sim.netlify.app/mockup/gamepad-test.html">
+<meta property="og:image" content="https://biobuzz-sim.netlify.app/assets/biobuzz-banner.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1b1c1e">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="../assets/brand.css?v=5.5" rel="stylesheet">
 <style>
-:root { --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b; --acc:#f5c518; --ok:#3ec97a; --bad:#ff7b6b; --blue:#5b93e8; --pad:#2a3140; --on:#f5c518; }
+:root { --bg:#151618; --surface:#202226; --surface2:#2a2d32; --fg:#efefeb; --mut:#a3a7ad; --line:#373a40; --acc:#ffc20e; --ok:#3ec97a; --bad:#ff7b6b; --blue:#5b93e8; --pad:#2a3140; --on:#f5c518; }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg:#f6f4ee; --surface:#fff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0; --acc:#d9a400; --ok:#1f9d55; --bad:#c9382f; --blue:#2f6fd0; --pad:#d9dde5; --on:#d9a400; } }
 :root[data-theme="light"] { --bg:#f6f4ee; --surface:#fff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0; --acc:#d9a400; --ok:#1f9d55; --bad:#c9382f; --blue:#2f6fd0; --pad:#d9dde5; --on:#d9a400; }
 * { box-sizing:border-box }
@@ -45,11 +55,11 @@ table { width:100%; border-collapse:collapse; font-size:14px } td, th { padding:
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="row" style="justify-content:space-between">
-    <div><h1>ทดสอบจอย <span>Joy 1 / Joy 2</span> <small class="mut" style="font-size:12px;font-weight:400" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.4</small></h1><div class="mut">ตรวจว่าจอยแต่ละตัวต่อกับเบราว์เซอร์ได้ ปุ่มครบ แกนไม่ drift และ 2 จอยทำงานแยกกันอิสระ ก่อนใช้ซ้อมใน simulator</div></div>
+<div class="bz-bar"><div class="row" style="justify-content:space-between;max-width:1100px;margin:0 auto">
+    <div><h1>ทดสอบจอย <span>Joy 1 / Joy 2</span> <small class="mut" style="font-size:12px;font-weight:400" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับในทีม ให้กดรีเฟรช">v5.5</small></h1><div class="mut">ตรวจว่าจอยแต่ละตัวต่อกับเบราว์เซอร์ได้ ปุ่มครบ แกนไม่ drift และ 2 จอยทำงานแยกกันอิสระ ก่อนใช้ซ้อมใน simulator</div></div>
     <div class="row"><a class="btn sec" href="../coach-training/index.html" id="backAcademy">← หน้าบทเรียน</a><a class="btn sec" href="index.html" id="backSim">เมนู simulator</a></div>
-  </div>
+  </div></div>
+<div class="wrap">
   <div class="warn small" id="errLine" hidden role="alert"></div>
 
   <div class="card" style="margin-top:14px">

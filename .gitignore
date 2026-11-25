@@ -12,3 +12,5 @@ node_modules/
 .claude/
 *.code-workspace
 *.skill
+# รูปแบรนด์ที่หน้าเว็บใช้จริง (ภาพปก + โลโก้ทีม)
+!assets/*.jpg

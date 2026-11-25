@@ -1,22 +1,32 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BIOBUZZ Scouting</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BIOBUZZ Scouting">
+<meta property="og:description" content="จดข้อมูลทีมอื่นทีละแมตช์และทำ Pick list · BIOBUZZ Simulator by KMUTNB Gears">
+<meta property="og:url" content="https://biobuzz-sim.netlify.app/scouting/">
+<meta property="og:image" content="https://biobuzz-sim.netlify.app/assets/biobuzz-banner.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1b1c1e">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="../assets/brand.css?v=5.5" rel="stylesheet">
 <style>
 :root {
   --bg:#f6f4ee; --surface:#ffffff; --surface2:#f0ede4; --fg:#1d1f24; --mut:#626a75; --line:#dedad0;
   --acc:#d9a400; --accfg:#1d1f24; --ok:#1f9d55; --bad:#c9382f; --red:#d6453c; --blue:#2f6fd0; --warn:#b87400;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
-  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --warn:#f5a524;
+  --bg:#151618; --surface:#202226; --surface2:#2a2d32; --fg:#efefeb; --mut:#a3a7ad; --line:#373a40;
+  --acc:#ffc20e; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --warn:#f5a524;
 } }
 :root[data-theme="dark"] {
-  --bg:#0f1217; --surface:#171b22; --surface2:#1f242d; --fg:#e8ecf2; --mut:#9aa4b2; --line:#2b313b;
-  --acc:#f5c518; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --warn:#f5a524;
+  --bg:#151618; --surface:#202226; --surface2:#2a2d32; --fg:#efefeb; --mut:#a3a7ad; --line:#373a40;
+  --acc:#ffc20e; --accfg:#111; --ok:#3ec97a; --bad:#ff7b6b; --red:#ef5b52; --blue:#5b93e8; --warn:#f5a524;
 }
 * { box-sizing:border-box }
 html,body { margin:0; background:var(--bg); color:var(--fg); font-family:Sarabun,system-ui,sans-serif; line-height:1.45; -webkit-text-size-adjust:100% }
@@ -72,8 +82,8 @@ dialog::backdrop { background:rgba(0,0,0,.5) }
 </style>
 </head>
 <body>
-<header>
-  <div><h1>📋 Scouting <span>BIOBUZZ</span></h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับเครื่องอื่นให้กดรีเฟรช">v5.4</div></div>
+<header class="bz">
+  <div><h1>📋 Scouting <span>BIOBUZZ</span></h1><div class="ver" title="เวอร์ชันของเว็บ ถ้าเลขไม่ตรงกับเครื่องอื่นให้กดรีเฟรช">v5.5</div></div>
   <span class="sp"></span>
   <button class="chip" id="syncChip" title="สถานะการส่งข้อมูลขึ้นเซิร์ฟเวอร์ (กดเพื่อซิงก์ตอนนี้)">⚪ ยังไม่ซิงก์</button>
   <a class="chip" href="../coach-training/#home" style="text-decoration:none">← หน้า Home</a>
