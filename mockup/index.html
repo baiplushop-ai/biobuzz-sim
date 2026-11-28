@@ -14,7 +14,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1b1c1e">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700;800&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-<link href="../assets/brand.css?v=5.6" rel="stylesheet">
+<link href="../assets/brand.css?v=5.7" rel="stylesheet">
 <style>
   :root { --bg:#141518; --panel:rgba(24,25,28,.9); --fg:#efefeb; --mut:#a3a7ad; --yel:#ffc20e; --red:#e4453c; --blu:#3a7bd5; --grn:#3ec97a; --line:rgba(255,255,255,.12); }
   * { box-sizing:border-box }
@@ -198,9 +198,9 @@ function loadFail() {
 }
 setTimeout(loadFail, 12000);
 </script>
-<script src="scenarios.js?v=5.6"></script>
-<script src="live-rooms.js?v=5.6"></script>
-<script src="analyst.js?v=5.6"></script>
+<script src="scenarios.js?v=5.7"></script>
+<script src="live-rooms.js?v=5.7"></script>
+<script src="analyst.js?v=5.7"></script>
 <script type="importmap">{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }</script>
 <script type="module" onerror="loadFail()">
 import * as THREE from 'three';
@@ -320,7 +320,7 @@ function foul(all, rule, sev, why, by = null, yc = false) {
 }
 const cardOf = (c, fouls = S.fouls) => fouls.some(f => f.all === c && f.card === 'red') ? 'red' : fouls.some(f => f.all === c && f.card) ? 'yellow' : 'none';
 const CARD_TH = { none: 'ไม่มี', yellow: '🟨 ใบเหลือง', red: '🟥 ใบแดง · DISQUALIFIED' };
-const RP_NOTE = 'RP คิดตามเกณฑ์งานทั่วไป: WIN 3 · TIE 1 · SWARM 1 (LEAVE + PARK ≥ 16 แต้ม) · POLLINATOR 1 (TIP ≥ 4) · POLLINATOR 2 (TIP ≥ 7) · ตรวจเกณฑ์กับ Team Update ล่าสุดก่อนวันแข่ง';
+const RP_NOTE = 'RP คิดตามเกณฑ์งานทั่วไปและ Regional Championship (TU10): WIN 3 · TIE 1 · SWARM 1 (LEAVE + PARK ≥ 16 แต้ม) · POLLINATOR 1 (TIP ≥ 4) · POLLINATOR 2 (TIP ≥ 7) · ตรวจเกณฑ์กับ Team Update ล่าสุดก่อนวันแข่ง';
 const rpTxt = p => p.dq ? '<b>0</b> (DISQUALIFIED)' : `<b>${p.total}</b> = WIN/TIE ${p.win} + SWARM ${p.swarm} + POLLINATOR ${p.p1 + p.p2}`;
 // Ranking Points งานทั่วไป: WIN 3 · TIE 1 · SWARM 1 (LEAVE + PARK ≥ 16 แต้ม) · POLLINATOR 1 (TIP ≥ 4) · POLLINATOR 2 (TIP ≥ 7) · เกณฑ์อาจเปลี่ยนตาม Team Update
 function rpCalc(score, tips, lp, card = {}) {
@@ -613,17 +613,18 @@ function stepContacts(dt) {
     }
   }
 }
-// G411 (กรรมการใช้ดุลยพินิจ · ที่นี่ใช้เกณฑ์ฝึก): จอดนิ่งทับกองลูก ≥ 3 ลูก ขณะคู่แข่งอยู่ใกล้ = กักลูก/ขวางไม่ให้คู่แข่งเข้าถึงลูก
+// G411 (TU09): ห้ามกันไม่ให้คู่แข่งเข้าถึงลูกเกิน 8 ลูก · VERBAL WARNING และ MAJOR + YELLOW CARD ถ้า STRATEGIC · NECTAR สีเราไม่นับ (ใช้ทำแต้มเองได้)
+// เกณฑ์ใน simulator (กรรมการจริงใช้ดุลยพินิจ): จอดนิ่งที่กองลูก > 8 ลูก ขณะคู่แข่งอยู่ใกล้ · 5 วิ = เตือน · ยังจอดต่อถึง 10 วิ = ถือว่าจงใจ
 function stepHoard(dt) {
   if (phase() !== 'teleop') return;
   for (const r of active()) {
     if (!r.human || r.dead) continue;
-    const n = S.balls.filter(b => b.where === 'floor' && Math.hypot(b.x - r.x, b.z - r.z) < 0.5).length;
+    const n = S.balls.filter(b => b.where === 'floor' && (b.kind === 'pollen' || b.color !== r.alliance) && Math.hypot(b.x - r.x, b.z - r.z) < 0.6).length;
     const opp = active().some(o => o.alliance !== r.alliance && Math.hypot(o.x - r.x, o.z - r.z) < 1.1);
-    if (speed(r) < 0.15 && n >= 3 && opp) {
+    if (speed(r) < 0.15 && n > 8 && opp) {
       const t0 = r.hoardT || 0, t = r.hoardT = t0 + dt;
-      if (t0 < 5 && t >= 5) foul(r.alliance, 'G411', 'WARN', 'จอดขวางกองลูกไม่ให้คู่แข่งเก็บ ขยับออก (กรรมการเห็นว่ากักลูก = MAJOR + ใบเหลือง)', r.id);
-      if (t0 < 10 && t >= 10 && !S.once['g411' + r.alliance]) { S.once['g411' + r.alliance] = 1; foul(r.alliance, 'G411', 'MAJOR', 'จอดกักกองลูกนานเกิน 10 วิ', r.id, true); }
+      if (t0 < 5 && t >= 5) foul(r.alliance, 'G411', 'WARN', 'VERBAL WARNING: จอดขวางกองลูกเกิน 8 ลูกไม่ให้คู่แข่งเก็บ ขยับออก (ถ้าจงใจ = MAJOR + ใบเหลือง)', r.id);
+      if (t0 < 10 && t >= 10 && !S.once['g411' + r.alliance]) { S.once['g411' + r.alliance] = 1; foul(r.alliance, 'G411', 'MAJOR', 'จอดกักกองลูกเกิน 8 ลูกต่อหลังโดนเตือน (STRATEGIC)', r.id, true); }
     } else r.hoardT = Math.max(0, (r.hoardT || 0) - dt * 2);
   }
 }
@@ -1408,7 +1409,7 @@ function showIntro() {
 function showMenu() {
   const groups = { coach: [], driver: [], operator: [], hp: [] };
   Object.entries(SCN_ALL).forEach(([id, s]) => (groups[s.role || 'coach'] || groups.coach).push(`<a href="?s=${encodeURIComponent(id)}"><b>${esc(id)}</b> ${esc(s.title)}</a>`));
-  ov(true, `<h2 style="text-transform:uppercase;letter-spacing:.02em">BIOBUZZ <span style="color:var(--fg)">Simulator</span> · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.6</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
+  ov(true, `<h2 style="text-transform:uppercase;letter-spacing:.02em">BIOBUZZ <span style="color:var(--fg)">Simulator</span> · 3D <span class="mut" style="font-size:12px;font-weight:400">v5.7</span></h2><p>สนามตามขนาดในคู่มือ 2026‑27 · ขับ RED 1 ด้วยจอย (DualShock 4 / Logitech) หรือคีย์บอร์ดของ laptop / PC</p>${devHint()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mFree">Free Control (คนขับบังคับหุ่นอิสระ)</button><button id="mTele" class="sec">แมตช์ TELEOP 2:00</button><button id="mFull" class="sec">แมตช์เต็ม AUTO + TELEOP</button><button class="sec" data-href="gamepad-test.html">🎮 ทดสอบจอย</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button id="mNet">🌐 เล่นออนไลน์ 2–4 เครื่อง (สร้างห้อง / เข้าร่วม)</button><button id="mHist" class="sec">📜 ประวัติการเล่นออนไลน์</button><button id="mOpen" class="sec" title="เปิดไฟล์ .json ที่บันทึกจากกล่องผลประเมินผู้เล่น (ผู้ชมพิเศษ) เพื่อดูรายงานและ Replay อีกครั้ง">📂 เปิดไฟล์รายงาน / Replay</button>${window.BBAna?.reports?.length ? '<button id="mLastRep" class="sec">📊 รายงานล่าสุด (' + window.BBAna.reports.length + ')</button>' : ''}</div>
     <div id="mcfg" class="mcfg"></div>
